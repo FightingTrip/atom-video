@@ -11,6 +11,8 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import compression from 'compression';
 import { errorHandler } from './middleware/errorHandler';
+import { cacheMiddleware, clearCacheMiddleware } from './middleware/cache';
+import { cacheWarmupService } from './services/cacheWarmupService';
 
 // 加载环境变量
 dotenv.config();
@@ -35,6 +37,10 @@ app.use(limiter);
 
 // 认证中间件
 app.use(passport.initialize());
+
+// 缓存中间件
+app.use(cacheMiddleware());
+app.use(clearCacheMiddleware());
 
 // 健康检查
 app.get('/health', (req, res) => {
@@ -63,5 +69,18 @@ app.use((req, res) => {
 
 // 错误处理中间件
 app.use(errorHandler);
+
+// 启动服务器
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, async () => {
+  logger.info(`服务器启动在端口 ${PORT}`);
+  
+  // 执行缓存预热
+  try {
+    await cacheWarmupService.warmupAll();
+  } catch (error) {
+    logger.error('缓存预热失败:', error);
+  }
+});
 
 export default app;
