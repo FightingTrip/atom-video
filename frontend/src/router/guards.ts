@@ -1,5 +1,12 @@
+// 技术栈说明：
+// - Vue 3: 使用 Composition API
+// - TypeScript: 强类型支持
+// - Vue Router: 路由管理
+// - Pinia: 状态管理
+
 import { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
-import { useAuthStore } from '@/store/auth';
+import { useAuthStore } from '@/stores/auth';
+import { useToast } from '@/composables/useToast';
 
 // 需要认证的路由
 const authRoutes = ['/profile', '/settings', '/upload'];
@@ -13,20 +20,30 @@ export const authGuard = async (
   next: NavigationGuardNext
 ) => {
   const authStore = useAuthStore();
-  const requiresAuth = authRoutes.some(route => to.path.startsWith(route));
-  const requiresGuest = guestRoutes.some(route => to.path.startsWith(route));
+  const toast = useToast();
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  const requiresGuest = to.matched.some(record => record.meta.guest);
 
-  // 检查认证状态
-  const isAuthenticated = await authStore.checkAuth();
+  try {
+    // 检查认证状态
+    await authStore.checkAuth();
+    const isAuthenticated = authStore.isAuthenticated;
 
-  if (requiresAuth && !isAuthenticated) {
-    // 需要认证但未登录，重定向到登录页
-    next({ path: '/auth/login', query: { redirect: to.fullPath } });
-  } else if (requiresGuest && isAuthenticated) {
-    // 已登录用户访问登录/注册页，重定向到首页
-    next({ path: '/' });
-  } else {
-    // 其他情况正常放行
-    next();
+    if (requiresAuth && !isAuthenticated) {
+      // 需要认证但未登录，重定向到登录页
+      toast.error('请先登录');
+      next({ path: '/auth/login', query: { redirect: to.fullPath } });
+    } else if (requiresGuest && isAuthenticated) {
+      // 已登录用户访问登录/注册页，重定向到首页
+      toast.info('您已登录');
+      next({ path: '/' });
+    } else {
+      // 其他情况正常放行
+      next();
+    }
+  } catch (error) {
+    // 处理认证检查过程中的错误
+    console.error('认证检查失败:', error);
+    next({ path: '/auth/login' });
   }
 };
