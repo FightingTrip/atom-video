@@ -10,8 +10,12 @@
 <script setup lang="ts">
   // 导入路由视图
   import { RouterView } from 'vue-router'
+  import { useI18n } from 'vue-i18n'
   // 导入 Toast 组件
   import Toast from '@/components/Toast.vue'
+  import LanguageSelector from '@/components/LanguageSelector.vue'
+
+  const { t } = useI18n();
 </script>
 
 <template>
@@ -33,7 +37,7 @@
         <!-- 中间搜索栏 -->
         <div class="flex-1 max-w-[600px] mx-4">
           <div class="flex">
-            <input type="text" placeholder="搜索"
+            <input type="text" :placeholder="$t('common.search')"
               class="w-full px-4 py-2 bg-[#121212] border border-[#303030] rounded-l-full focus:outline-none focus:border-blue-500" />
             <button class="px-6 bg-[#272727] border border-l-0 border-[#303030] rounded-r-full hover:bg-[#3f3f3f]">
               <i class="fas fa-search"></i>
@@ -43,12 +47,13 @@
 
         <!-- 右侧用户区域 -->
         <div class="flex items-center gap-2">
-          <button class="p-2 hover:bg-[#272727] rounded-full">
+          <button class="p-2 hover:bg-[#272727] rounded-full" :title="$t('video.upload')">
             <i class="fas fa-video text-xl"></i>
           </button>
           <button class="p-2 hover:bg-[#272727] rounded-full">
             <i class="fas fa-bell text-xl"></i>
           </button>
+          <LanguageSelector />
           <button class="w-8 h-8 rounded-full overflow-hidden">
             <img src="/default-avatar.png" alt="用户头像" class="w-full h-full object-cover" />
           </button>
@@ -61,24 +66,24 @@
       <nav class="py-2">
         <router-link to="/" class="flex items-center gap-4 px-6 py-2 hover:bg-[#272727]">
           <i class="fas fa-home text-xl"></i>
-          <span>首页</span>
+          <span>{{ $t('nav.home') }}</span>
         </router-link>
         <router-link to="/trending" class="flex items-center gap-4 px-6 py-2 hover:bg-[#272727]">
           <i class="fas fa-fire text-xl"></i>
-          <span>热门</span>
+          <span>{{ $t('nav.trending') }}</span>
         </router-link>
         <router-link to="/subscriptions" class="flex items-center gap-4 px-6 py-2 hover:bg-[#272727]">
           <i class="fas fa-play text-xl"></i>
-          <span>订阅内容</span>
+          <span>{{ $t('nav.subscriptions') }}</span>
         </router-link>
         <div class="border-t border-[#272727] my-2"></div>
         <router-link to="/library" class="flex items-center gap-4 px-6 py-2 hover:bg-[#272727]">
           <i class="fas fa-folder text-xl"></i>
-          <span>媒体库</span>
+          <span>{{ $t('nav.library') }}</span>
         </router-link>
         <router-link to="/history" class="flex items-center gap-4 px-6 py-2 hover:bg-[#272727]">
           <i class="fas fa-history text-xl"></i>
-          <span>历史记录</span>
+          <span>{{ $t('nav.history') }}</span>
         </router-link>
       </nav>
     </aside>
