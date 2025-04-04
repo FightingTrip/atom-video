@@ -24,12 +24,12 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    async login(username: string, password: string) {
+    async login(email: string, password: string) {
       const toast = useToast();
       this.loading = true;
       this.error = null;
       try {
-        const response = await mockLogin({ username, password });
+        const response = await mockLogin({ username: email, password });
         if (response.success && response.data) {
           this.setAuth(response.data);
           toast.success('登录成功');
@@ -55,7 +55,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await mockRegister({ username, password, nickname });
         if (response.success && response.data) {
-          this.setAuth(response.data);
+          // 注册成功但不立即登录
           toast.success('注册成功');
           return true;
         } else {

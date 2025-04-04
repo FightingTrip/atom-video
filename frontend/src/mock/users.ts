@@ -47,32 +47,192 @@ export interface Playlist {
 }
 
 // 模拟用户数据
-const users: User[] = [
+export const mockUsers: User[] = [
   {
     id: '1',
     username: 'admin',
-    nickname: '管理员',
-    avatar: '/default-avatar.svg',
-    bio: '系统管理员',
-    github: 'https://github.com',
-    website: 'https://atomvideo.dev',
-    location: '北京',
-    createdAt: '2024-01-01T00:00:00Z',
+    email: 'admin@example.com',
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    isVerified: true,
   },
   {
     id: '2',
     username: 'demo',
-    nickname: '演示用户',
-    avatar: '/default-avatar.svg',
-    bio: '这是一个演示账号',
-    location: '上海',
-    createdAt: '2024-01-02T00:00:00Z',
+    email: 'demo@example.com',
+    avatar: 'https://i.pravatar.cc/150?img=2',
+    isVerified: true,
+  },
+  {
+    id: '3',
+    username: 'test',
+    email: 'test@example.com',
+    avatar: 'https://i.pravatar.cc/150?img=3',
+    isVerified: true,
   },
 ];
 
-// 模拟用户数据存储
-let mockUsers = [...users];
-const tokens = new Map<string, string>();
+// 模拟的用户密码映射 (在实际应用中密码会加密保存)
+const userPasswords = {
+  'admin@example.com': 'admin123',
+  'demo@example.com': 'demo123',
+  'test@example.com': 'test123',
+};
+
+// 模拟token存储
+export const tokens = new Map<string, string>();
+
+// 生成唯一ID
+export function generateId() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+// API 响应类型
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T | null;
+  error?: string;
+}
+
+// 认证响应类型
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+// 模拟登录
+export async function login(data: {
+  username: string;
+  password: string;
+}): Promise<ApiResponse<AuthResponse>> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 检查是否是邮箱登录
+  const isEmail = data.username.includes('@');
+  let user;
+
+  if (isEmail) {
+    // 通过邮箱查找用户
+    user = mockUsers.find(u => u.email === data.username);
+    // 验证密码
+    if (user && userPasswords[data.username] !== data.password) {
+      user = null;
+    }
+  } else {
+    // 通过用户名查找用户
+    user = mockUsers.find(u => u.username === data.username);
+    // 验证密码
+    if (user && userPasswords[user.email] !== data.password) {
+      user = null;
+    }
+  }
+
+  if (!user) {
+    return {
+      success: false,
+      data: null,
+      error: '用户名或密码错误',
+    };
+  }
+
+  // 生成token
+  const token = generateId();
+  tokens.set(user.id, token);
+
+  return {
+    success: true,
+    data: {
+      token,
+      user,
+    },
+  };
+}
+
+// 模拟注册
+export async function register(data: {
+  username: string;
+  password: string;
+  nickname?: string;
+}): Promise<ApiResponse<User>> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 检查用户名是否已存在
+  if (mockUsers.some(u => u.username === data.username)) {
+    return {
+      success: false,
+      data: null,
+      error: '用户名已存在',
+    };
+  }
+
+  // 创建新用户
+  const newUser: User = {
+    id: (mockUsers.length + 1).toString(),
+    username: data.username,
+    email: `${data.username}@example.com`,
+    avatar: `https://i.pravatar.cc/150?img=${mockUsers.length + 1}`,
+    isVerified: false,
+  };
+
+  // 添加到模拟数据
+  mockUsers.push(newUser);
+
+  // 添加密码映射
+  userPasswords[newUser.email] = data.password;
+
+  return {
+    success: true,
+    data: newUser,
+  };
+}
+
+// 通过token获取用户
+export async function getUserByToken(token: string): Promise<ApiResponse<User>> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // 查找token对应的用户
+  const userId = [...tokens.entries()].find(([, t]) => t === token)?.[0];
+  if (!userId) {
+    return {
+      success: false,
+      data: null,
+      error: '无效的token',
+    };
+  }
+
+  const user = mockUsers.find(u => u.id === userId);
+  if (!user) {
+    return {
+      success: false,
+      data: null,
+      error: '用户不存在',
+    };
+  }
+
+  return {
+    success: true,
+    data: user,
+  };
+}
+
+// 模拟验证码发送
+export async function sendVerificationCode(email: string): Promise<ApiResponse<string>> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 模拟成功响应
+  return {
+    success: true,
+    data: '验证码已发送到您的邮箱',
+  };
+}
+
+// 模拟验证token
+export function validateToken(token: string): boolean {
+  return Array.from(tokens.values()).includes(token);
+}
 
 // 生成模拟用户数据
 export const generateMockUsers = (count: number): User[] => {
@@ -176,71 +336,6 @@ export const testUserData = {
   channels: mockChannelList.slice(0, 5),
 };
 
-// 模拟注册
-export async function register(data: {
-  username: string;
-  password: string;
-  nickname?: string;
-}): Promise<ApiResponse<AuthResponse>> {
-  // 检查用户名是否已存在
-  if (mockUsers.some(u => u.username === data.username)) {
-    return {
-      success: false,
-      data: null,
-      error: '用户名已存在',
-    };
-  }
-
-  // 创建新用户
-  const newUser: User = {
-    id: generateId(),
-    username: data.username,
-    nickname: data.nickname || data.username,
-    avatar: '/default-avatar.svg',
-    createdAt: new Date().toISOString(),
-  };
-
-  mockUsers.push(newUser);
-  const token = generateId();
-  tokens.set(newUser.id, token);
-
-  return {
-    success: true,
-    data: {
-      token,
-      user: newUser,
-    },
-  };
-}
-
-// 模拟登录
-export async function login(data: {
-  username: string;
-  password: string;
-}): Promise<ApiResponse<AuthResponse>> {
-  const user = mockUsers.find(u => u.username === data.username);
-
-  if (!user) {
-    return {
-      success: false,
-      data: null,
-      error: '用户名或密码错误',
-    };
-  }
-
-  // 在实际应用中会验证密码
-  const token = generateId();
-  tokens.set(user.id, token);
-
-  return {
-    success: true,
-    data: {
-      token,
-      user,
-    },
-  };
-}
-
 // 模拟获取用户信息
 export async function getUserInfo(userId: string): Promise<ApiResponse<User>> {
   const user = mockUsers.find(u => u.id === userId);
@@ -285,32 +380,6 @@ export async function updateUserInfo(
   return {
     success: true,
     data: mockUsers[userIndex],
-  };
-}
-
-// 模拟验证 token
-export function validateToken(token: string): boolean {
-  return Array.from(tokens.values()).includes(token);
-}
-
-// 模拟通过 token 获取用户
-export async function getUserByToken(token: string): Promise<ApiResponse<User>> {
-  for (const [userId, userToken] of tokens.entries()) {
-    if (userToken === token) {
-      const user = mockUsers.find(u => u.id === userId);
-      if (user) {
-        return {
-          success: true,
-          data: user,
-        };
-      }
-    }
-  }
-
-  return {
-    success: false,
-    data: null,
-    error: '无效的 token',
   };
 }
 

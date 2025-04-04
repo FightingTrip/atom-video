@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { i18n } from '@/plugins/i18n';
+import  i18n  from '@/plugins/i18n';
 
 // 导入语言包
 import zh from '@/locales/zh-CN';

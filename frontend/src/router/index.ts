@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 // 修改懒加载的写法，添加注释和错误处理
@@ -23,34 +23,77 @@ const Subscriptions = () => import('@/views/Subscriptions.vue');
 const Library = () => import('@/views/Library.vue');
 const History = () => import('@/views/History.vue');
 
-// 使用哈希路由模式
-const history = createWebHashHistory();
-
-// 路由配置
-const routes = [
+const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    name: 'home',
-    component: Home,
-    meta: { title: '首页' },
+    component: () => import('../layouts/DefaultLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'Home',
+        component: () => import('../views/Home.vue'),
+        meta: {
+          title: '首页',
+        },
+      },
+      {
+        path: 'explore',
+        name: 'Explore',
+        component: () => import('../views/Explore.vue'),
+        meta: {
+          title: '探索',
+        },
+      },
+      // 其他需要默认布局的路由...
+    ],
   },
   {
     path: '/auth',
-    name: 'auth',
-    redirect: '/auth/login',
-    component: () => import('@/views/auth/AuthLayout.vue'),
+    component: () => import('../layouts/BlankLayout.vue'),
     children: [
       {
+        path: '',
+        name: 'Auth',
+        component: () => import('../views/Auth.vue'),
+        meta: {
+          title: '登录与注册',
+          guest: true,
+        },
+      },
+      {
         path: 'login',
-        name: 'login',
-        component: Login,
-        meta: { title: '登录', guest: true },
+        redirect: '/auth',
       },
       {
         path: 'register',
-        name: 'register',
-        component: Register,
-        meta: { title: '注册', guest: true },
+        redirect: '/auth',
+      },
+      {
+        path: 'verify-email',
+        name: 'VerifyEmail',
+        component: () => import('../views/auth/VerifyEmail.vue'),
+        meta: {
+          title: '验证邮箱',
+          guest: true,
+        },
+      },
+      {
+        path: 'forgot-password',
+        name: 'ForgotPassword',
+        component: () => import('../views/auth/ForgotPassword.vue'),
+        meta: {
+          title: '忘记密码',
+          guest: true,
+        },
+      },
+      {
+        path: 'reset-password',
+        name: 'ResetPassword',
+        component: () => import('../views/auth/ResetPassword.vue'),
+        meta: {
+          title: '重置密码',
+          guest: true,
+        },
       },
     ],
   },
@@ -102,15 +145,6 @@ const routes = [
     },
   },
   {
-    path: '/auth/verify-email',
-    name: 'VerifyEmail',
-    component: VerifyEmail,
-    meta: {
-      title: '验证邮箱',
-      guest: true,
-    },
-  },
-  {
     path: '/video/upload',
     name: 'VideoUpload',
     component: VideoUpload,
@@ -128,24 +162,6 @@ const routes = [
     },
   },
   {
-    path: '/auth/forgot-password',
-    name: 'ForgotPassword',
-    component: ForgotPassword,
-    meta: {
-      title: '忘记密码',
-      guest: true,
-    },
-  },
-  {
-    path: '/auth/reset-password',
-    name: 'ResetPassword',
-    component: ResetPassword,
-    meta: {
-      title: '重置密码',
-      guest: true,
-    },
-  },
-  {
     path: '/tag/:id',
     name: 'TagDetail',
     component: TagDetail,
@@ -154,9 +170,18 @@ const routes = [
     },
   },
   {
+    path: '/oauth/callback',
+    name: 'OAuthCallback',
+    component: () => import('../views/auth/OAuthCallback.vue'),
+    meta: {
+      title: 'OAuth Callback',
+      guest: true,
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: NotFound,
+    component: () => import('../views/NotFound.vue'),
     meta: {
       title: '页面未找到',
     },
@@ -165,7 +190,7 @@ const routes = [
 
 // 创建路由实例
 const router = createRouter({
-  history,
+  history: createWebHashHistory(),
   routes,
 });
 
@@ -174,16 +199,15 @@ router.onError(error => {
   console.error('Router error:', error);
 });
 
-// 导航守卫
-router.beforeEach(async (to, from, next) => {
+// 路由守卫处理标题等
+router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
-  // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - Atom Video` : 'Atom Video';
+  document.title = `${to.meta.title || 'Atom Video'} - Make Develop All In One`;
 
   // 检查认证状态
   if (!authStore.isAuthenticated && authStore.token) {
-    await authStore.checkAuth();
+    authStore.checkAuth();
   }
 
   // 需要认证的路由

@@ -17,6 +17,15 @@ import {
   NDivider,
   NMenu,
   NIcon,
+  NForm,
+  NFormItem,
+  NModal,
+  NSelect,
+  NLayout,
+  NLayoutSider,
+  NLayoutHeader,
+  NLayoutFooter,
+  NLayoutContent,
 } from 'naive-ui';
 
 // 创建 naive-ui 实例
@@ -36,6 +45,15 @@ const naive = create({
     NDivider,
     NMenu,
     NIcon,
+    NForm,
+    NFormItem,
+    NModal,
+    NSelect,
+    NLayout,
+    NLayoutSider,
+    NLayoutHeader,
+    NLayoutFooter,
+    NLayoutContent,
   ],
 });
 

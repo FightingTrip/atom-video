@@ -1,154 +1,344 @@
 <script setup lang="ts">
-  import { ref, reactive, computed } from 'vue'
+  import { ref, reactive } from 'vue'
+  import { useI18n } from 'vue-i18n'
   import { useRouter } from 'vue-router'
+  import { useMessage } from 'naive-ui'
   import { useAuthStore } from '@/stores/auth'
 
+  const { t } = useI18n()
   const router = useRouter()
+  const message = useMessage()
   const authStore = useAuthStore()
+
+  // 页面状态
+  const showPassword = ref(false)
+  const showConfirmPassword = ref(false)
+  const loading = ref(false)
+  const countdown = ref(0)
+
+  // 表单数据
   const form = reactive({
     username: '',
-    nickname: '',
+    email: '',
     password: '',
     confirmPassword: '',
-  })
-  const validationError = ref('')
-
-  const isValid = computed(() => {
-    if (form.password !== form.confirmPassword) {
-      validationError.value = '两次输入的密码不一致'
-      return false
-    }
-    if (form.password.length < 6) {
-      validationError.value = '密码长度至少为6位'
-      return false
-    }
-    if (form.username.length < 3) {
-      validationError.value = '用户名长度至少为3位'
-      return false
-    }
-    validationError.value = ''
-    return true
+    verificationCode: ''
   })
 
+  // 表单提交
   const handleSubmit = async () => {
-    if (!isValid.value) return
+    loading.value = true
+    try {
+      // 简单验证
+      if (form.password !== form.confirmPassword) {
+        message.error(t('auth.passwordsNotMatch'))
+        return
+      }
 
-    const success = await authStore.register(
-      form.username,
-      form.password,
-      form.nickname || undefined
-    )
+      if (form.password.length < 8) {
+        message.error(t('auth.passwordTooShort'))
+        return
+      }
 
-    if (success) {
-      router.push('/')
+      // 注册逻辑
+      await authStore.register(form.username, form.password, form.username)
+
+      message.success(t('auth.signUpSuccess'))
+      router.push('/auth/login')
+    } catch (error: any) {
+      message.error(error.message || t('auth.signUpError'))
+    } finally {
+      loading.value = false
     }
   }
 
-  const handleGoogleRegister = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`
+  // 发送验证码
+  const sendVerificationCode = async () => {
+    if (!form.email) {
+      message.warning(t('auth.emailRequired'))
+      return
+    }
+
+    try {
+      // 这里应该调用发送验证码的API
+      // await userStore.sendVerificationCode(form.email)
+
+      // 倒计时
+      countdown.value = 60
+      const timer = setInterval(() => {
+        countdown.value--
+        if (countdown.value <= 0) {
+          clearInterval(timer)
+        }
+      }, 1000)
+
+      message.success(t('auth.codeSent'))
+    } catch (error: any) {
+      message.error(error.message || t('auth.codeSendFailed'))
+    }
   }
 
-  const handleGithubRegister = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/github`
+  // 社交登录处理
+  const handleSocialLogin = (provider: 'google' | 'github') => {
+    window.location.href = `/api/auth/${provider}`
   }
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+  <div class="min-h-screen w-full flex auth-background">
+    <!-- 左侧品牌区域 (仅在大屏幕显示) -->
+    <div class="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 brand-section">
       <div>
-        <img class="mx-auto h-12 w-auto" src="/logo-192.png" alt="Atom Video" />
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          创建新账号
-        </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          或者
-          <router-link to="/auth/login" class="font-medium text-blue-600 hover:text-blue-500">
-            登录已有账号
-          </router-link>
+        <div class="flex items-center">
+          <i class="fas fa-play-circle text-3xl brand-logo"></i>
+          <span class="ml-2 text-2xl font-bold text-white">Atom Video</span>
+        </div>
+        <h1 class="mt-12 text-4xl font-bold leading-tight text-white">
+          {{ t('auth.welcomeTitle') }}<br>
+          {{ t('auth.platformName') }}
+        </h1>
+        <p class="mt-4 text-lg text-white/80">
+          {{ t('auth.platformDesc') }}
         </p>
       </div>
-      <div class="mt-8 space-y-6">
-        <!-- 社交注册按钮 -->
-        <div class="grid grid-cols-2 gap-3">
-          <button @click="handleGoogleRegister"
-            class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-            <img src="@/assets/google.svg" class="h-5 w-5 mr-2" alt="Google" />
-            Google
-          </button>
-          <button @click="handleGithubRegister"
-            class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-            <img src="@/assets/github.svg" class="h-5 w-5 mr-2" alt="GitHub" />
-            GitHub
-          </button>
+
+      <div class="text-white/60 text-sm">
+        © 2025 Atom Video. All rights reserved.
+      </div>
+    </div>
+
+    <!-- 右侧表单区域 -->
+    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 form-section">
+      <div class="w-full max-w-md">
+        <!-- 移动端Logo (仅在小屏幕显示) -->
+        <div class="flex items-center justify-center mb-8 lg:hidden">
+          <i class="fas fa-play-circle text-3xl brand-logo"></i>
+          <span class="ml-2 text-2xl font-bold">Atom Video</span>
         </div>
 
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-300"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-2 bg-gray-50 text-gray-500">或使用邮箱注册</span>
-          </div>
-        </div>
+        <!-- 标题 -->
+        <h2 class="text-3xl font-bold mb-2">
+          {{ t('auth.signUpTitle') }}
+        </h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-8">
+          {{ t('auth.signUpDesc') }}
+        </p>
 
-        <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
-          <div class="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label for="username" class="sr-only">用户名</label>
-              <input id="username" v-model="form.username" name="username" type="text" required
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="用户名" />
-            </div>
-            <div>
-              <label for="nickname" class="sr-only">昵称</label>
-              <input id="nickname" v-model="form.nickname" name="nickname" type="text"
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="昵称（可选）" />
-            </div>
-            <div>
-              <label for="password" class="sr-only">密码</label>
-              <input id="password" v-model="form.password" name="password" type="password" required
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="密码" />
-            </div>
-            <div>
-              <label for="confirmPassword" class="sr-only">确认密码</label>
-              <input id="confirmPassword" v-model="form.confirmPassword" name="confirmPassword" type="password" required
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="确认密码" />
-            </div>
-          </div>
-
-          <div>
-            <button type="submit" :disabled="authStore.loading || !isValid"
-              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-              <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                <i class="fas fa-user-plus h-5 w-5 text-blue-500 group-hover:text-blue-400" aria-hidden="true" />
-              </span>
-              {{ authStore.loading ? '注册中...' : '注册' }}
+        <!-- 社交登录 -->
+        <div class="mb-8">
+          <div class="grid grid-cols-2 gap-4">
+            <button @click="handleSocialLogin('google')" class="social-btn flex items-center justify-center py-2.5"
+              title="Google">
+              <i class="fab fa-google mr-2"></i>
+              Google
             </button>
+            <button @click="handleSocialLogin('github')" class="social-btn flex items-center justify-center py-2.5"
+              title="GitHub">
+              <i class="fab fa-github mr-2"></i>
+              GitHub
+            </button>
+          </div>
+
+          <div class="relative my-6">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 form-section text-gray-500 dark:text-gray-400">
+                {{ t('auth.orUseEmail') }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 表单 -->
+        <form @submit.prevent="handleSubmit" class="space-y-4">
+          <!-- 用户名 -->
+          <div>
+            <label for="username" class="block text-sm font-medium mb-1">
+              {{ t('auth.username') }} <span class="text-red-500">*</span>
+            </label>
+            <input id="username" v-model="form.username" type="text" class="auth-input"
+              :placeholder="t('auth.usernamePlaceholder')" required />
+          </div>
+
+          <!-- 邮箱 -->
+          <div>
+            <label for="email" class="block text-sm font-medium mb-1">
+              {{ t('auth.email') }} <span class="text-red-500">*</span>
+            </label>
+            <input id="email" v-model="form.email" type="email" class="auth-input"
+              :placeholder="t('auth.emailPlaceholder')" required />
+          </div>
+
+          <!-- 密码 -->
+          <div>
+            <label for="password" class="block text-sm font-medium mb-1">
+              {{ t('auth.password') }} <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'"
+                class="auth-input pr-10" :placeholder="t('auth.passwordPlaceholder')" required />
+              <button type="button" @click="showPassword = !showPassword"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <i :class="['fas', showPassword ? 'fa-eye-slash' : 'fa-eye', 'text-gray-500']"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 确认密码 -->
+          <div>
+            <label for="confirm-password" class="block text-sm font-medium mb-1">
+              {{ t('auth.confirmPassword') }} <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <input id="confirm-password" v-model="form.confirmPassword"
+                :type="showConfirmPassword ? 'text' : 'password'" class="auth-input pr-10"
+                :placeholder="t('auth.confirmPasswordPlaceholder')" required />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <i :class="['fas', showConfirmPassword ? 'fa-eye-slash' : 'fa-eye', 'text-gray-500']"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 验证码 -->
+          <div>
+            <label for="verification-code" class="block text-sm font-medium mb-1">
+              验证码 <span class="text-red-500">*</span>
+            </label>
+            <div class="flex gap-2">
+              <input id="verification-code" v-model="form.verificationCode" type="text" class="auth-input flex-1"
+                placeholder="请输入验证码" required />
+              <button type="button" @click="sendVerificationCode"
+                class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium"
+                :disabled="countdown > 0">
+                {{ countdown > 0 ? `${countdown}s` : '发送验证码' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 提交按钮 -->
+          <div>
+            <button type="submit"
+              class="w-full py-3 px-4 rounded-lg text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200"
+              :disabled="loading">
+              <span v-if="!loading">{{ t('auth.signUp') }}</span>
+              <span v-else class="flex items-center justify-center">
+                <i class="fas fa-circle-notch fa-spin mr-2"></i>
+                {{ t('auth.processing') }}
+              </span>
+            </button>
+          </div>
+
+          <!-- 切换到登录 -->
+          <div class="text-center">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              {{ t('auth.haveAccount') }}
+              <router-link to="/auth/login" class="font-medium text-primary hover:text-primary-dark">
+                {{ t('auth.signInNow') }}
+              </router-link>
+            </p>
           </div>
         </form>
 
-        <div v-if="authStore.error" class="mt-4">
-          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span class="block sm:inline">{{ authStore.error }}</span>
-            <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="authStore.clearError">
-              <i class="fas fa-times" />
-            </span>
-          </div>
-        </div>
-
-        <div v-if="validationError" class="mt-4">
-          <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">
-            <span class="block sm:inline">{{ validationError }}</span>
-            <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="validationError = ''">
-              <i class="fas fa-times" />
-            </span>
-          </div>
+        <!-- 返回首页 -->
+        <div class="mt-8 text-center">
+          <router-link to="/"
+            class="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-primary">
+            <i class="fas fa-arrow-left mr-1"></i>
+            {{ t('auth.backToHome') }}
+          </router-link>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+  .auth-background {
+    background-color: #f9fafb;
+  }
+
+  :root.dark .auth-background {
+    background-color: #111827;
+  }
+
+  .brand-section {
+    background: linear-gradient(135deg, #3182ce 0%, #4f46e5 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHBhdHRlcm5UcmFuc2Zvcm09InJvdGF0ZSgzMCkiPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIyIiBoZWlnaHQ9IjIiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuKSIvPjwvc3ZnPg==');
+    opacity: 0.2;
+  }
+
+  .brand-logo {
+    color: #ffffff;
+  }
+
+  .form-section {
+    background-color: #ffffff;
+  }
+
+  :root.dark .form-section {
+    background-color: #1f2937;
+    color: #f3f4f6;
+  }
+
+  .auth-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    color: #1f2937;
+    transition: all 0.2s;
+  }
+
+  .auth-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  :root.dark .auth-input {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  :root.dark .auth-input:focus {
+    border-color: var(--primary-color);
+  }
+
+  .social-btn {
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    background-color: #ffffff;
+    color: #1f2937;
+    transition: all 0.2s;
+  }
+
+  .social-btn:hover {
+    background-color: #f9fafb;
+  }
+
+  :root.dark .social-btn {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  :root.dark .social-btn:hover {
+    background-color: #4b5563;
+  }
+</style>

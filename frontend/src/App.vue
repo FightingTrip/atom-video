@@ -9,14 +9,14 @@
 
 <script setup lang="ts">
   // 导入路由视图
-  import { RouterView } from 'vue-router'
+  import { RouterView, useRoute } from 'vue-router'
   import { useI18n } from 'vue-i18n'
   // 导入 Naive UI 组件
   import { NConfigProvider, NMessageProvider, NButton, NDropdown, NAvatar } from 'naive-ui'
   // 导入 Toast 组件
   import Toast from '@/components/Toast.vue'
   import LanguageSelector from '@/components/LanguageSelector.vue'
-  import { computed, ref, onMounted } from 'vue';
+  import { computed, ref, onMounted, markRaw } from 'vue';
   import { useThemeStore } from '@/stores/theme';
   import { darkTheme, lightTheme } from 'naive-ui';
   import ThemeToggle from '@/components/ThemeToggle.vue';
@@ -29,6 +29,9 @@
   import TagList from '@/components/TagList.vue'
   import { useI18nStore } from '@/stores/i18n'
   import { useVideoStore } from '@/stores/video'
+  import { useUserStore } from '@/stores/user'
+  import DefaultLayout from '@/layouts/DefaultLayout.vue'
+  import BlankLayout from '@/layouts/BlankLayout.vue'
 
   // 声明使用的组件
   const components = {
@@ -48,10 +51,12 @@
   };
 
   const { t, locale } = useI18n();
+  const route = useRoute();
 
   const themeStore = useThemeStore();
   const i18nStore = useI18nStore();
   const videoStore = useVideoStore();
+  const userStore = useUserStore();
 
   const theme = computed(() => {
     return themeStore.isDark ? darkTheme : lightTheme;
@@ -98,10 +103,17 @@
     videoStore.setCategory(tagId);
   };
 
+  // 根据路由元数据选择布局
+  const layout = computed(() => {
+    const layoutName = route.meta.layout || 'default'
+    return markRaw(layoutName === 'blank' ? BlankLayout : DefaultLayout)
+  })
+
   // 初始化主题
   onMounted(() => {
     i18nStore.initLocale();
     themeStore.initTheme();
+    userStore.initUser();
 
     // 设置初始语言
     const savedLanguage = localStorage.getItem('language');
@@ -115,75 +127,7 @@
 <template>
   <n-config-provider :theme="themeStore.naiveTheme" :theme-overrides="themeStore.themeOverrides">
     <n-message-provider>
-      <div class="flex h-screen app-container">
-        <!-- 侧边栏 -->
-        <TheSidebar v-model:collapsed="sidebarCollapsed" />
-
-        <div class="flex-1 flex flex-col overflow-hidden">
-          <!-- 顶部导航栏 - 搜索栏居中，标题和功能按钮靠两边 -->
-          <div class="h-14 flex items-center px-6 border-b theme-header">
-            <!-- 左侧标题 -->
-            <h1 class="text-xl font-bold theme-title whitespace-nowrap">
-              Make Develop All In One
-            </h1>
-
-            <!-- 中间搜索栏 -->
-            <div class="flex-1 mx-4 flex justify-center">
-              <div class="relative w-full max-w-xl">
-                <input type="text" :placeholder="t('header.search')"
-                  class="w-full h-10 pl-10 pr-10 rounded-full bg-gray-700 dark:bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-600" />
-                <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
-                <div class="absolute right-2 top-1.5 h-7 w-7 flex items-center justify-center rounded-full">
-                  <i class="fas fa-microphone text-gray-400"></i>
-                </div>
-              </div>
-            </div>
-
-            <!-- 右侧功能按钮 -->
-            <div class="flex items-center space-x-2 whitespace-nowrap">
-              <!-- 语言切换 -->
-              <n-dropdown :options="languageOptions" @select="handleLanguageChange" trigger="click">
-                <n-button quaternary>
-                  <template #icon>
-                    <i class="fas fa-globe text-lg"></i>
-                  </template>
-                  <span class="ml-1">{{ currentLanguageLabel }}</span>
-                </n-button>
-              </n-dropdown>
-
-              <!-- 主题切换 -->
-              <n-button quaternary @click="toggleTheme">
-                <template #icon>
-                  <i :class="['fas', themeStore.isDark ? 'fa-sun' : 'fa-moon', 'text-lg']"></i>
-                </template>
-              </n-button>
-
-              <!-- 登录按钮 -->
-              <n-button type="primary">
-                {{ t('header.login') }}
-              </n-button>
-            </div>
-          </div>
-
-          <!-- 标签导航 -->
-          <div class="h-12 flex items-center space-x-2 px-4 overflow-x-auto theme-tag-bar">
-            <button v-for="tag in tags" :key="tag.id" :class="[
-              'px-4 py-1 rounded-full text-sm font-medium transition-colors theme-tag',
-              selectedTag === tag.id ? 'theme-tag-active' : 'theme-tag-inactive'
-            ]" @click="selectTag(tag.id)">
-              {{ t(`tags.${tag.name}`) }}
-            </button>
-          </div>
-
-          <!-- 主内容 -->
-          <main class="flex-1 overflow-auto theme-content p-4">
-            <router-view />
-          </main>
-
-          <!-- 底部 -->
-          <TheFooter />
-        </div>
-      </div>
+      <router-view />
     </n-message-provider>
   </n-config-provider>
 </template>
