@@ -14,6 +14,7 @@ const NotFound = () => import('@/views/NotFound.vue');
 const ForgotPassword = () => import('@/views/auth/ForgotPassword.vue');
 const ResetPassword = () => import('@/views/auth/ResetPassword.vue');
 const VideoUpload = () => import('@/views/video/Upload.vue');
+const TagDetail = () => import('@/views/TagDetail.vue');
 
 const router = createRouter({
   history: createWebHistory(),
@@ -113,6 +114,14 @@ const router = createRouter({
       meta: {
         requiresAuth: true,
         title: '上传视频',
+      },
+    },
+    {
+      path: '/tags/:tag',
+      name: 'TagDetail',
+      component: TagDetail,
+      meta: {
+        title: '标签详情',
       },
     },
     {
