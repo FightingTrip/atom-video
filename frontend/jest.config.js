@@ -1,10 +1,15 @@
-module.exports = {
-  preset: 'ts-jest',
+export default {
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json', 'vue'],
   transform: {
     '^.+\\.vue$': '@vue/vue3-jest',
-    '^.+\\.(t|j)sx?$': 'ts-jest',
+    '^.+\\.(t|j)sx?$': [
+      'ts-jest',
+      {
+        useESM: true,
+      },
+    ],
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -33,9 +38,11 @@ module.exports = {
     },
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx', '.vue'],
   globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.json',
+      useESM: true,
     },
   },
 }; 
