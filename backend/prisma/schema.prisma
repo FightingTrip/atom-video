@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  guest
+  member
+  admin
+}
+
+enum ReviewStatus {
+  pending
+  rejected
+}
+
+enum ActionType {
+  view
+  like
+  comment
+  share
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  email         String    @unique
+  password_hash String
+  role          UserRole  @default(guest)
+  avatar_url    String?
+  bio           String?
+  last_login    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  videos        Video[]
+  comments      Comment[]
+  reviews       VideoReview[]
+  activities    UserActivity[]
+}
+
+model Video {
+  id            Int       @id @default(autoincrement())
+  title         String
+  description   String?
+  video_url     String
+  thumbnail_url String?
+  duration      Int?
+  version       String?
+  uploader_id   Int
+  uploader      User      @relation(fields: [uploader_id], references: [id])
+  comments      Comment[]
+  reviews       VideoReview[]
+  tags          VideoTag[]
+  activities    UserActivity[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Comment {
+  id                Int       @id @default(autoincrement())
+  content           String
+  user_id           Int
+  video_id          Int
+  parent_comment_id Int?
+  likes_count       Int       @default(0)
+  user              User      @relation(fields: [user_id], references: [id])
+  video             Video     @relation(fields: [video_id], references: [id])
+  parent            Comment?  @relation("CommentToComment", fields: [parent_comment_id], references: [id])
+  replies           Comment[] @relation("CommentToComment")
+  createdAt         DateTime  @default(now())
+}
+
+model VideoReview {
+  id          Int           @id @default(autoincrement())
+  video_id    Int
+  reviewed_by Int
+  status      ReviewStatus  @default(pending)
+  video       Video         @relation(fields: [video_id], references: [id])
+  reviewer    User          @relation(fields: [reviewed_by], references: [id])
+  createdAt   DateTime      @default(now())
+}
+
+model VideoTag {
+  id       Int    @id @default(autoincrement())
+  video_id Int
+  tag      String
+  video    Video  @relation(fields: [video_id], references: [id])
+
+  @@unique([video_id, tag])
+}
+
+model UserActivity {
+  id          Int        @id @default(autoincrement())
+  user_id     Int
+  video_id    Int
+  action_type ActionType
+  user        User       @relation(fields: [user_id], references: [id])
+  video       Video      @relation(fields: [video_id], references: [id])
+  createdAt   DateTime   @default(now())
+}
