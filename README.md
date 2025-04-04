@@ -1,4 +1,4 @@
-# Atom Dev Hub
+# Atom Video
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](package.json)
@@ -9,7 +9,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.x-336791.svg)](backend/package.json)
 [![ESM](https://img.shields.io/badge/ESM-Enabled-4FC08D.svg)](package.json)
 
-一个面向开发者的技术分享与学习平台，采用 Monorepo 架构，使用 Vue 3、TypeScript 和 Express 构建。
+一个面向开发者的视频技术分享与学习平台，采用 Monorepo 架构，使用 Vue 3、TypeScript 和 Express 构建。
 
 ## 特性
 
@@ -28,16 +28,31 @@
 
 ## 目录
 
-- [快速开始](#快速开始)
-- [项目结构](#项目结构)
-- [技术栈](#技术栈)
-- [开发指南](#开发指南)
-- [部署指南](#部署指南)
-- [API 文档](#api-文档)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
-- [联系我们](#联系我们)
-- [致谢](#致谢)
+- [Atom Video](#atom-video)
+  - [特性](#特性)
+  - [目录](#目录)
+  - [快速开始](#快速开始)
+    - [环境要求](#环境要求)
+    - [安装](#安装)
+    - [开发命令](#开发命令)
+  - [项目结构](#项目结构)
+  - [技术栈](#技术栈)
+    - [前端](#前端)
+    - [后端](#后端)
+    - [开发工具](#开发工具)
+    - [模块系统](#模块系统)
+  - [开发指南](#开发指南)
+    - [代码规范](#代码规范)
+    - [提交规范](#提交规范)
+    - [分支管理](#分支管理)
+  - [部署指南](#部署指南)
+    - [环境要求](#环境要求-1)
+    - [部署步骤](#部署步骤)
+  - [API 文档](#api-文档)
+  - [贡献指南](#贡献指南)
+  - [许可证](#许可证)
+  - [联系我们](#联系我们)
+  - [致谢](#致谢)
 
 ## 快速开始
 
