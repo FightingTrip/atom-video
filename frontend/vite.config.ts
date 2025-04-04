@@ -1,10 +1,26 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
+import legacy from '@vitejs/plugin-legacy';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    legacy({
+      targets: [
+        '> 1%',
+        'last 2 versions',
+        'not dead',
+        'not ie 11',
+        'chrome >= 51',
+        'firefox >= 54',
+        'edge >= 79',
+        'safari >= 10',
+      ],
+      modernPolyfills: true,
+    }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -21,5 +37,13 @@ export default defineConfig({
   build: {
     sourcemap: true,
     chunkSizeWarningLimit: 1000,
+    target: 'es2015',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
   },
 });
