@@ -1,80 +1,46 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, reactive, computed } from 'vue'
   import { useRouter } from 'vue-router'
-  import { useAuthStore } from '@/store/auth'
+  import { useAuthStore } from '@/stores/auth'
 
   const router = useRouter()
   const authStore = useAuthStore()
-  const email = ref('')
-  const password = ref('')
-  const confirmPassword = ref('')
-  const username = ref('')
-  const isLoading = ref(false)
-  const error = ref('')
-  const usernameError = ref('')
-  const emailError = ref('')
-  const passwordError = ref('')
-  const confirmPasswordError = ref('')
+  const form = reactive({
+    username: '',
+    nickname: '',
+    password: '',
+    confirmPassword: '',
+  })
+  const validationError = ref('')
 
-  const validateForm = () => {
-    let isValid = true
-    usernameError.value = ''
-    emailError.value = ''
-    passwordError.value = ''
-    confirmPasswordError.value = ''
-
-    if (!username.value) {
-      usernameError.value = '请输入用户名'
-      isValid = false
-    } else if (username.value.length < 3) {
-      usernameError.value = '用户名长度至少为3位'
-      isValid = false
+  const isValid = computed(() => {
+    if (form.password !== form.confirmPassword) {
+      validationError.value = '两次输入的密码不一致'
+      return false
     }
-
-    if (!email.value) {
-      emailError.value = '请输入邮箱地址'
-      isValid = false
-    } else if (!/\S+@\S+\.\S+/.test(email.value)) {
-      emailError.value = '请输入有效的邮箱地址'
-      isValid = false
+    if (form.password.length < 6) {
+      validationError.value = '密码长度至少为6位'
+      return false
     }
-
-    if (!password.value) {
-      passwordError.value = '请输入密码'
-      isValid = false
-    } else if (password.value.length < 6) {
-      passwordError.value = '密码长度至少为6位'
-      isValid = false
+    if (form.username.length < 3) {
+      validationError.value = '用户名长度至少为3位'
+      return false
     }
-
-    if (!confirmPassword.value) {
-      confirmPasswordError.value = '请确认密码'
-      isValid = false
-    } else if (password.value !== confirmPassword.value) {
-      confirmPasswordError.value = '两次输入的密码不一致'
-      isValid = false
-    }
-
-    return isValid
-  }
+    validationError.value = ''
+    return true
+  })
 
   const handleSubmit = async () => {
-    if (!validateForm()) return
+    if (!isValid.value) return
 
-    isLoading.value = true
-    error.value = ''
+    const success = await authStore.register(
+      form.username,
+      form.password,
+      form.nickname || undefined
+    )
 
-    try {
-      const result = await authStore.register(email.value, password.value, username.value)
-      if (result.success) {
-        router.push('/')
-      } else {
-        error.value = result.error
-      }
-    } catch (err) {
-      error.value = '注册失败，请重试'
-    } finally {
-      isLoading.value = false
+    if (success) {
+      router.push('/')
     }
   }
 
@@ -91,9 +57,16 @@
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <div>
+        <img class="mx-auto h-12 w-auto" src="/logo-192.png" alt="Atom Video" />
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          注册 Atom Video 账号
+          创建新账号
         </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+          或者
+          <router-link to="/auth/login" class="font-medium text-blue-600 hover:text-blue-500">
+            登录已有账号
+          </router-link>
+        </p>
       </div>
       <div class="mt-8 space-y-6">
         <!-- 社交注册按钮 -->
@@ -119,77 +92,61 @@
           </div>
         </div>
 
-        <!-- 错误提示 -->
-        <div v-if="error" class="rounded-md bg-red-50 p-4">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm font-medium text-red-800">{{ error }}</p>
-            </div>
-          </div>
-        </div>
-
         <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
           <div class="rounded-md shadow-sm -space-y-px">
             <div>
               <label for="username" class="sr-only">用户名</label>
-              <input id="username" v-model="username" name="username" type="text" required
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="用户名" :class="{ 'border-red-500': usernameError }" />
-              <p v-if="usernameError" class="mt-1 text-sm text-red-600">{{ usernameError }}</p>
+              <input id="username" v-model="form.username" name="username" type="text" required
+                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="用户名" />
             </div>
             <div>
-              <label for="email" class="sr-only">邮箱地址</label>
-              <input id="email" v-model="email" name="email" type="email" required
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="邮箱地址" :class="{ 'border-red-500': emailError }" />
-              <p v-if="emailError" class="mt-1 text-sm text-red-600">{{ emailError }}</p>
+              <label for="nickname" class="sr-only">昵称</label>
+              <input id="nickname" v-model="form.nickname" name="nickname" type="text"
+                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="昵称（可选）" />
             </div>
             <div>
               <label for="password" class="sr-only">密码</label>
-              <input id="password" v-model="password" name="password" type="password" required
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="密码" :class="{ 'border-red-500': passwordError }" />
-              <p v-if="passwordError" class="mt-1 text-sm text-red-600">{{ passwordError }}</p>
+              <input id="password" v-model="form.password" name="password" type="password" required
+                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="密码" />
             </div>
             <div>
               <label for="confirmPassword" class="sr-only">确认密码</label>
-              <input id="confirmPassword" v-model="confirmPassword" name="confirmPassword" type="password" required
-                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="确认密码" :class="{ 'border-red-500': confirmPasswordError }" />
-              <p v-if="confirmPasswordError" class="mt-1 text-sm text-red-600">{{ confirmPasswordError }}</p>
+              <input id="confirmPassword" v-model="form.confirmPassword" name="confirmPassword" type="password" required
+                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="确认密码" />
             </div>
           </div>
 
           <div>
-            <button type="submit" :disabled="isLoading"
-              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" :disabled="authStore.loading || !isValid"
+              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
               <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                <svg class="h-5 w-5 text-indigo-500 group-hover:text-indigo-400" xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd"
-                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                    clip-rule="evenodd" />
-                </svg>
+                <i class="fas fa-user-plus h-5 w-5 text-blue-500 group-hover:text-blue-400" aria-hidden="true" />
               </span>
-              {{ isLoading ? '注册中...' : '注册' }}
+              {{ authStore.loading ? '注册中...' : '注册' }}
             </button>
           </div>
         </form>
 
-        <div class="text-center">
-          <p class="text-sm text-gray-600">
-            已有账号？
-            <router-link to="/auth/login" class="font-medium text-indigo-600 hover:text-indigo-500">
-              立即登录
-            </router-link>
-          </p>
+        <div v-if="authStore.error" class="mt-4">
+          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline">{{ authStore.error }}</span>
+            <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="authStore.clearError">
+              <i class="fas fa-times" />
+            </span>
+          </div>
+        </div>
+
+        <div v-if="validationError" class="mt-4">
+          <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">
+            <span class="block sm:inline">{{ validationError }}</span>
+            <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="validationError = ''">
+              <i class="fas fa-times" />
+            </span>
+          </div>
         </div>
       </div>
     </div>
