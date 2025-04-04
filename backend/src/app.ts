@@ -13,6 +13,8 @@ import compression from 'compression';
 import { errorHandler } from './middleware/errorHandler';
 import { cacheMiddleware, clearCacheMiddleware } from './middleware/cache';
 import { cacheWarmupService } from './services/cacheWarmupService';
+import searchRoutes from './routes/search';
+import tagRoutes from './routes/tag';
 
 // 加载环境变量
 dotenv.config();
@@ -61,6 +63,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api', favoriteRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/tags', tagRoutes);
 
 // 404处理
 app.use((req, res) => {
@@ -74,10 +78,11 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   logger.info(`服务器启动在端口 ${PORT}`);
-  
+
   // 执行缓存预热
   try {
     await cacheWarmupService.warmupAll();
+    logger.info('缓存预热完成');
   } catch (error) {
     logger.error('缓存预热失败:', error);
   }
