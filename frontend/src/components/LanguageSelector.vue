@@ -1,45 +1,34 @@
 <template>
-  <n-dropdown trigger="click" :options="languageOptions" @select="handleLanguageChange">
-    <n-button quaternary class="flex items-center gap-2">
-      <i class="fas fa-globe"></i>
-      <span class="hidden sm:inline">{{ currentLanguage.label }}</span>
-    </n-button>
+  <n-dropdown trigger="click" :options="options" @select="handleSelect">
+    <button class="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-500">
+      <i class="fas fa-globe text-xl"></i>
+    </button>
   </n-dropdown>
 </template>
 
 <script setup lang="ts">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { NButton, NDropdown } from 'naive-ui';
+  import type { DropdownOption } from 'naive-ui';
 
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
 
-  interface LanguageOption {
-    key: string;
-    label: string;
-    icon: string;
-  }
+  const options = computed<DropdownOption[]>(() => [
+    {
+      label: '简体中文',
+      key: 'zh-CN',
+      disabled: locale.value === 'zh-CN'
+    },
+    {
+      label: 'English',
+      key: 'en-US',
+      disabled: locale.value === 'en-US'
+    }
+  ]);
 
-  const languages: LanguageOption[] = [
-    { key: 'zh', label: '简体中文', icon: '🇨🇳' },
-    { key: 'en', label: 'English', icon: '🇺🇸' }
-  ];
-
-  const languageOptions = computed(() => languages.map(lang => ({
-    key: lang.key,
-    label: () => h('div', { class: 'flex items-center gap-2' }, [
-      h('span', lang.icon),
-      h('span', lang.label)
-    ])
-  })));
-
-  const currentLanguage = computed(() =>
-    languages.find(lang => lang.key === locale.value) || languages[0]
-  );
-
-  const handleLanguageChange = (key: string) => {
+  const handleSelect = (key: string) => {
     locale.value = key;
-    localStorage.setItem('locale', key);
+    localStorage.setItem('language', key);
   };
 </script>
 
