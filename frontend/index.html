@@ -1,13 +1,42 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/logo-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + Vue + TS</title>
+    <meta name="description" content="Atom Video - 面向开发者的视频分享平台" />
+    <meta name="keywords" content="视频分享, 开发者, 编程教程, 技术分享, 知识平台" />
+    <meta name="author" content="Atom Video Team" />
+    <meta name="theme-color" content="#3b82f6" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://atomvideo.dev/" />
+    <meta property="og:title" content="Atom Video - 开发者的视频分享平台" />
+    <meta property="og:description" content="在 Atom Video 上分享和发现高质量的开发教程、技术分享视频" />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://atomvideo.dev/" />
+    <meta property="twitter:title" content="Atom Video - 开发者的视频分享平台" />
+    <meta property="twitter:description" content="在 Atom Video 上分享和发现高质量的开发教程、技术分享视频" />
+    <meta property="twitter:image" content="/og-image.png" />
+
+    <!-- Preconnect to CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <title>Atom Video - 开发者的视频分享平台</title>
   </head>
   <body>
     <div id="app"></div>
+    <noscript>
+      <strong>很抱歉，Atom Video 需要启用 JavaScript 才能正常运行。请启用它以继续。</strong>
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
