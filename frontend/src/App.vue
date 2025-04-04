@@ -29,7 +29,7 @@
             <i class="fas fa-bars text-xl"></i>
           </button>
           <router-link to="/" class="flex items-center gap-1">
-            <img src="/logo-32.png" alt="Atom Video" class="h-5" />
+            <img src="/logo.svg" alt="Atom Video" class="h-5" />
             <span class="font-semibold text-xl">Atom Video</span>
           </router-link>
         </div>
@@ -55,14 +55,15 @@
           </button>
           <LanguageSelector />
           <button class="w-8 h-8 rounded-full overflow-hidden">
-            <img src="/default-avatar.png" alt="用户头像" class="w-full h-full object-cover" />
+            <img src="/default-avatar.svg" alt="用户头像" class="w-full h-full object-cover" />
           </button>
         </div>
       </div>
     </header>
 
     <!-- 侧边栏 -->
-    <aside class="fixed left-0 top-14 bottom-0 w-60 bg-[#0f0f0f] border-r border-[#272727] overflow-y-auto">
+    <aside
+      class="fixed left-0 top-14 bottom-0 w-60 bg-[#0f0f0f] border-r border-[#272727] overflow-y-auto scrollbar-thin scrollbar-thumb-[#272727] scrollbar-track-[#0f0f0f] hover:scrollbar-thumb-[#3f3f3f]">
       <nav class="py-2">
         <router-link to="/" class="flex items-center gap-4 px-6 py-2 hover:bg-[#272727]">
           <i class="fas fa-home text-xl"></i>
@@ -102,22 +103,4 @@
 
 <style>
   @import '@fortawesome/fontawesome-free/css/all.min.css';
-
-  /* 自定义滚动条样式 */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #0f0f0f;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #272727;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #3f3f3f;
-  }
 </style>

@@ -2,25 +2,20 @@
 // - TypeScript: 强类型支持
 // - Vue 3: 类型集成
 
-import { User } from './index';
-import { Tag } from './tags';
+import type { User } from './index';
+import type { Tag } from './tags';
 
 export interface Video {
   id: string;
   title: string;
   description: string;
-  url: string;
-  thumbnailUrl: string;
+  thumbnail: string;
   duration: number;
   views: number;
   likes: number;
-  dislikes: number;
-  status: 'processing' | 'published' | 'failed';
-  visibility: 'public' | 'private' | 'unlisted';
+  createdAt: string;
   tags: Tag[];
   user: User;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface VideoUploadResponse {
@@ -40,8 +35,8 @@ export interface VideoStats {
 export interface VideoFilter {
   tags?: string[];
   userId?: string;
-  status?: Video['status'];
-  visibility?: Video['visibility'];
+  status?: 'processing' | 'published' | 'failed';
+  visibility?: 'public' | 'private' | 'unlisted';
   sortBy: 'views' | 'likes' | 'date';
   order: 'asc' | 'desc';
 }

@@ -43,9 +43,11 @@
   import { ref, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { useI18n } from 'vue-i18n';
-  import type { Video, Tag } from '@/types';
-  import { apiClient } from '@/services/api';
+  import type { Video, Tag, ApiResponse } from '@/types';
+  import api from '@/utils/api';
   import VideoCard from '@/components/VideoCard.vue';
+  import { mockVideos } from '@/mock/videos';
+  import { env } from '@/utils/env';
 
   const router = useRouter();
   const { t } = useI18n();
@@ -78,22 +80,63 @@
 
     try {
       loading.value = true;
-      const response = await apiClient.get<{
-        videos: Video[];
-        totalPages: number;
-      }>('/videos', {
+      console.log('Fetching videos...', {
         page: page.value,
         limit: 12,
         tag: selectedTag.value === 'all' ? undefined : selectedTag.value,
       });
 
-      if (reset) {
-        videos.value = response.data.videos;
-      } else {
-        videos.value.push(...response.data.videos);
-      }
+      if (env.useMock) {
+        // 使用模拟数据
+        const mockResponse = {
+          success: true,
+          data: {
+            videos: mockVideos.filter((video: Video) => {
+              if (selectedTag.value === 'all') return true;
+              return video.tags.some((tag: Tag) => tag.id === selectedTag.value);
+            }).slice((page.value - 1) * 12, page.value * 12),
+            totalPages: Math.ceil(mockVideos.length / 12),
+          },
+        };
 
-      hasMore.value = page.value < response.data.totalPages;
+        console.log('Mock Response:', mockResponse);
+
+        if (mockResponse.success) {
+          if (reset) {
+            videos.value = mockResponse.data.videos;
+          } else {
+            videos.value.push(...mockResponse.data.videos);
+          }
+
+          hasMore.value = page.value < mockResponse.data.totalPages;
+        }
+      } else {
+        // 使用实际 API
+        const response = await api.get<ApiResponse<{
+          videos: Video[];
+          totalPages: number;
+        }>>('/videos', {
+          params: {
+            page: page.value,
+            limit: 12,
+            tag: selectedTag.value === 'all' ? undefined : selectedTag.value,
+          },
+        });
+
+        console.log('API Response:', response);
+
+        if (response.data.success) {
+          if (reset) {
+            videos.value = response.data.data.videos;
+          } else {
+            videos.value.push(...response.data.data.videos);
+          }
+
+          hasMore.value = page.value < response.data.data.totalPages;
+        } else {
+          console.error('API request failed:', response.data.error);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch videos:', error);
     } finally {
@@ -107,10 +150,8 @@
   };
 
   const loadMore = () => {
-    if (!loading.value && hasMore.value) {
-      page.value++;
-      fetchVideos();
-    }
+    page.value++;
+    fetchVideos();
   };
 
   const navigateToVideo = (videoId: string) => {

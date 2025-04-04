@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import { authGuard } from './guards';
 
 // 懒加载组件
@@ -8,16 +8,19 @@ const Register = () => import('@/views/auth/Register.vue');
 const VerifyEmail = () => import('@/views/auth/VerifyEmail.vue');
 const Profile = () => import('@/views/Profile.vue');
 const Settings = () => import('@/views/Settings.vue');
-const Upload = () => import('@/views/Upload.vue');
+const VideoUpload = () => import('@/views/video/Upload.vue');
 const VideoDetail = () => import('@/views/VideoDetail.vue');
 const NotFound = () => import('@/views/NotFound.vue');
 const ForgotPassword = () => import('@/views/auth/ForgotPassword.vue');
 const ResetPassword = () => import('@/views/auth/ResetPassword.vue');
-const VideoUpload = () => import('@/views/video/Upload.vue');
 const TagDetail = () => import('@/views/TagDetail.vue');
+const Trending = () => import('@/views/Trending.vue');
+const Subscriptions = () => import('@/views/Subscriptions.vue');
+const Library = () => import('@/views/Library.vue');
+const History = () => import('@/views/History.vue');
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
@@ -25,6 +28,41 @@ const router = createRouter({
       component: Home,
       meta: {
         title: '首页',
+      },
+    },
+    {
+      path: '/trending',
+      name: 'Trending',
+      component: Trending,
+      meta: {
+        title: '热门',
+      },
+    },
+    {
+      path: '/subscriptions',
+      name: 'Subscriptions',
+      component: Subscriptions,
+      meta: {
+        title: '订阅',
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/library',
+      name: 'Library',
+      component: Library,
+      meta: {
+        title: '媒体库',
+        requiresAuth: true,
+      },
+    },
+    {
+      path: '/history',
+      name: 'History',
+      component: History,
+      meta: {
+        title: '历史记录',
+        requiresAuth: true,
       },
     },
     {
@@ -73,9 +111,9 @@ const router = createRouter({
       },
     },
     {
-      path: '/upload',
-      name: 'Upload',
-      component: Upload,
+      path: '/video/upload',
+      name: 'VideoUpload',
+      component: VideoUpload,
       meta: {
         title: '上传视频',
         requiresAuth: true,
@@ -108,16 +146,7 @@ const router = createRouter({
       },
     },
     {
-      path: '/videos/upload',
-      name: 'VideoUpload',
-      component: VideoUpload,
-      meta: {
-        requiresAuth: true,
-        title: '上传视频',
-      },
-    },
-    {
-      path: '/tags/:tag',
+      path: '/tag/:id',
       name: 'TagDetail',
       component: TagDetail,
       meta: {
@@ -135,12 +164,11 @@ const router = createRouter({
   ],
 });
 
-// 全局前置守卫
+// 路由守卫
 router.beforeEach(authGuard);
 
-// 全局后置守卫
+// 设置页面标题
 router.afterEach(to => {
-  // 更新页面标题
   document.title = `${to.meta.title} - Atom Video`;
 });
 

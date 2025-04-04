@@ -44,24 +44,10 @@
 <script setup lang="ts">
   import { ref, onMounted, watch } from 'vue';
   import { useRoute } from 'vue-router';
-  import { api } from '@/utils/api';
+  import api from '@/utils/api';
+  import type { Video, Tag } from '@/types';
   import VideoCard from '@/components/VideoCard.vue';
   import TagStats from '@/components/TagStats.vue';
-
-  interface Video {
-    id: string;
-    title: string;
-    description: string;
-    thumbnail: string;
-    duration: number;
-    views: number;
-    user: {
-      id: string;
-      username: string;
-      nickname: string;
-      avatar: string;
-    };
-  }
 
   interface RelatedTag {
     tag: string;
@@ -69,8 +55,8 @@
   }
 
   const route = useRoute();
-  const tag = ref<string>('');
   const videos = ref<Video[]>([]);
+  const tag = ref<Tag | null>(null);
   const currentPage = ref(1);
   const total = ref(0);
   const totalPages = ref(0);
@@ -78,8 +64,9 @@
 
   const fetchTagVideos = async () => {
     try {
-      const response = await api.get(`/api/tags/${tag.value}/videos`, {
+      const response = await api.get('/videos', {
         params: {
+          tag: route.params.id,
           page: currentPage.value,
           limit: 12
         }
@@ -101,7 +88,7 @@
       if (response.data.success) {
         // 过滤掉当前标签，并取前5个相关标签
         relatedTags.value = response.data.data
-          .filter((t: RelatedTag) => t.tag !== tag.value)
+          .filter((t: RelatedTag) => t.tag !== route.params.id)
           .slice(0, 5);
       }
     } catch (error) {
@@ -123,16 +110,24 @@
     currentPage.value = page;
   };
 
-  watch([() => route.params.tag, currentPage], () => {
-    tag.value = route.params.tag as string;
-    fetchTagVideos();
-    fetchRelatedTags();
-  });
+  onMounted(async () => {
+    try {
+      const [tagResponse, videosResponse] = await Promise.all([
+        api.get(`/tags/${route.params.id}`),
+        api.get('/videos', {
+          params: {
+            tag: route.params.id,
+          },
+        }),
+      ]);
 
-  onMounted(() => {
-    tag.value = route.params.tag as string;
-    fetchTagVideos();
-    fetchRelatedTags();
+      tag.value = tagResponse.data;
+      videos.value = videosResponse.data.videos;
+      fetchTagVideos();
+      fetchRelatedTags();
+    } catch (error) {
+      console.error('Failed to fetch tag details:', error);
+    }
   });
 </script>
 

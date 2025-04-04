@@ -5,6 +5,8 @@ export default {
     loading: 'Loading...',
     error: 'Error',
     success: 'Success',
+    warning: 'Warning',
+    info: 'Info',
     loadMore: 'Load More',
   },
   nav: {
@@ -15,9 +17,11 @@ export default {
     history: 'History',
   },
   user: {
+    login: 'Login',
+    register: 'Register',
+    logout: 'Logout',
     profile: 'Profile',
     settings: 'Settings',
-    logout: 'Logout',
   },
   settings: {
     title: 'Settings',
@@ -30,10 +34,18 @@ export default {
   video: {
     views: '{count} views',
     likes: '{count} likes',
-    upload: 'Upload Video',
+    upload: 'Upload',
     processing: 'Processing',
     watchLater: 'Watch Later',
     addToPlaylist: 'Add to Playlist',
+    watch: 'Watch',
+    like: 'Like',
+    dislike: 'Dislike',
+    share: 'Share',
+    save: 'Save',
+    report: 'Report',
+    comments: 'Comments',
+    related: 'Related Videos',
   },
   a11y: {
     skipToMain: 'Skip to main content',

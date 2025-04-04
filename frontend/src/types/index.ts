@@ -65,13 +65,19 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 // 语言相关类型
 export type Language = 'zh-CN' | 'en-US';
 
+// 认证相关类型
 export interface AuthResponse {
   token: string;
   user: User;
 }
 
+// API 错误类型
 export interface ApiError {
   message: string;
   code?: string;
   status?: number;
 }
+
+// 导出其他类型
+export * from './video';
+export * from './tags';

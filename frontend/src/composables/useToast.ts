@@ -5,77 +5,46 @@
 
 import { ref } from 'vue';
 
-interface ToastOptions {
-  type: 'success' | 'error' | 'info' | 'warning';
-  message: string;
-  duration?: number;
-}
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastState {
   isVisible: boolean;
-  type: ToastOptions['type'];
   message: string;
+  type: ToastType;
 }
 
 const toastState = ref<ToastState>({
   isVisible: false,
-  type: 'info',
   message: '',
+  type: 'info',
 });
 
-let timeoutId: number | null = null;
+let timeout: number | null = null;
 
-export const useToast = () => {
-  const showToast = (options: ToastOptions) => {
-    // 清除之前的定时器
-    if (timeoutId) {
-      clearTimeout(timeoutId);
+export function useToast() {
+  const showToast = (message: string, type: ToastType = 'info', duration = 3000) => {
+    if (timeout) {
+      clearTimeout(timeout);
     }
 
-    // 设置新的状态
     toastState.value = {
       isVisible: true,
-      type: options.type,
-      message: options.message,
+      message,
+      type,
     };
 
-    // 设置自动隐藏
-    timeoutId = window.setTimeout(() => {
-      toastState.value.isVisible = false;
-      timeoutId = null;
-    }, options.duration || 3000);
+    timeout = window.setTimeout(() => {
+      hideToast();
+    }, duration);
   };
 
   const hideToast = () => {
     toastState.value.isVisible = false;
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-  };
-
-  const success = (message: string, duration?: number) => {
-    showToast({ type: 'success', message, duration });
-  };
-
-  const error = (message: string, duration?: number) => {
-    showToast({ type: 'error', message, duration });
-  };
-
-  const info = (message: string, duration?: number) => {
-    showToast({ type: 'info', message, duration });
-  };
-
-  const warning = (message: string, duration?: number) => {
-    showToast({ type: 'warning', message, duration });
   };
 
   return {
     toastState,
-    success,
-    error,
-    info,
-    warning,
+    showToast,
     hideToast,
   };
-};
+}

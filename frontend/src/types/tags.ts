@@ -5,10 +5,9 @@
 export interface Tag {
   id: string;
   name: string;
-  description?: string;
-  count: number;
-  createdAt: string;
-  updatedAt: string;
+  slug: string;
+  color?: string;
+  icon?: string;
 }
 
 export interface TagStats {
@@ -20,7 +19,6 @@ export interface TagStats {
 
 export interface TagCloudItem extends Tag {
   weight: number;
-  color?: string;
 }
 
 export interface TagFilter {

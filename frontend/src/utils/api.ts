@@ -1,16 +1,10 @@
-// 技术栈说明：
-// - Axios: HTTP 客户端
-// - TypeScript: 强类型支持
-// - Vue 3: 响应式集成
-
 import axios from 'axios';
-import { useToast } from '@/composables/useToast';
-
-const toast = useToast();
+import type { ApiResponse, ApiError } from '@/types';
+import { env } from './env';
 
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: env.apiUrl,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -34,35 +28,22 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   response => {
-    return response;
+    return response.data;
   },
   error => {
     if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          // 未授权，清除认证信息
-          localStorage.removeItem('token');
-          delete api.defaults.headers.common['Authorization'];
-          toast.error('登录已过期，请重新登录');
-          break;
-        case 403:
-          toast.error('没有权限执行此操作');
-          break;
-        case 404:
-          toast.error('请求的资源不存在');
-          break;
-        case 500:
-          toast.error('服务器错误，请稍后重试');
-          break;
-        default:
-          toast.error(error.response.data?.message || '请求失败');
-      }
-    } else if (error.request) {
-      toast.error('网络错误，请检查网络连接');
-    } else {
-      toast.error('请求配置错误');
+      const apiError: ApiError = {
+        message: error.response.data.message || '请求失败',
+        code: error.response.data.code || 'UNKNOWN_ERROR',
+        status: error.response.status,
+      };
+      return Promise.reject(apiError);
     }
-    return Promise.reject(error);
+    return Promise.reject({
+      message: '网络错误',
+      code: 'NETWORK_ERROR',
+      status: 0,
+    });
   }
 );
 

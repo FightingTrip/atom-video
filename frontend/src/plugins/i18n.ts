@@ -1,38 +1,31 @@
 import { createI18n } from 'vue-i18n';
-import enUS from '@/locales/en-US';
 import zhCN from '@/locales/zh-CN';
+import enUS from '@/locales/en-US';
 
-// 获取浏览器语言设置
-const getBrowserLanguage = () => {
-  const lang = navigator.language;
-  if (lang.startsWith('zh')) {
-    return 'zh-CN';
-  }
-  return 'en-US';
-};
+export type Language = 'zh-CN' | 'en-US';
 
-// 获取用户设置的语言或浏览器语言
-const getInitialLanguage = () => {
-  const savedLang = localStorage.getItem('language');
-  if (savedLang && ['en-US', 'zh-CN'].includes(savedLang)) {
-    return savedLang;
-  }
-  return getBrowserLanguage();
-};
-
-export const i18n = createI18n({
-  legacy: false, // 使用 Composition API 模式
-  locale: getInitialLanguage(),
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
   fallbackLocale: 'en-US',
   messages: {
-    'en-US': enUS,
     'zh-CN': zhCN,
+    'en-US': enUS,
   },
 });
 
-// 提供切换语言的函数
-export const setLanguage = (lang: 'en-US' | 'zh-CN') => {
+export function setLanguage(lang: Language) {
   i18n.global.locale.value = lang;
-  localStorage.setItem('language', lang);
   document.querySelector('html')?.setAttribute('lang', lang);
-};
+  localStorage.setItem('language', lang);
+}
+
+// 初始化语言设置
+const savedLanguage = localStorage.getItem('language') as Language;
+if (savedLanguage && ['zh-CN', 'en-US'].includes(savedLanguage)) {
+  setLanguage(savedLanguage);
+} else {
+  setLanguage('zh-CN');
+}
+
+export default i18n;
