@@ -26,6 +26,9 @@
   import TheHeader from '@/components/layout/TheHeader.vue';
   import TheSidebar from '@/components/layout/TheSidebar.vue';
   import TheFooter from '@/components/layout/TheFooter.vue';
+  import TagList from '@/components/TagList.vue'
+  import { useI18nStore } from '@/stores/i18n'
+  import { useVideoStore } from '@/stores/video'
 
   // 声明使用的组件
   const components = {
@@ -41,47 +44,89 @@
     TheHeader,
     TheSidebar,
     TheFooter,
+    TagList
   };
 
   const { t } = useI18n();
 
   const themeStore = useThemeStore();
+  const i18nStore = useI18nStore();
+  const videoStore = useVideoStore();
 
   const theme = computed(() => {
     return themeStore.isDark ? darkTheme : lightTheme;
   });
 
-  const sidebarRef = ref();
+  const sidebarCollapsed = ref(false);
+  const selectedTag = ref('全部');
 
-  const toggleSidebar = () => {
-    sidebarRef.value?.toggle();
+  const tags = [
+    '全部',
+    'JavaScript',
+    'TypeScript',
+    'Vue',
+    'React',
+    'Node.js',
+    'Python'
+  ];
+
+  const handleTagClick = (tag: string) => {
+    selectedTag.value = tag;
+    videoStore.setCategory(tag);
   };
 
   // 初始化主题
   onMounted(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      themeStore.toggleTheme();
+    themeStore.initTheme();
+
+    // 设置初始语言
+    const savedLanguage = localStorage.getItem('language');
+    if (savedLanguage) {
+      i18nStore.setLocale(savedLanguage);
     }
   });
 </script>
 
 <template>
-  <n-config-provider :theme="themeStore.theme">
+  <n-config-provider :theme="themeStore.naiveTheme">
     <n-message-provider>
-      <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-        <TheHeader />
-        <div class="flex">
-          <TheSidebar />
-          <main class="flex-1 ml-0 lg:ml-64 pt-14">
+      <div class="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+        <!-- 侧边栏 -->
+        <TheSidebar v-model:collapsed="sidebarCollapsed"
+          class="fixed left-0 top-0 h-screen z-40 transition-all duration-300" />
+
+        <!-- 主要内容区域 -->
+        <div class="flex-1 flex flex-col min-h-screen transition-all duration-300"
+          :class="[sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64']">
+          <!-- 头部导航 -->
+          <TheHeader class="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-sm" />
+
+          <!-- 标签导航 - 只保留这一个 -->
+          <div class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+            <div class="flex items-center h-12 px-4 overflow-x-auto no-scrollbar">
+              <button v-for="tag in tags" :key="tag"
+                class="px-4 py-1.5 mx-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors" :class="[
+                  selectedTag === tag
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+                ]" @click="handleTagClick(tag)">
+                {{ tag }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 主内容 -->
+          <main class="flex-1">
             <router-view v-slot="{ Component }">
               <transition name="fade" mode="out-in">
                 <component :is="Component" />
               </transition>
             </router-view>
           </main>
+
+          <!-- 页脚 -->
+          <TheFooter />
         </div>
-        <TheFooter />
       </div>
     </n-message-provider>
   </n-config-provider>
@@ -89,6 +134,15 @@
 
 <style>
   @import '@fortawesome/fontawesome-free/css/all.min.css';
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
   .fade-enter-active,
   .fade-leave-active {

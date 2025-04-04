@@ -33,18 +33,12 @@ export interface Video {
   title: string;
   description: string;
   thumbnail: string;
-  duration: number;
-  views: number;
-  likes: number;
-  dislikes: number;
-  createdAt: string;
+  duration: string;
+  views: string;
+  publishTime: string;
+  author: Author;
   tags: string[];
-  user: {
-    id: string;
-    nickname: string;
-    avatar: string;
-    verified: boolean;
-  };
+  category: string;
 }
 
 // 频道相关类型
@@ -175,4 +169,17 @@ export interface VideoService {
     videos: Video[];
     hasMore: boolean;
   }>;
+}
+
+export interface Author {
+  id: string;
+  name: string;
+  avatar: string;
+  verified?: boolean;
+}
+
+export interface VideoResponse {
+  videos: Video[];
+  hasMore: boolean;
+  total: number;
 }

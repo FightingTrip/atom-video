@@ -1,44 +1,41 @@
 import { defineStore } from 'pinia';
-import { ref, watch } from 'vue';
 import { darkTheme } from 'naive-ui';
 import type { GlobalTheme } from 'naive-ui';
 
-export const useThemeStore = defineStore('theme', () => {
-  // 初始化时从 localStorage 获取主题设置
-  const isDark = ref(localStorage.getItem('theme') === 'dark');
-  const theme = ref<GlobalTheme | null>(isDark.value ? darkTheme : null);
+export const useThemeStore = defineStore('theme', {
+  state: () => ({
+    isDark: localStorage.getItem('theme') === 'dark',
+    naiveTheme: localStorage.getItem('theme') === 'dark' ? darkTheme : null,
+  }),
 
-  // 切换主题
-  const toggleTheme = () => {
-    isDark.value = !isDark.value;
-    theme.value = isDark.value ? darkTheme : null;
-    // 保存到 localStorage
-    localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
-    // 更新 HTML 的 class
-    updateHtmlClass();
-  };
+  actions: {
+    toggleTheme() {
+      this.isDark = !this.isDark;
+      this.naiveTheme = this.isDark ? darkTheme : null;
 
-  // 更新 HTML 的 class
-  const updateHtmlClass = () => {
-    if (isDark.value) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
+      // 保存主题设置
+      localStorage.setItem('theme', this.isDark ? 'dark' : 'light');
 
-  // 监听主题变化
-  watch(
-    isDark,
-    () => {
-      updateHtmlClass();
+      // 更新 HTML 类以支持 Tailwind 暗色模式
+      if (this.isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     },
-    { immediate: true }
-  );
 
-  return {
-    isDark,
-    theme,
-    toggleTheme,
-  };
+    initTheme() {
+      // 从 localStorage 或系统偏好获取主题设置
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      this.isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+      this.naiveTheme = this.isDark ? darkTheme : null;
+
+      // 初始化时设置 HTML 类
+      if (this.isDark) {
+        document.documentElement.classList.add('dark');
+      }
+    },
+  },
 });

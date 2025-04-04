@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker/locale/zh_CN';
-import type { Video, Comment } from '@/types';
+import type { Video, Comment, VideoResponse } from '@/types';
 
 // 视频分类数据
 export const videoCategories = [
@@ -14,65 +14,81 @@ export const videoCategories = [
   { id: 'java', name: 'Java', icon: 'fa-java' },
 ];
 
-// 生成模拟视频数据
-const generateMockVideos = (count: number): Video[] => {
-  return Array.from({ length: count }, () => ({
-    id: faker.string.uuid(),
-    title: faker.helpers.arrayElement([
-      'Vue 3 完整教程 2024 - 从入门到精通',
-      'React 实战项目开发教程',
-      'TypeScript 高级特性详解',
-      'Node.js 服务端开发实践',
-      'Python 数据分析入门指南',
-    ]),
-    description: faker.lorem.paragraphs(2),
-    thumbnail: `https://picsum.photos/seed/${faker.string.alphanumeric(8)}/480/270`,
-    duration: faker.number.int({ min: 300, max: 7200 }),
-    views: faker.number.int({ min: 1000, max: 1000000 }),
-    likes: faker.number.int({ min: 100, max: 50000 }),
-    dislikes: faker.number.int({ min: 0, max: 1000 }),
-    createdAt: faker.date.past({ years: 1 }).toISOString(),
-    tags: faker.helpers.arrayElements(
-      videoCategories.filter(c => c.id !== 'all').map(c => c.id),
-      faker.number.int({ min: 1, max: 3 })
-    ),
-    user: {
-      id: faker.string.uuid(),
-      nickname: faker.internet.userName(),
-      avatar: faker.image.avatar(),
-      verified: faker.datatype.boolean(0.3),
-    },
-  }));
+// 生成随机观看次数
+const generateViews = () => {
+  const num = Math.floor(Math.random() * 1000);
+  return num > 100 ? `${(num / 100).toFixed(1)}K` : `${num}`;
 };
 
-// 生成初始数据
-const mockVideoList = generateMockVideos(100);
+// 生成随机时长
+const generateDuration = () => {
+  const minutes = Math.floor(Math.random() * 120);
+  const seconds = Math.floor(Math.random() * 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
+// 生成随机发布时间
+const generatePublishTime = () => {
+  const times = ['天前', '周前', '个月前', '年前'];
+  const num = Math.floor(Math.random() * 12) + 1;
+  const timeUnit = times[Math.floor(Math.random() * times.length)];
+  return `${num}${timeUnit}`;
+};
+
+// 生成模拟视频数据
+const generateMockVideos = (): Video[] => {
+  const categories = ['全部', 'JavaScript', 'TypeScript', 'Vue', 'React', 'Node.js', 'Python']
+  const videos: Video[] = []
+
+  for (let i = 1; i <= 50; i++) {
+    const category = categories[Math.floor(Math.random() * (categories.length - 1)) + 1]
+    videos.push({
+      id: i.toString(),
+      title: `${category} 实战教程 ${i} - 专业技能提升课程`,
+      description: `这是一个关于 ${category} 的实战教程，帮助你提升开发技能`,
+      thumbnail: `https://picsum.photos/seed/video${i}/640/360`,
+      duration: `${Math.floor(Math.random() * 60)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
+      views: `${(Math.random() * 1000).toFixed(1)}K`,
+      publishTime: `${Math.floor(Math.random() * 12)}个月前`,
+      author: {
+        id: `author${Math.floor(Math.random() * 10) + 1}`,
+        name: `讲师${Math.floor(Math.random() * 10) + 1}`,
+        avatar: `https://i.pravatar.cc/150?img=${i}`,
+        verified: Math.random() > 0.5
+      },
+      tags: [category, '编程教程', '实战'],
+      category
+    })
+  }
+  return videos
+}
+
+const mockVideos = generateMockVideos()
 
 // Mock API 函数
-export const mockVideoApi = {
-  // 获取视频列表
-  async getVideos(page = 1, limit = 12, category?: string) {
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    let filteredVideos = [...mockVideoList];
-    if (category && category !== 'all') {
-      filteredVideos = filteredVideos.filter(video => video.tags.includes(category));
+export const mockVideosApi = {
+  getVideos: async ({ page = 1, pageSize = 12, category = '全部' }): Promise<VideoResponse> => {
+    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟延迟
+    
+    let filteredVideos = mockVideos
+    if (category !== '全部') {
+      filteredVideos = mockVideos.filter(video => video.category === category)
     }
 
-    const start = (page - 1) * limit;
-    const end = start + limit;
-
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    
     return {
       videos: filteredVideos.slice(start, end),
       total: filteredVideos.length,
-      hasMore: end < filteredVideos.length,
-    };
+      hasMore: end < filteredVideos.length
+    }
   },
 
   // 获取单个视频
   async getVideoById(id: string) {
     await new Promise(resolve => setTimeout(resolve, 500));
-    return mockVideoList.find(video => video.id === id);
+    return mockVideos.find(video => video.id === id);
   },
 
   // 获取视频评论
@@ -125,5 +141,5 @@ export const mockVideoApi = {
 
 // 导出测试数据
 export const testVideoData = {
-  videos: mockVideoList.slice(0, 5),
+  videos: mockVideos.slice(0, 5),
 };

@@ -110,4 +110,8 @@ export default {
     network: 'Network error, please try again later',
     server: 'Server error, please try again later',
   },
+  header: {
+    searchPlaceholder: 'Search videos...',
+    login: 'Login',
+  },
 };

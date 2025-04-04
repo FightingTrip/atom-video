@@ -106,4 +106,8 @@ export default {
     network: '网络错误，请稍后重试',
     server: '服务器错误，请稍后重试',
   },
+  header: {
+    searchPlaceholder: '搜索视频...',
+    login: '登录',
+  },
 };
