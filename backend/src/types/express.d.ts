@@ -1,4 +1,4 @@
-import { User } from '../models/User';
+import { User } from '@prisma/client';
 
 declare global {
   namespace Express {
@@ -6,6 +6,8 @@ declare global {
       user?: {
         id: string;
         email: string;
+        username: string;
+        role: string;
       };
       file?: Express.Multer.File;
     }
