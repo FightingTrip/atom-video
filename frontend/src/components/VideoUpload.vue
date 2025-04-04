@@ -59,6 +59,20 @@
             </div>
           </div>
 
+          <!-- 视频预览 -->
+          <div v-if="videoPreviewUrl" class="mt-4">
+            <div class="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <video ref="previewVideo" :src="videoPreviewUrl" class="w-full h-full"
+                @loadedmetadata="onPreviewLoadedMetadata"></video>
+              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                <div class="flex items-center justify-between text-white text-sm">
+                  <span>{{ formatDuration(videoDuration) }}</span>
+                  <span>{{ videoResolution }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 上传进度 -->
           <div v-if="uploadProgress > 0" class="mt-4">
             <div class="relative pt-1">
@@ -79,6 +93,14 @@
                 <div :style="{ width: uploadProgress + '%' }"
                   class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500">
                 </div>
+              </div>
+              <div class="flex justify-between text-xs text-gray-600">
+                <span>{{ formatFileSize(uploadedBytes) }}</span>
+                <span>{{ formatFileSize(selectedFile?.size || 0) }}</span>
+              </div>
+              <div class="flex justify-between text-xs text-gray-600 mt-1">
+                <span>上传速度: {{ formatSpeed(uploadSpeed) }}</span>
+                <span>预计剩余时间: {{ formatTimeRemaining(timeRemaining) }}</span>
               </div>
             </div>
           </div>
@@ -116,8 +138,7 @@
 </template>
 
 <script setup lang="ts">
-  // 导入 Vue 3 和 TypeScript 相关
-  import { ref, computed } from 'vue';
+  import { ref, computed, onUnmounted } from 'vue';
   import { useAuthStore } from '@/stores/auth';
   import { useToast } from '@/composables/useToast';
   import api from '@/utils/api';
@@ -131,38 +152,55 @@
   const description = ref('');
   const selectedFile = ref<File | null>(null);
   const fileInput = ref<HTMLInputElement | null>(null);
+  const previewVideo = ref<HTMLVideoElement | null>(null);
+  const videoPreviewUrl = ref<string>('');
+  const videoDuration = ref(0);
+  const videoResolution = ref('');
   const uploadProgress = ref(0);
+  const uploadedBytes = ref(0);
+  const uploadSpeed = ref(0);
+  const timeRemaining = ref(0);
   const isLoading = ref(false);
   const error = ref('');
-
-  // 计算属性
-  const videoInfo = computed(() => {
-    if (!selectedFile.value) return null;
-    return {
-      name: selectedFile.value.name,
-      size: selectedFile.value.size,
-      type: selectedFile.value.type,
-    };
-  });
+  const uploadController = ref<AbortController | null>(null);
+  const lastUploadedBytes = ref(0);
+  const lastTime = ref(0);
 
   // 方法定义
   const triggerFileInput = () => {
     fileInput.value?.click();
   };
 
-  const handleFileChange = (event: Event) => {
+  const handleFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
       selectedFile.value = input.files[0];
-      validateFile(selectedFile.value);
+      if (validateFile(selectedFile.value)) {
+        await createVideoPreview(selectedFile.value);
+      }
     }
   };
 
-  const handleDrop = (event: DragEvent) => {
+  const handleDrop = async (event: DragEvent) => {
     if (event.dataTransfer?.files.length) {
       selectedFile.value = event.dataTransfer.files[0];
-      validateFile(selectedFile.value);
+      if (validateFile(selectedFile.value)) {
+        await createVideoPreview(selectedFile.value);
+      }
     }
+  };
+
+  const createVideoPreview = (file: File) => {
+    if (videoPreviewUrl.value) {
+      URL.revokeObjectURL(videoPreviewUrl.value);
+    }
+    videoPreviewUrl.value = URL.createObjectURL(file);
+  };
+
+  const onPreviewLoadedMetadata = () => {
+    if (!previewVideo.value) return;
+    videoDuration.value = previewVideo.value.duration;
+    videoResolution.value = `${previewVideo.value.videoWidth}x${previewVideo.value.videoHeight}`;
   };
 
   const validateFile = (file: File) => {
@@ -193,44 +231,110 @@
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatSpeed = (bytesPerSecond: number) => {
+    if (bytesPerSecond === 0) return '0 B/s';
+    const k = 1024;
+    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
+    return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const formatTimeRemaining = (seconds: number) => {
+    if (seconds <= 0) return '计算中...';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const updateUploadProgress = (loaded: number, total: number) => {
+    const now = Date.now();
+    const timeDiff = (now - lastTime.value) / 1000; // 转换为秒
+
+    if (timeDiff > 0) {
+      const bytesDiff = loaded - lastUploadedBytes.value;
+      uploadSpeed.value = bytesDiff / timeDiff;
+
+      const remainingBytes = total - loaded;
+      timeRemaining.value = remainingBytes / uploadSpeed.value;
+    }
+
+    lastUploadedBytes.value = loaded;
+    lastTime.value = now;
+    uploadedBytes.value = loaded;
+    uploadProgress.value = (loaded / total) * 100;
+  };
+
   const handleSubmit = async () => {
     if (!selectedFile.value || !validateFile(selectedFile.value)) return;
 
     isLoading.value = true;
     error.value = '';
+    uploadProgress.value = 0;
+    uploadedBytes.value = 0;
+    uploadSpeed.value = 0;
+    timeRemaining.value = 0;
+    lastUploadedBytes.value = 0;
+    lastTime.value = Date.now();
+
+    // 创建新的 AbortController
+    uploadController.value = new AbortController();
 
     try {
       const formData = new FormData();
       formData.append('title', title.value);
       formData.append('description', description.value);
       formData.append('video', selectedFile.value);
+      formData.append('duration', videoDuration.value.toString());
+      formData.append('resolution', videoResolution.value);
 
       const response = await api.post('/videos/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
-            uploadProgress.value = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
+            updateUploadProgress(progressEvent.loaded, progressEvent.total);
           }
         },
+        signal: uploadController.value.signal,
       });
 
       toast.success('视频上传成功');
-      emit('upload-success', response.data);
+      emit('success', response.data);
     } catch (err: any) {
-      error.value = err.response?.data?.message || '上传失败，请重试';
+      if (err.name === 'AbortError') {
+        error.value = '上传已取消';
+      } else {
+        error.value = err.response?.data?.message || '上传失败，请重试';
+      }
       toast.error(error.value);
     } finally {
       isLoading.value = false;
+      uploadController.value = null;
     }
   };
 
+  // 组件卸载时清理
+  onUnmounted(() => {
+    if (videoPreviewUrl.value) {
+      URL.revokeObjectURL(videoPreviewUrl.value);
+    }
+    if (uploadController.value) {
+      uploadController.value.abort();
+    }
+  });
+
   // 事件发射
   const emit = defineEmits<{
-    (e: 'upload-success', data: any): void;
+    (e: 'success', data: any): void;
     (e: 'cancel'): void;
   }>();
 </script>
