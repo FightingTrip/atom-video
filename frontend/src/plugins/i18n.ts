@@ -1,6 +1,6 @@
 import { createI18n } from 'vue-i18n';
-import en from '@/locales/en.json';
-import zh from '@/locales/zh.json';
+import enUS from '@/locales/en-US';
+import zhCN from '@/locales/zh-CN';
 
 // 获取浏览器语言设置
 const getBrowserLanguage = () => {
@@ -16,12 +16,14 @@ const getLanguage = () => {
   return localStorage.getItem('language') || getBrowserLanguage();
 };
 
-export default createI18n({
+const i18n = createI18n({
   legacy: false, // 使用 Composition API
   locale: getLanguage(),
   fallbackLocale: 'en-US',
   messages: {
-    'en-US': en,
-    'zh-CN': zh,
+    'en-US': enUS,
+    'zh-CN': zhCN,
   },
 });
+
+export default i18n;
