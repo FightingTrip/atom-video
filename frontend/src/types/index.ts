@@ -1,14 +1,12 @@
 // 用户相关类型
 export interface User {
   id: string;
-  username: string;
+  email: string;
   nickname: string;
-  avatar: string;
+  avatar?: string;
   bio?: string;
-  github?: string;
-  website?: string;
-  location?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 // 视频相关类型
@@ -21,8 +19,11 @@ export interface Video {
   views: number;
   likes: number;
   createdAt: string;
-  tags: Tag[];
+  updatedAt: string;
   user: User;
+  category?: string;
+  tags?: string[];
+  visibility: 'public' | 'private' | 'unlisted';
 }
 
 // 标签相关类型
@@ -52,11 +53,14 @@ export interface Pagination {
 }
 
 // API 响应类型
-export interface ApiResponse<T> {
+export interface ApiResponse<T = any> {
   success: boolean;
-  data: T;
   message?: string;
-  error?: string;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 // 主题相关类型
@@ -81,3 +85,11 @@ export interface ApiError {
 // 导出其他类型
 export * from './video';
 export * from './tags';
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
