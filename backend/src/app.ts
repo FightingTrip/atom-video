@@ -3,8 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import userRoutes from './routes/userRoutes';
 import videoRoutes from './routes/videoRoutes';
-import authRoutes from './routes/authRoutes';
+import authRoutes from './routes/auth';
 import logger from './utils/logger';
+import passport from 'passport';
 
 // 加载环境变量
 dotenv.config();
@@ -14,6 +15,7 @@ const app = express();
 // 中间件
 app.use(cors());
 app.use(express.json());
+app.use(passport.initialize());
 
 // 路由
 app.get('/', (req, res) => {

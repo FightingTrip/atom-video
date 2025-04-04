@@ -18,27 +18,33 @@ declare global {
   }
 }
 
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+  };
+}
+
 // 验证 JWT token
-export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    res.status(401).json({ error: '未提供认证令牌' });
-    return;
-  }
-
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const user = jwt.verify(token, JWT_SECRET) as {
-      userId: number;
-      email: string;
-      role: UserRole;
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: '未提供认证令牌' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+
+    req.user = {
+      id: decoded.userId,
+      email: decoded.email,
     };
-    req.user = user;
+
     next();
   } catch (error) {
-    logger.error('Token verification error:', error);
-    res.status(403).json({ error: '无效的认证令牌' });
+    console.error('认证错误:', error);
+    res.status(401).json({ message: '无效的认证令牌' });
   }
 };
 
