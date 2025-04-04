@@ -225,8 +225,8 @@ pnpm test:coverage
 
 ## 📞 联系方式
 
-- 项目负责人：张宇翔
-- 邮箱：zjtdzyx@163.com
+- 项目负责人：@zjtdzyx
+- 邮箱：yuxiangzhang040727@gmail.com
 - GitHub：[FightingTrip](https://github.com/FightingTrip)
 
 ## 🙏 致谢

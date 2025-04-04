@@ -13,6 +13,7 @@ const VideoDetail = () => import('@/views/VideoDetail.vue');
 const NotFound = () => import('@/views/NotFound.vue');
 const ForgotPassword = () => import('@/views/auth/ForgotPassword.vue');
 const ResetPassword = () => import('@/views/auth/ResetPassword.vue');
+const VideoUpload = () => import('@/views/video/Upload.vue');
 
 const router = createRouter({
   history: createWebHistory(),
@@ -103,6 +104,15 @@ const router = createRouter({
       meta: {
         title: '重置密码',
         guest: true,
+      },
+    },
+    {
+      path: '/videos/upload',
+      name: 'VideoUpload',
+      component: VideoUpload,
+      meta: {
+        requiresAuth: true,
+        title: '上传视频',
       },
     },
     {

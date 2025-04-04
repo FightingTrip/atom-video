@@ -14,60 +14,56 @@ datasource db {
 }
 
 enum UserRole {
-  guest
-  member
-  admin
+  USER
+  ADMIN
 }
 
-enum ReviewStatus {
-  pending
-  rejected
-}
-
-enum ActionType {
-  view
-  like
-  comment
-  share
+enum Visibility {
+  PUBLIC
+  PRIVATE
 }
 
 model User {
-  id                String         @id @default(cuid())
-  email             String         @unique
-  username          String         @unique
-  password          String?
-  googleId          String?        @unique
-  githubId          String?        @unique
-  avatar            String?
-  bio               String?
-  isVerified        Boolean        @default(false)
-  verificationToken String?
-  resetToken        String?
-  resetTokenExpires DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  videos            Video[]
-  comments          Comment[]
-  likes             Like[]
-  subscribers       Subscription[]
-  subscriptions     Subscription[]
+  id                   String         @id @default(uuid())
+  username             String         @unique
+  email                String         @unique
+  password             String
+  avatar               String?
+  role                 UserRole       @default(USER)
+  isEmailVerified      Boolean        @default(false)
+  verificationToken    String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  videos               Video[]
+  comments             Comment[]
+  likes                Like[]
+  subscriptions        Subscription[] @relation("Subscriber")
+  subscribers          Subscription[] @relation("SubscribedTo")
 }
 
 model Video {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  url         String
-  thumbnail   String?
-  duration    Int?
-  views       Int       @default(0)
-  likes       Int       @default(0)
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  comments    Comment[]
-  likes       Like[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String     @id @default(uuid())
+  title        String
+  description  String?
+  url          String
+  thumbnail    String?
+  duration     Int
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  tags         String[]
+  visibility   Visibility @default(PUBLIC)
+  viewCount    Int        @default(0)
+  likeCount    Int        @default(0)
+  commentCount Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  comments     Comment[]
+  likes        Like[]
+
+  @@index([userId])
+  @@index([visibility, createdAt])
 }
 
 model Comment {
@@ -79,6 +75,9 @@ model Comment {
   video     Video    @relation(fields: [videoId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([videoId])
 }
 
 model Like {
@@ -88,9 +87,10 @@ model Like {
   videoId   String
   video     Video    @relation(fields: [videoId], references: [id])
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
 }
 
 model Subscription {
@@ -100,36 +100,8 @@ model Subscription {
   subscribedToId String
   subscribedTo   User     @relation("SubscribedTo", fields: [subscribedToId], references: [id])
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
 
   @@unique([subscriberId, subscribedToId])
-}
-
-model VideoReview {
-  id          Int          @id @default(autoincrement())
-  video_id    Int
-  reviewed_by Int
-  status      ReviewStatus @default(pending)
-  video       Video        @relation(fields: [video_id], references: [id])
-  reviewer    User         @relation(fields: [reviewed_by], references: [id])
-  createdAt   DateTime     @default(now())
-}
-
-model VideoTag {
-  id       Int    @id @default(autoincrement())
-  video_id Int
-  tag      String
-  video    Video  @relation(fields: [video_id], references: [id])
-
-  @@unique([video_id, tag])
-}
-
-model UserActivity {
-  id          Int        @id @default(autoincrement())
-  user_id     Int
-  video_id    Int
-  action_type ActionType
-  user        User       @relation(fields: [user_id], references: [id])
-  video       Video      @relation(fields: [video_id], references: [id])
-  createdAt   DateTime   @default(now())
+  @@index([subscriberId])
+  @@index([subscribedToId])
 }

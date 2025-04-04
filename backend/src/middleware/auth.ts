@@ -10,9 +10,8 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
-        userId: number;
+        id: string;
         email: string;
-        role: UserRole;
       };
     }
   }
@@ -26,7 +25,7 @@ export interface AuthRequest extends Request {
 }
 
 // 验证 JWT token
-export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
 
