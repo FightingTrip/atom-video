@@ -8,6 +8,8 @@ import { Strategy as GitHubStrategy } from 'passport-github2';
 import logger from '../utils/logger';
 import crypto from 'crypto';
 import { sendVerificationEmail, sendResetPasswordEmail } from '../utils/email';
+import { AuthService } from '../services/authService';
+import { AppError } from '../middleware/errorHandler';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -88,142 +90,125 @@ const generateResetToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// 注册
-export const register = async (req: Request, res: Response) => {
+// 用户注册
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, username } = req.body;
+    const { username, email, password } = req.body;
 
-    // 检查邮箱是否已存在
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return res.status(400).json({ message: '该邮箱已被注册' });
+    if (!username || !email || !password) {
+      throw new AppError(400, '请提供用户名、邮箱和密码');
     }
 
-    // 检查用户名是否已存在
-    const existingUsername = await prisma.user.findUnique({
-      where: { username },
-    });
-
-    if (existingUsername) {
-      return res.status(400).json({ message: '该用户名已被使用' });
-    }
-
-    // 加密密码
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 生成验证令牌
-    const verificationToken = generateVerificationToken();
-
-    // 创建用户
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        username,
-        verificationToken,
-        isVerified: false,
-      },
-    });
-
-    // 发送验证邮件
-    await sendVerificationEmail(email, verificationToken);
-
-    // 生成 JWT
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
-
+    const user = await AuthService.register(username, email, password);
     res.status(201).json({
-      message: '注册成功，请查收验证邮件',
+      message: '注册成功，请检查邮箱完成验证',
       user: {
         id: user.id,
-        email: user.email,
         username: user.username,
-        isVerified: user.isVerified,
+        email: user.email,
       },
     });
   } catch (error) {
-    console.error('注册错误:', error);
-    res.status(500).json({ message: '注册失败，请重试' });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      logger.error('用户注册失败:', error);
+      res.status(500).json({ error: '服务器内部错误' });
+    }
   }
 };
 
-// 登录
-export const login = async (req: Request, res: Response) => {
+// 用户登录
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    // 查找用户
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return res.status(401).json({ message: '邮箱或密码错误' });
+    if (!email || !password) {
+      throw new AppError(400, '请提供邮箱和密码');
     }
 
-    // 验证密码
-    const isValidPassword = await bcrypt.compare(password, user.password);
-
-    if (!isValidPassword) {
-      return res.status(401).json({ message: '邮箱或密码错误' });
-    }
-
-    // 检查邮箱是否已验证
-    if (!user.isVerified) {
-      return res.status(403).json({ message: '请先验证邮箱' });
-    }
-
-    // 生成 JWT
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
-
+    const { user, token } = await AuthService.login(email, password);
     res.json({
-      token,
+      message: '登录成功',
       user: {
         id: user.id,
-        email: user.email,
         username: user.username,
-        isVerified: user.isVerified,
+        email: user.email,
+        avatar: user.avatar,
       },
+      token,
     });
   } catch (error) {
-    console.error('登录错误:', error);
-    res.status(500).json({ message: '登录失败，请重试' });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      logger.error('用户登录失败:', error);
+      res.status(500).json({ error: '服务器内部错误' });
+    }
   }
 };
 
 // 验证邮箱
-export const verifyEmail = async (req: Request, res: Response) => {
+export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { token } = req.body;
+    const { token } = req.params;
 
-    // 查找用户
-    const user = await prisma.user.findFirst({
-      where: { verificationToken: token },
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: '无效的验证令牌' });
+    if (!token) {
+      throw new AppError(400, '无效的验证令牌');
     }
 
-    // 更新用户验证状态
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isVerified: true,
-        verificationToken: null,
-      },
-    });
-
+    await AuthService.verifyEmail(token);
     res.json({ message: '邮箱验证成功' });
   } catch (error) {
-    console.error('验证邮箱错误:', error);
-    res.status(500).json({ message: '验证失败，请重试' });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      logger.error('邮箱验证失败:', error);
+      res.status(500).json({ error: '服务器内部错误' });
+    }
+  }
+};
+
+// 请求重置密码
+export const requestPasswordReset = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      throw new AppError(400, '请提供邮箱地址');
+    }
+
+    await AuthService.requestPasswordReset(email);
+    res.json({ message: '重置密码邮件已发送，请检查邮箱' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      logger.error('请求重置密码失败:', error);
+      res.status(500).json({ error: '服务器内部错误' });
+    }
+  }
+};
+
+// 重置密码
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!token || !password) {
+      throw new AppError(400, '请提供重置令牌和新密码');
+    }
+
+    await AuthService.resetPassword(token, password);
+    res.json({ message: '密码重置成功' });
+  } catch (error) {
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
+    } else {
+      logger.error('重置密码失败:', error);
+      res.status(500).json({ error: '服务器内部错误' });
+    }
   }
 };
 
@@ -363,44 +348,5 @@ export const forgotPassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('忘记密码错误:', error);
     res.status(500).json({ message: '发送失败，请重试' });
-  }
-};
-
-// 重置密码
-export const resetPassword = async (req: Request, res: Response) => {
-  try {
-    const { token, password } = req.body;
-
-    // 查找用户
-    const user = await prisma.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExpires: {
-          gt: new Date(),
-        },
-      },
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: '无效或过期的重置令牌' });
-    }
-
-    // 加密新密码
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 更新用户密码并清除重置令牌
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpires: null,
-      },
-    });
-
-    res.json({ message: '密码重置成功' });
-  } catch (error) {
-    console.error('重置密码错误:', error);
-    res.status(500).json({ message: '重置失败，请重试' });
   }
 };
