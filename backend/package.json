@@ -2,6 +2,7 @@
   "name": "atom-video-backend",
   "version": "1.0.0",
   "description": "Backend for Atom Video CMS",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",

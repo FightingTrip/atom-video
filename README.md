@@ -7,6 +7,7 @@
 [![Vue](https://img.shields.io/badge/Vue-3.3.4-green)](https://vuejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.18.2-lightgrey)](https://expressjs.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-%3E%3D14.0-blue)](https://www.postgresql.org/)
+[![ESM](https://img.shields.io/badge/ESM-Enabled-blue)](https://nodejs.org/api/esm.html)
 
 一个现代化的视频分享平台，采用 Monorepo 架构，使用 Vue 3 + TypeScript + Express 构建。
 
@@ -20,6 +21,7 @@
 - 📱 响应式设计
 - 🌐 国际化支持
 - 📊 数据统计与分析
+- 📦 统一使用 ESM 模块系统
 
 ## 📋 目录
 
@@ -35,6 +37,7 @@
   - [🛠️ 技术栈](#️-技术栈)
     - [前端](#前端)
     - [后端](#后端)
+    - [模块系统](#模块系统)
   - [📚 开发指南](#-开发指南)
     - [代码规范](#代码规范)
     - [测试](#测试)
@@ -140,24 +143,38 @@ atom-video/
 ### 前端
 
 - Vue 3 - 渐进式 JavaScript 框架
-- TypeScript - 类型安全的 JavaScript 超集
+- TypeScript - JavaScript 的超集
 - Vite - 下一代前端构建工具
-- Pinia - Vue 的状态管理库
-- Vue Router - Vue 的路由管理器
 - Tailwind CSS - 实用优先的 CSS 框架
-- Vitest - 测试框架
-- Vue Test Utils - Vue 组件测试工具
+- Pinia - Vue 的状态管理库
+- Vue Router - Vue.js 的官方路由
+- Axios - 基于 Promise 的 HTTP 客户端
 
 ### 后端
 
-- Node.js - JavaScript 运行时
-- Express - Web 应用框架
-- TypeScript - 类型安全的 JavaScript 超集
+- Express - Node.js Web 应用框架
+- TypeScript - JavaScript 的超集
 - Prisma - 下一代 ORM
 - PostgreSQL - 关系型数据库
-- Redis - 内存数据库
+- Redis - 内存数据存储
 - Jest - JavaScript 测试框架
-- Supertest - HTTP 测试库
+- Winston - 日志记录
+
+### 模块系统
+
+本项目统一使用 ECMAScript Modules (ESM) 作为模块系统，主要特点：
+
+- 使用 `import/export` 语法
+- 支持静态分析
+- 更好的 Tree Shaking
+- 原生浏览器支持
+- 更现代的开发体验
+
+配置说明：
+- 所有 `package.json` 文件都设置了 `"type": "module"`
+- TypeScript 配置使用 `"module": "ESNext"`
+- 测试框架（Jest）配置支持 ESM
+- 构建工具（Vite）原生支持 ESM
 
 ## 📚 开发指南
 

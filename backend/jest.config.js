@@ -1,10 +1,7 @@
-module.exports = {
-  preset: 'ts-jest',
+export default {
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  transform: {
-    '^.+\\.tsx?$': 'ts-jest',
-  },
+  extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@controllers/(.*)$': '<rootDir>/src/controllers/$1',
@@ -12,6 +9,14 @@ module.exports = {
     '^@models/(.*)$': '<rootDir>/src/models/$1',
     '^@routes/(.*)$': '<rootDir>/src/routes/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+  },
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        useESM: true,
+      },
+    ],
   },
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
   collectCoverage: true,
