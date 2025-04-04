@@ -1,8 +1,9 @@
 <template>
-  <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800" @click="toggleTheme"
-    :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
-    <i class="fas" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
-  </button>
+  <n-tooltip :content="$t(`theme.${isDark ? 'light' : 'dark'}`)" placement="bottom">
+    <button class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" @click="toggleTheme">
+      <i :class="['fas', isDark ? 'fa-sun' : 'fa-moon', 'text-lg']"></i>
+    </button>
+  </n-tooltip>
 </template>
 
 <script setup lang="ts">
@@ -11,5 +12,14 @@
 
   const themeStore = useThemeStore();
   const isDark = computed(() => themeStore.isDark);
-  const toggleTheme = () => themeStore.toggleTheme();
+
+  const toggleTheme = () => {
+    themeStore.toggleTheme();
+  };
 </script>
+
+<style scoped>
+  .rotate-[-20deg] {
+    transform: rotate(-20deg);
+  }
+</style>

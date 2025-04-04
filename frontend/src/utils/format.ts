@@ -29,21 +29,15 @@ export const formatViews = (views: number): string => {
  */
 export const formatTime = (date: string): string => {
   const now = new Date();
-  const target = new Date(date);
-  const diff = now.getTime() - target.getTime();
-  const seconds = Math.floor(diff / 1000);
+  const past = new Date(date);
+  const diff = Math.floor((now.getTime() - past.getTime()) / 1000);
 
-  if (seconds < 60) return '刚刚';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}分钟前`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}小时前`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}天前`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}个月前`;
-  const years = Math.floor(months / 12);
-  return `${years}年前`;
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`;
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)}个月前`;
+  return `${Math.floor(diff / 31536000)}年前`;
 };
 
 /**
@@ -51,5 +45,15 @@ export const formatTime = (date: string): string => {
  * @returns string 生成的唯一ID
  */
 export const generateId = (): string => {
-  return 'id_' + Math.random().toString(36).substr(2, 9);
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+};
+
+export const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
 };

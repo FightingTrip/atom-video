@@ -1,158 +1,169 @@
 <template>
-  <div class="py-4">
+  <div class="min-h-screen py-4">
     <!-- 分类标签 -->
-    <div class="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
-      <button v-for="tag in tags" :key="tag.id" class="px-4 py-1 rounded-full transition-colors whitespace-nowrap"
-        :class="[
-          selectedTag === tag.id
-            ? 'bg-white text-black font-medium'
-            : 'bg-[#272727] hover:bg-[#3f3f3f]',
-        ]" @click="selectTag(tag.id)">
-        <i v-if="tag.icon" :class="['fas', tag.icon, 'mr-2']"></i>
-        {{ tag.name }}
-      </button>
+    <div class="sticky top-14 z-10 bg-white dark:bg-gray-900 pb-4">
+      <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar mask-edges">
+        <button v-for="tag in tags" :key="tag.id"
+          class="px-4 py-1.5 rounded-full transition-colors whitespace-nowrap text-sm font-medium" :class="[
+            selectedTag === tag.id
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+          ]" @click="selectTag(tag.id)">
+          <i v-if="tag.icon" :class="['fas', tag.icon, 'mr-2']"></i>
+          {{ tag.name }}
+        </button>
+      </div>
     </div>
 
     <!-- 视频网格 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      <template v-if="!loading">
-        <VideoCard v-for="video in videos" :key="video.id" :video="video" @click="navigateToVideo(video.id)" />
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-4">
+      <template v-if="loading">
+        <VideoCardSkeleton v-for="i in 12" :key="i" />
+      </template>
+      <template v-else-if="error">
+        <div class="col-span-full text-center py-8">
+          <n-result status="error" :title="error.message">
+            <template #footer>
+              <n-button @click="loadVideos(true)">重试</n-button>
+            </template>
+          </n-result>
+        </div>
+      </template>
+      <template v-else-if="filteredVideos.length === 0">
+        <div class="col-span-full text-center py-8">
+          <n-empty description="暂无视频">
+            <template #extra>
+              <n-button @click="selectTag('all')">查看全部</n-button>
+            </template>
+          </n-empty>
+        </div>
       </template>
       <template v-else>
-        <VideoCard v-for="i in 12" :key="i" :loading="true" />
+        <VideoCard v-for="video in filteredVideos" :key="video.id" :video="video" @click="navigateToVideo(video.id)" />
       </template>
     </div>
 
     <!-- 加载更多 -->
-    <div v-if="hasMore && !loading" class="mt-8 text-center">
-      <button class="px-6 py-2 rounded-full bg-[#272727] hover:bg-[#3f3f3f] transition-colors" @click="loadMore">
-        {{ $t('common.loadMore') }}
-      </button>
+    <div v-if="hasMore" class="mt-8 text-center pb-8">
+      <n-button :loading="loadingMore" @click="loadMore" type="primary" size="large">
+        {{ loadingMore ? '加载中...' : '加载更多' }}
+      </n-button>
     </div>
 
-    <!-- 加载中 -->
-    <div v-if="loading && hasMore" class="mt-8 text-center">
-      <div
-        class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-t-blue-500 border-r-transparent border-b-blue-500 border-l-transparent">
-      </div>
-    </div>
+    <!-- 返回顶部 -->
+    <n-back-top :right="20" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import { useI18n } from 'vue-i18n';
-  import type { Video, Tag, ApiResponse } from '@/types';
-  import api from '@/utils/api';
+  import { useMessage } from 'naive-ui';
   import VideoCard from '@/components/VideoCard.vue';
-  import { mockVideos } from '@/mock/videos';
-  import { env } from '@/utils/env';
+  import VideoCardSkeleton from '@/components/VideoCardSkeleton.vue';
+  import type { Video } from '@/types';
+  import { videoService } from '@/services/video';
+  import { useUserStore } from '@/stores/user';
+  import { useVideoStore } from '@/stores/video';
 
   const router = useRouter();
-  const { t } = useI18n();
+  const message = useMessage();
+  const userStore = useUserStore();
+  const videoStore = useVideoStore();
 
-  const loading = ref(true);
+  // 状态管理
   const videos = ref<Video[]>([]);
-  const tags = ref<Tag[]>([
-    { id: 'all', name: '全部', slug: 'all' },
-    { id: 'javascript', name: 'JavaScript', slug: 'javascript', icon: 'fa-js' },
-    { id: 'typescript', name: 'TypeScript', slug: 'typescript', icon: 'fa-code' },
-    { id: 'vue', name: 'Vue', slug: 'vue', icon: 'fa-vuejs' },
-    { id: 'react', name: 'React', slug: 'react', icon: 'fa-react' },
-    { id: 'nodejs', name: 'Node.js', slug: 'nodejs', icon: 'fa-node' },
-    { id: 'python', name: 'Python', slug: 'python', icon: 'fa-python' },
-    { id: 'java', name: 'Java', slug: 'java', icon: 'fa-java' },
-    { id: 'go', name: 'Go', slug: 'go', icon: 'fa-code' },
-    { id: 'rust', name: 'Rust', slug: 'rust', icon: 'fa-cogs' },
-  ]);
-
-  const selectedTag = ref('all');
+  const loading = ref(true);
+  const loadingMore = ref(false);
   const page = ref(1);
   const hasMore = ref(true);
+  const selectedTag = ref('all');
+  const error = ref<Error | null>(null);
 
-  const fetchVideos = async (reset = false) => {
+  // 分类标签
+  const tags = ref([
+    { id: 'all', name: '全部', icon: 'fa-th-large' },
+    { id: 'javascript', name: 'JavaScript', icon: 'fa-js' },
+    { id: 'typescript', name: 'TypeScript', icon: 'fa-code' },
+    { id: 'vue', name: 'Vue', icon: 'fa-vuejs' },
+    { id: 'react', name: 'React', icon: 'fa-react' },
+    { id: 'nodejs', name: 'Node.js', icon: 'fa-node' },
+    { id: 'python', name: 'Python', icon: 'fa-python' },
+  ]);
+
+  // 计算属性
+  const filteredVideos = computed(() => {
+    if (selectedTag.value === 'all') return videos.value;
+    return videos.value.filter(video => video.tags.includes(selectedTag.value));
+  });
+
+  // 加载视频数据
+  const loadVideos = async (reset = false) => {
     if (reset) {
       page.value = 1;
       videos.value = [];
-      hasMore.value = true;
+      loading.value = true;
+      error.value = null;
+    } else {
+      loadingMore.value = true;
     }
 
     try {
-      loading.value = true;
+      const { videos: newVideos, hasMore: more } = await videoService.getVideos(
+        page.value,
+        12,
+        selectedTag.value
+      );
 
-      if (env.useMock) {
-        // 使用模拟数据
-        const mockResponse = {
-          success: true,
-          data: {
-            videos: mockVideos.filter((video: Video) => {
-              if (selectedTag.value === 'all') return true;
-              return video.tags.some((tag: Tag) => tag.id === selectedTag.value);
-            }).slice((page.value - 1) * 12, page.value * 12),
-            totalPages: Math.ceil(mockVideos.length / 12),
-          },
-        };
-
-        if (mockResponse.success) {
-          if (reset) {
-            videos.value = mockResponse.data.videos;
-          } else {
-            videos.value.push(...mockResponse.data.videos);
-          }
-
-          hasMore.value = page.value < mockResponse.data.totalPages;
-        }
+      if (reset) {
+        videos.value = newVideos;
       } else {
-        // 使用实际 API
-        const response = await api.get<ApiResponse<{
-          videos: Video[];
-          totalPages: number;
-        }>>('/videos', {
-          params: {
-            page: page.value,
-            limit: 12,
-            tag: selectedTag.value === 'all' ? undefined : selectedTag.value,
-          },
-        });
-
-        if (response.data.success) {
-          if (reset) {
-            videos.value = response.data.data.videos;
-          } else {
-            videos.value.push(...response.data.data.videos);
-          }
-
-          hasMore.value = page.value < response.data.data.totalPages;
-        }
+        videos.value.push(...newVideos);
       }
-    } catch (error) {
-      // 保留错误处理，但移除 console.error
+
+      hasMore.value = more;
+      error.value = null;
+    } catch (err) {
+      error.value = err as Error;
+      message.error('加载视频失败');
     } finally {
       loading.value = false;
+      loadingMore.value = false;
     }
   };
 
+  // 选择标签
   const selectTag = (tagId: string) => {
+    if (selectedTag.value === tagId) return;
     selectedTag.value = tagId;
-    fetchVideos(true);
+    loadVideos(true);
   };
 
+  // 加载更多
   const loadMore = () => {
+    if (loadingMore.value || !hasMore.value) return;
     page.value++;
-    fetchVideos();
+    loadVideos();
   };
 
+  // 导航到视频详情
   const navigateToVideo = (videoId: string) => {
     router.push(`/video/${videoId}`);
+    videoStore.addToHistory(videoId);
   };
 
+  // 生命周期钩子
   onMounted(() => {
-    fetchVideos();
+    loadVideos();
   });
 </script>
 
 <style scoped>
+  .mask-edges {
+    mask-image: linear-gradient(90deg, transparent, #000 1%, #000 99%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 1%, #000 99%, transparent);
+  }
+
   .no-scrollbar {
     scrollbar-width: none;
     -ms-overflow-style: none;

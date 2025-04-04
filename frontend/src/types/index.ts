@@ -1,12 +1,30 @@
+import type { User, AuthResponse, ApiResponse } from '@/types';
+import { faker } from '@faker-js/faker';
+import { zh_CN } from '@faker-js/faker/locale/zh_CN';
+import type { Channel, Playlist } from '@/types';
+
+// 设置中文语言
+faker.setDefaultLocale(zh_CN);
+
 // 用户相关类型
 export interface User {
   id: string;
+  username: string;
   email: string;
   nickname: string;
-  avatar?: string;
-  bio?: string;
-  createdAt: string;
-  updatedAt: string;
+  avatar: string;
+  bio: string;
+  verified: boolean;
+  subscribers: number;
+  subscribing: number;
+  totalViews: number;
+  joinedAt: string;
+  social: {
+    website?: string;
+    twitter?: string;
+    github?: string;
+    instagram?: string;
+  };
 }
 
 // 视频相关类型
@@ -18,12 +36,65 @@ export interface Video {
   duration: number;
   views: number;
   likes: number;
+  dislikes: number;
+  createdAt: string;
+  tags: string[];
+  user: {
+    id: string;
+    nickname: string;
+    avatar: string;
+    verified: boolean;
+  };
+}
+
+// 频道相关类型
+export interface Channel {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  banner: string;
+  playlists: Playlist[];
+}
+
+// 播放列表类型
+export interface Playlist {
+  id: string;
+  name: string;
+  description: string;
+  videoCount: number;
+  visibility: 'public' | 'private' | 'unlisted';
   createdAt: string;
   updatedAt: string;
-  user: User;
-  category?: string;
-  tags?: string[];
-  visibility: 'public' | 'private' | 'unlisted';
+}
+
+// 通知类型
+export interface Notification {
+  id: string;
+  userId: string;
+  type: 'video_upload' | 'comment' | 'reply' | 'like' | 'subscribe' | 'mention';
+  title: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+  relatedUserId?: string;
+  relatedVideoId?: string;
+}
+
+// 评论类型
+export interface Comment {
+  id: string;
+  videoId: string;
+  content: string;
+  likes: number;
+  createdAt: string;
+  user: {
+    id: string;
+    nickname: string;
+    avatar: string;
+    verified: boolean;
+  };
+  replies?: Comment[];
 }
 
 // 标签相关类型
@@ -33,15 +104,6 @@ export interface Tag {
   slug: string;
   color?: string;
   icon?: string;
-}
-
-// 评论相关类型
-export interface Comment {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: User;
-  replies?: Comment[];
 }
 
 // 分页相关类型
@@ -92,4 +154,25 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+// 视频服务类型
+export interface VideoService {
+  getVideos(
+    page: number,
+    limit: number,
+    tag?: string
+  ): Promise<{
+    videos: Video[];
+    hasMore: boolean;
+  }>;
+  getVideoById(id: string): Promise<Video>;
+  getVideosByUser(
+    userId: string,
+    page?: number,
+    limit?: number
+  ): Promise<{
+    videos: Video[];
+    hasMore: boolean;
+  }>;
 }

@@ -1,38 +1,27 @@
 <template>
-  <div class="relative" ref="menuRef">
-    <button class="flex items-center gap-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-      @click="isOpen = !isOpen">
-      <img :src="authStore.user?.avatar || '/default-avatar.svg'" :alt="authStore.user?.nickname || '用户头像'"
-        class="w-8 h-8 rounded-full" />
-      <span class="text-gray-700 dark:text-gray-200">{{ authStore.user?.nickname || '未登录' }}</span>
-    </button>
+  <div class="relative">
+    <!-- 未登录状态 -->
+    <template v-if="!authStore.isAuthenticated">
+      <div class="flex items-center gap-2">
+        <n-button size="small" ghost @click="router.push('/auth/login')">
+          {{ $t('auth.login') }}
+        </n-button>
+        <n-button size="small" type="primary" @click="router.push('/auth/register')">
+          {{ $t('auth.register') }}
+        </n-button>
+      </div>
+    </template>
 
-    <div v-if="isOpen" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1">
-      <template v-if="authStore.isAuthenticated">
-        <router-link to="/profile"
-          class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          个人资料
-        </router-link>
-        <router-link to="/settings"
-          class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          设置
-        </router-link>
-        <button @click="handleLogout"
-          class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          退出登录
-        </button>
-      </template>
-      <template v-else>
-        <router-link to="/auth/login"
-          class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          登录
-        </router-link>
-        <router-link to="/auth/register"
-          class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-          注册
-        </router-link>
-      </template>
-    </div>
+    <!-- 已登录状态 -->
+    <template v-else>
+      <n-dropdown trigger="click" :options="userMenuOptions" @select="handleSelect">
+        <div
+          class="flex items-center gap-2 cursor-pointer p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          <n-avatar :src="authStore.user?.avatar || '/default-avatar.svg'" :round="true" :size="32" />
+          <span class="text-gray-700 dark:text-gray-200">{{ authStore.user?.nickname || '未登录' }}</span>
+        </div>
+      </n-dropdown>
+    </template>
   </div>
 </template>
 
@@ -40,9 +29,13 @@
   import { ref, onMounted, onUnmounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
+  import { useI18n } from 'vue-i18n';
+  import { NDropdown, NAvatar } from 'naive-ui';
 
   const router = useRouter();
   const authStore = useAuthStore();
+  const { t } = useI18n();
+
   const isOpen = ref(false);
   const menuRef = ref<HTMLElement | null>(null);
 
@@ -64,5 +57,29 @@
     await authStore.logout();
     isOpen.value = false;
     router.push('/auth/login');
+  };
+
+  const userMenuOptions = [
+    {
+      label: '个人资料',
+      key: 'profile',
+      onClick: () => router.push('/profile')
+    },
+    {
+      label: '设置',
+      key: 'settings',
+      onClick: () => router.push('/settings')
+    },
+    {
+      label: '退出登录',
+      key: 'logout',
+      onClick: handleLogout
+    }
+  ];
+
+  const handleSelect = (key: string) => {
+    if (key === 'logout') {
+      handleLogout();
+    }
   };
 </script>

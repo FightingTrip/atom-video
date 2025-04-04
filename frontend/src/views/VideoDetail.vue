@@ -1,97 +1,73 @@
 <template>
-  <div class="container mx-auto px-4 py-8 max-w-6xl">
-    <!-- 视频播放器 -->
-    <div class="mb-8">
-      <VideoPlayer :src="video.url" :poster="video.thumbnailUrl" />
-    </div>
-
-    <!-- 视频信息 -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">{{ video.title }}</h1>
-        <div class="flex gap-3">
-          <button class="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-            :class="isLiked ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-            @click="toggleLike">
-            <i :class="isLiked ? 'fas fa-heart' : 'far fa-heart'"></i>
-            <span>{{ formatNumber(video.likes.length) }}</span>
-          </button>
-          <button
-            class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-            @click="shareVideo">
-            <i class="fas fa-share"></i>
-            <span>分享</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="flex justify-between items-center mb-6">
-        <div class="flex items-center gap-4">
-          <img :src="video.user.avatar" :alt="video.user.username" class="w-10 h-10 rounded-full object-cover" />
-          <div>
-            <router-link :to="`/users/${video.user.id}`"
-              class="font-medium text-gray-900 hover:text-blue-600 transition-colors">
-              {{ video.user.username }}
-            </router-link>
-            <p class="text-sm text-gray-500">{{ formatDate(video.createdAt) }}</p>
-          </div>
-          <button class="ml-4 px-4 py-2 rounded-lg transition-colors"
-            :class="isSubscribed ? 'bg-gray-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'"
-            @click="toggleSubscribe">
-            {{ isSubscribed ? '已订阅' : '订阅' }}
-          </button>
+  <div class="py-4">
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- 视频播放区域 -->
+      <div class="flex-grow lg:w-2/3">
+        <div class="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <video ref="videoRef" class="w-full h-full" :src="video?.videoUrl" controls
+            @timeupdate="handleTimeUpdate"></video>
         </div>
 
-        <div class="flex gap-6 text-gray-600">
-          <span class="flex items-center gap-2">
-            <i class="fas fa-eye"></i>
-            {{ formatNumber(video.views) }} 次观看
-          </span>
-          <span class="flex items-center gap-2">
-            <i class="fas fa-clock"></i>
-            {{ formatDuration(video.duration) }}
-          </span>
-        </div>
-      </div>
-
-      <div class="border-t border-gray-200 pt-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-3">视频描述</h3>
-        <p class="text-gray-700 leading-relaxed">{{ video.description }}</p>
-      </div>
-    </div>
-
-    <!-- 评论区 -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-semibold text-gray-900 mb-6">评论区</h2>
-
-      <!-- 评论输入框 -->
-      <div class="flex gap-4 mb-6">
-        <img :src="currentUser?.avatar" :alt="currentUser?.username" class="w-10 h-10 rounded-full object-cover" />
-        <div class="flex-1 flex gap-2">
-          <input type="text" v-model="commentText" placeholder="写下你的评论..."
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            @keyup.enter="submitComment" />
-          <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            @click="submitComment">
-            评论
-          </button>
-        </div>
-      </div>
-
-      <!-- 评论列表 -->
-      <div class="space-y-6">
-        <div v-for="comment in comments" :key="comment.id" class="flex gap-4">
-          <img :src="comment.user.avatar" :alt="comment.user.username" class="w-10 h-10 rounded-full object-cover" />
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <router-link :to="`/users/${comment.user.id}`"
-                class="font-medium text-gray-900 hover:text-blue-600 transition-colors">
-                {{ comment.user.username }}
+        <!-- 视频信息 -->
+        <div class="mt-4">
+          <h1 class="text-2xl font-bold">{{ video?.title }}</h1>
+          <div class="flex items-center justify-between mt-4">
+            <div class="flex items-center gap-4">
+              <router-link :to="`/user/${video?.user.id}`" class="flex items-center gap-3">
+                <n-avatar :src="video?.user.avatar" :round="true" />
+                <div>
+                  <h3 class="font-medium">{{ video?.user.nickname }}</h3>
+                  <p class="text-sm text-gray-500">{{ formatNumber(video?.user.subscribers) }} 位订阅者</p>
+                </div>
               </router-link>
-              <span class="text-sm text-gray-500">{{ formatDate(comment.createdAt) }}</span>
+              <n-button type="primary" :loading="subscribing">
+                {{ isSubscribed ? '已订阅' : '订阅' }}
+              </n-button>
             </div>
-            <p class="text-gray-700">{{ comment.content }}</p>
+            <div class="flex items-center gap-2">
+              <n-button-group>
+                <n-button>
+                  <template #icon><i class="fas fa-thumbs-up"></i></template>
+                  {{ formatNumber(video?.likes) }}
+                </n-button>
+                <n-button>
+                  <template #icon><i class="fas fa-thumbs-down"></i></template>
+                  {{ formatNumber(video?.dislikes) }}
+                </n-button>
+              </n-button-group>
+              <n-button>
+                <template #icon><i class="fas fa-share"></i></template>
+                分享
+              </n-button>
+              <n-button>
+                <template #icon><i class="fas fa-ellipsis-h"></i></template>
+              </n-button>
+            </div>
           </div>
+
+          <!-- 视频描述 -->
+          <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+              <span>{{ formatNumber(video?.views) }} 次观看</span>
+              <span>·</span>
+              <span>{{ formatTime(video?.createdAt) }}</span>
+            </div>
+            <p class="whitespace-pre-wrap">{{ video?.description }}</p>
+          </div>
+        </div>
+
+        <!-- 评论区 -->
+        <div class="mt-6">
+          <h3 class="text-xl font-bold mb-4">评论</h3>
+          <CommentSection :videoId="videoId" />
+        </div>
+      </div>
+
+      <!-- 推荐视频列表 -->
+      <div class="lg:w-1/3">
+        <h3 class="text-lg font-bold mb-4">推荐视频</h3>
+        <div class="space-y-4">
+          <VideoCard v-for="video in recommendedVideos" :key="video.id" :video="video" layout="horizontal" />
         </div>
       </div>
     </div>
@@ -230,6 +206,14 @@
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (date: string) => {
+    return new Date(date).toLocaleTimeString('zh-CN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
