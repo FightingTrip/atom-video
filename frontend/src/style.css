@@ -6,8 +6,8 @@
 :root {
   --primary-color: #3b82f6;
   --secondary-color: #1e40af;
-  --text-color: #1f2937;
-  --background-color: #f3f4f6;
+  --text-color: #fff;
+  --background-color: #1a1a1a;
 }
 
 body {
@@ -17,4 +17,38 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-color);
   background-color: var(--background-color);
+}
+
+/* 懒加载图片样式 */
+.lazy-image {
+  position: relative;
+  overflow: hidden;
+}
+
+.lazy-image img {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.lazy-image.loaded img {
+  opacity: 1;
+}
+
+.lazy-image:not(.loaded) img {
+  opacity: 0;
+}
+
+.lazy-image .placeholder {
+  position: absolute;
+  inset: 0;
+  background-color: #272727;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
 }
