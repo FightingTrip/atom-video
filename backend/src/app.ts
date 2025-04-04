@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import userRoutes from './routes/userRoutes';
 import videoRoutes from './routes/videoRoutes';
 import authRoutes from './routes/auth';
+import favoriteRoutes from './routes/favorite.routes';
 import logger from './utils/logger';
 import passport from 'passport';
 import rateLimit from 'express-rate-limit';
@@ -53,6 +54,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/videos', videoRoutes);
+app.use('/api', favoriteRoutes);
 
 // 404处理
 app.use((req, res) => {
