@@ -1,86 +1,132 @@
 <!-- 顶部导航栏 -->
 <template>
-  <header class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-    <div class="h-14 px-4 flex items-center justify-between">
-      <!-- 左侧区域 -->
-      <div class="flex items-center space-x-4">
-        <button class="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-          @click="$emit('toggle-sidebar')">
-          <i class="fas fa-bars"></i>
-        </button>
-        <router-link to="/" class="flex items-center space-x-2">
-          <span class="text-lg font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-            Make Develop All In One
-          </span>
-        </router-link>
+  <div class="flex items-center justify-between w-full">
+    <!-- 标题 -->
+    <h1 class="text-xl font-bold theme-title">
+      Make Develop All In One
+    </h1>
+
+    <!-- 右侧工具栏 -->
+    <div class="flex items-center">
+      <!-- 搜索框 -->
+      <div class="relative w-96 mr-8">
+        <input type="text" :placeholder="t('header.search')"
+          class="w-full h-9 pl-10 pr-4 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary" />
+        <i class="fas fa-search absolute left-4 top-2.5 text-gray-400"></i>
       </div>
 
-      <!-- 中间搜索区域 -->
-      <div class="flex-1 max-w-2xl mx-4">
-        <div class="relative">
-          <input type="text" v-model="searchQuery"
-            :placeholder="i18nStore.currentLocale === 'zh-CN' ? '搜索视频...' : 'Search videos...'"
-            class="w-full px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <button class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-            <i class="fas fa-search"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- 右侧功能区 -->
-      <div class="flex items-center space-x-4">
-        <!-- 语言切换 -->
-        <n-dropdown :options="languageOptions" placement="bottom-end" trigger="click" @select="handleLanguageChange">
-          <button class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-            <i class="fas fa-globe"></i>
-          </button>
-        </n-dropdown>
-
-        <!-- 主题切换 -->
-        <button class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full" @click="handleThemeChange">
-          <i :class="['fas', isDark ? 'fa-sun' : 'fa-moon']"></i>
-        </button>
-
-        <!-- 用户头像/登录按钮 -->
-        <n-button type="primary" size="small">
-          {{ currentLocale === 'zh-CN' ? '登录' : 'Login' }}
+      <!-- 语言切换 -->
+      <n-dropdown :options="languageOptions" @select="handleLanguageChange" trigger="click">
+        <n-button quaternary>
+          <template #icon>
+            <i class="fas fa-globe text-lg"></i>
+          </template>
+          <span class="ml-1">{{ currentLanguageLabel }}</span>
         </n-button>
-      </div>
+      </n-dropdown>
+
+      <!-- 主题切换 -->
+      <n-button quaternary @click="toggleTheme">
+        <template #icon>
+          <i :class="['fas', themeStore.isDark ? 'fa-sun' : 'fa-moon', 'text-lg']"></i>
+        </template>
+      </n-button>
+
+      <!-- 登录按钮 -->
+      <n-button type="primary">
+        {{ t('header.login') }}
+      </n-button>
     </div>
-  </header>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { computed, watch } from 'vue'
+  import { useI18n } from 'vue-i18n'
   import { useThemeStore } from '@/stores/theme'
   import { useI18nStore } from '@/stores/i18n'
+  import { NButton, NDropdown, useMessage } from 'naive-ui'
 
+  const { t } = useI18n()
+  const message = useMessage()
   const themeStore = useThemeStore()
   const i18nStore = useI18nStore()
 
-  const isDark = computed(() => themeStore.isDark)
-  const currentLocale = computed(() => i18nStore.currentLocale)
-
-  const searchQuery = ref('')
+  const currentLanguageLabel = computed(() =>
+    i18nStore.currentLocale === 'zh-CN' ? '简体中文' : 'English'
+  )
 
   const languageOptions = [
     {
       label: '简体中文',
-      key: 'zh-CN'
+      key: 'zh-CN',
     },
     {
       label: 'English',
-      key: 'en-US'
+      key: 'en-US',
     }
   ]
 
-  // 处理主题切换
-  const handleThemeChange = () => {
-    themeStore.toggleTheme()
-  }
-
-  // 处理语言切换
   const handleLanguageChange = (key: string) => {
     i18nStore.setLocale(key)
+    if (message) {
+      message.success(key === 'zh-CN' ? '已切换到简体中文' : 'Switched to English')
+    }
   }
+
+  const toggleTheme = () => {
+    themeStore.toggleTheme()
+    if (message) {
+      message.success(themeStore.isDark ? '已切换到深色主题' : '已切换到浅色主题')
+    }
+  }
+
+  // 监听主题变化，实现动画过渡效果
+  watch(() => themeStore.isDark, () => {
+    // 添加过渡效果
+    document.documentElement.style.transition = 'background-color 0.5s, color 0.5s, border-color 0.5s'
+
+    // 在过渡结束后移除过渡样式，避免影响其他操作
+    setTimeout(() => {
+      document.documentElement.style.transition = ''
+    }, 500)
+  })
 </script>
+
+<style scoped>
+
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.3s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+
+  /* 添加悬浮动画 */
+  .group:hover .absolute {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -5px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+  }
+
+  .theme-title {
+    color: var(--text-color);
+    background: v-bind('themeStore.isDark ? "var(--primary-color)" : "var(--text-color)"');
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+</style>

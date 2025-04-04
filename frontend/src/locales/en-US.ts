@@ -15,6 +15,9 @@ export default {
     delete: 'Delete',
     edit: 'Edit',
     back: 'Back',
+    views: 'views',
+    monthsAgo: 'months ago',
+    daysAgo: 'days ago',
   },
   nav: {
     home: 'Home',
@@ -111,7 +114,30 @@ export default {
     server: 'Server error, please try again later',
   },
   header: {
-    searchPlaceholder: 'Search videos...',
+    search: 'Search videos...',
     login: 'Login',
+    logout: 'Logout',
+  },
+  sidebar: {
+    home: 'Home',
+    explore: 'Explore',
+    subscriptions: 'Subscriptions',
+    library: 'Library',
+    history: 'History',
+    categories: {
+      title: 'Categories',
+      tech: 'Tech Exploration',
+      learning: 'Programming',
+      webdev: 'Web Development',
+    },
+  },
+  tags: {
+    all: 'All',
+    javascript: 'JavaScript',
+    typescript: 'TypeScript',
+    vue: 'Vue',
+    react: 'React',
+    nodejs: 'Node.js',
+    python: 'Python',
   },
 };

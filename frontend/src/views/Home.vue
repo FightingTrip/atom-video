@@ -26,7 +26,9 @@
   import { useVideoStore } from '@/stores/video'
   import VideoCard from '@/components/VideoCard.vue'
   import VideoCardSkeleton from '@/components/VideoCardSkeleton.vue'
+  import { useI18n } from 'vue-i18n'
 
+  const { t } = useI18n()
   const videoStore = useVideoStore()
 
   onMounted(() => {
@@ -63,5 +65,37 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .text-secondary {
+    color: var(--text-secondary);
+  }
+
+  .text-muted {
+    color: var(--text-muted);
+  }
+
+  .load-more-button {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    transition: all 0.3s !important;
+  }
+
+  .load-more-button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+
+  .theme-video-title {
+    color: #000000;
+  }
+
+  .theme-video-text {
+    color: #000000;
+  }
+
+  :root.dark .theme-video-title,
+  :root.dark .theme-video-text {
+    color: #ffffff;
   }
 </style>

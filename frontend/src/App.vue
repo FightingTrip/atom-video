@@ -47,7 +47,7 @@
     TagList
   };
 
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const themeStore = useThemeStore();
   const i18nStore = useI18nStore();
@@ -58,73 +58,129 @@
   });
 
   const sidebarCollapsed = ref(false);
-  const selectedTag = ref('全部');
+  const selectedTag = ref('all');
 
-  const tags = [
-    '全部',
-    'JavaScript',
-    'TypeScript',
-    'Vue',
-    'React',
-    'Node.js',
-    'Python'
+  const currentLanguageLabel = computed(() =>
+    i18nStore.currentLocale === 'zh-CN' ? '简体中文' : 'English'
+  );
+
+  const languageOptions = [
+    {
+      label: '简体中文',
+      key: 'zh-CN',
+    },
+    {
+      label: 'English',
+      key: 'en-US',
+    }
   ];
 
-  const handleTagClick = (tag: string) => {
-    selectedTag.value = tag;
-    videoStore.setCategory(tag);
+  const handleLanguageChange = (key: string) => {
+    i18nStore.setLocale(key);
+  };
+
+  const toggleTheme = () => {
+    themeStore.toggleTheme();
+  };
+
+  const tags = [
+    { id: 'all', name: 'all' },
+    { id: 'javascript', name: 'javascript' },
+    { id: 'typescript', name: 'typescript' },
+    { id: 'vue', name: 'vue' },
+    { id: 'react', name: 'react' },
+    { id: 'nodejs', name: 'nodejs' },
+    { id: 'python', name: 'python' },
+  ];
+
+  const selectTag = (tagId: string) => {
+    selectedTag.value = tagId;
+    videoStore.setCategory(tagId);
   };
 
   // 初始化主题
   onMounted(() => {
+    i18nStore.initLocale();
     themeStore.initTheme();
 
     // 设置初始语言
     const savedLanguage = localStorage.getItem('language');
     if (savedLanguage) {
       i18nStore.setLocale(savedLanguage);
+      locale.value = savedLanguage;
     }
   });
 </script>
 
 <template>
-  <n-config-provider :theme="themeStore.naiveTheme">
+  <n-config-provider :theme="themeStore.naiveTheme" :theme-overrides="themeStore.themeOverrides">
     <n-message-provider>
-      <div class="min-h-screen flex bg-gray-100 dark:bg-gray-900">
+      <div class="flex h-screen app-container">
         <!-- 侧边栏 -->
-        <TheSidebar v-model:collapsed="sidebarCollapsed"
-          class="fixed left-0 top-0 h-screen z-40 transition-all duration-300" />
+        <TheSidebar v-model:collapsed="sidebarCollapsed" />
 
-        <!-- 主要内容区域 -->
-        <div class="flex-1 flex flex-col min-h-screen transition-all duration-300"
-          :class="[sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64']">
-          <!-- 头部导航 -->
-          <TheHeader class="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow-sm" />
+        <div class="flex-1 flex flex-col overflow-hidden">
+          <!-- 顶部导航栏 - 搜索栏居中，标题和功能按钮靠两边 -->
+          <div class="h-14 flex items-center px-6 border-b theme-header">
+            <!-- 左侧标题 -->
+            <h1 class="text-xl font-bold theme-title whitespace-nowrap">
+              Make Develop All In One
+            </h1>
 
-          <!-- 标签导航 - 只保留这一个 -->
-          <div class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-            <div class="flex items-center h-12 px-4 overflow-x-auto no-scrollbar">
-              <button v-for="tag in tags" :key="tag"
-                class="px-4 py-1.5 mx-1 rounded-full text-sm font-medium whitespace-nowrap transition-colors" :class="[
-                  selectedTag === tag
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
-                ]" @click="handleTagClick(tag)">
-                {{ tag }}
-              </button>
+            <!-- 中间搜索栏 -->
+            <div class="flex-1 mx-4 flex justify-center">
+              <div class="relative w-full max-w-xl">
+                <input type="text" :placeholder="t('header.search')"
+                  class="w-full h-10 pl-10 pr-10 rounded-full bg-gray-700 dark:bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-600" />
+                <i class="fas fa-search absolute left-4 top-3 text-gray-400"></i>
+                <div class="absolute right-2 top-1.5 h-7 w-7 flex items-center justify-center rounded-full">
+                  <i class="fas fa-microphone text-gray-400"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右侧功能按钮 -->
+            <div class="flex items-center space-x-2 whitespace-nowrap">
+              <!-- 语言切换 -->
+              <n-dropdown :options="languageOptions" @select="handleLanguageChange" trigger="click">
+                <n-button quaternary>
+                  <template #icon>
+                    <i class="fas fa-globe text-lg"></i>
+                  </template>
+                  <span class="ml-1">{{ currentLanguageLabel }}</span>
+                </n-button>
+              </n-dropdown>
+
+              <!-- 主题切换 -->
+              <n-button quaternary @click="toggleTheme">
+                <template #icon>
+                  <i :class="['fas', themeStore.isDark ? 'fa-sun' : 'fa-moon', 'text-lg']"></i>
+                </template>
+              </n-button>
+
+              <!-- 登录按钮 -->
+              <n-button type="primary">
+                {{ t('header.login') }}
+              </n-button>
             </div>
           </div>
 
+          <!-- 标签导航 -->
+          <div class="h-12 flex items-center space-x-2 px-4 overflow-x-auto theme-tag-bar">
+            <button v-for="tag in tags" :key="tag.id" :class="[
+              'px-4 py-1 rounded-full text-sm font-medium transition-colors theme-tag',
+              selectedTag === tag.id ? 'theme-tag-active' : 'theme-tag-inactive'
+            ]" @click="selectTag(tag.id)">
+              {{ t(`tags.${tag.name}`) }}
+            </button>
+          </div>
+
           <!-- 主内容 -->
-          <main class="flex-1">
-            <router-view v-slot="{ Component }">
-              <transition name="fade" mode="out-in">
-                <component :is="Component" />
-              </transition>
-            </router-view>
+          <main class="flex-1 overflow-auto theme-content p-4">
+            <router-view />
           </main>
 
-          <!-- 页脚 -->
+          <!-- 底部 -->
           <TheFooter />
         </div>
       </div>
@@ -180,5 +236,19 @@
 
   .dark ::-webkit-scrollbar-thumb:hover {
     background: #888;
+  }
+
+  .theme-title {
+    color: var(--text-color);
+    background: v-bind('themeStore.isDark ? "var(--primary-color)" : "var(--text-color)"');
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .theme-search-bar {
+    background-color: var(--header-bg);
+    border-color: var(--border-color);
+    transition: background-color var(--transition-duration), border-color var(--transition-duration);
   }
 </style>

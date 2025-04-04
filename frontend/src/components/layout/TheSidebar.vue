@@ -1,14 +1,14 @@
 <!-- 侧边栏 -->
 <template>
-  <aside class="bg-white dark:bg-gray-800 border-r dark:border-gray-700 transition-all duration-300"
-    :class="[collapsed ? 'w-16' : 'w-64']">
+  <aside class="sidebar transition-all duration-300" :class="[collapsed ? 'w-16' : 'w-64']">
     <!-- Logo 区域 -->
-    <div class="h-14 flex items-center px-4 border-b dark:border-gray-700">
-      <div class="flex items-center cursor-pointer" @click="toggleCollapse">
-        <div class="text-2xl text-blue-500">
+    <div class="h-14 flex items-center px-4 border-b"
+      :class="{ 'border-gray-200': !themeStore.isDark, 'border-gray-700': themeStore.isDark }">
+      <div class="flex items-center cursor-pointer w-full" @click="toggleCollapse">
+        <div class="text-2xl" :class="themeStore.isDark ? 'text-blue-500' : 'text-blue-700'">
           <i class="fas fa-play-circle"></i>
         </div>
-        <span v-if="!collapsed" class="ml-3 text-xl font-bold">
+        <span v-if="!collapsed" class="ml-3 text-xl font-bold theme-logo-text">
           Atom Video
         </span>
       </div>
@@ -22,23 +22,27 @@
             collapsed ? 'justify-center p-3' : 'px-3 py-2',
             route.path === item.path
               ? 'bg-blue-500 text-white'
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              : themeStore.isDark
+                ? 'text-gray-300 hover:bg-gray-700'
+                : 'text-gray-700 hover:bg-gray-100'
           ]">
           <i :class="['fas', item.icon, collapsed ? 'text-xl' : 'w-5']"></i>
-          <span v-if="!collapsed" class="ml-3">{{ item.name }}</span>
+          <span v-if="!collapsed" class="ml-3">{{ t(item.i18nKey) }}</span>
         </router-link>
       </div>
 
-      <!-- 订阅频道 -->
+      <!-- 分类 -->
       <div v-if="!collapsed" class="mt-8">
-        <h3 class="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          订阅频道
+        <h3 class="px-4 mb-2 text-xs font-semibold uppercase tracking-wider"
+          :class="themeStore.isDark ? 'text-gray-500' : 'text-gray-600'">
+          {{ t('sidebar.categories.title') }}
         </h3>
         <div class="space-y-1 px-2">
-          <a v-for="channel in subscribedChannels" :key="channel.id" href="#"
-            class="flex items-center px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-            <img :src="channel.avatar" :alt="channel.name" class="w-6 h-6 rounded-full">
-            <span class="ml-3">{{ channel.name }}</span>
+          <a v-for="category in categories" :key="category.id" href="#"
+            class="flex items-center px-3 py-2 rounded-lg text-sm transition-colors"
+            :class="themeStore.isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'">
+            <img :src="category.avatar" :alt="t(`sidebar.categories.${category.i18nKey}`)" class="w-6 h-6 rounded-full">
+            <span class="ml-3">{{ t(`sidebar.categories.${category.i18nKey}`) }}</span>
           </a>
         </div>
       </div>
@@ -48,8 +52,13 @@
 
 <script setup lang="ts">
   import { useRoute } from 'vue-router'
+  import { useI18n } from 'vue-i18n'
+  import { useThemeStore } from '@/stores/theme'
 
+  const { t } = useI18n()
   const route = useRoute()
+  const themeStore = useThemeStore()
+
   const props = defineProps<{
     collapsed: boolean
   }>()
@@ -63,16 +72,25 @@
   }
 
   const menuItems = [
-    { name: '首页', path: '/', icon: 'fa-home' },
-    { name: '探索', path: '/explore', icon: 'fa-compass' },
-    { name: '订阅', path: '/subscriptions', icon: 'fa-play' },
-    { name: '收藏', path: '/library', icon: 'fa-folder' },
-    { name: '历史记录', path: '/history', icon: 'fa-history' },
+    { path: '/', icon: 'fa-home', i18nKey: 'sidebar.home' },
+    { path: '/explore', icon: 'fa-compass', i18nKey: 'sidebar.explore' },
+    { path: '/subscriptions', icon: 'fa-play', i18nKey: 'sidebar.subscriptions' },
+    { path: '/library', icon: 'fa-folder', i18nKey: 'sidebar.library' },
+    { path: '/history', icon: 'fa-history', i18nKey: 'sidebar.history' },
   ]
 
-  const subscribedChannels = [
-    { id: 1, name: '技术探索', avatar: 'https://i.pravatar.cc/150?img=1' },
-    { id: 2, name: '编程学习', avatar: 'https://i.pravatar.cc/150?img=2' },
-    { id: 3, name: 'Web开发', avatar: 'https://i.pravatar.cc/150?img=3' },
+  const categories = [
+    { id: 1, i18nKey: 'tech', avatar: 'https://i.pravatar.cc/150?img=1' },
+    { id: 2, i18nKey: 'learning', avatar: 'https://i.pravatar.cc/150?img=2' },
+    { id: 3, i18nKey: 'webdev', avatar: 'https://i.pravatar.cc/150?img=3' },
   ]
 </script>
+
+<style scoped>
+  .theme-logo-text {
+    background: v-bind('themeStore.isDark ? "var(--primary-color)" : "var(--text-color)"');
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+</style>

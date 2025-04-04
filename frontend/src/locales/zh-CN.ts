@@ -15,6 +15,9 @@ export default {
     delete: '删除',
     edit: '编辑',
     back: '返回',
+    views: '次观看',
+    monthsAgo: '个月前',
+    daysAgo: '天前',
   },
   nav: {
     home: '首页',
@@ -107,7 +110,30 @@ export default {
     server: '服务器错误，请稍后重试',
   },
   header: {
-    searchPlaceholder: '搜索视频...',
+    search: '搜索视频...',
     login: '登录',
+    logout: '退出登录',
+  },
+  sidebar: {
+    home: '首页',
+    explore: '探索',
+    subscriptions: '订阅',
+    library: '收藏',
+    history: '历史记录',
+    categories: {
+      title: '分类',
+      tech: '技术探索',
+      learning: '编程学习',
+      webdev: 'Web开发',
+    },
+  },
+  tags: {
+    all: '全部',
+    javascript: 'JavaScript',
+    typescript: 'TypeScript',
+    vue: 'Vue',
+    react: 'React',
+    nodejs: 'Node.js',
+    python: 'Python',
   },
 };

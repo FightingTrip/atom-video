@@ -1,44 +1,35 @@
 <template>
-  <div class="group cursor-pointer" @click="$emit('click')">
-    <!-- 视频缩略图容器 -->
-    <div class="relative aspect-video rounded-xl overflow-hidden mb-3">
+  <div class="video-card group">
+    <div class="relative overflow-hidden rounded-lg mb-2">
       <img :src="video.thumbnail" :alt="video.title"
-        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-      <!-- 时长标签 -->
-      <div class="absolute bottom-2 right-2 px-1 py-0.5 rounded bg-black/80 text-white text-xs">
+        class="w-full aspect-video object-cover transform transition hover:scale-105">
+      <span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1 py-0.5 rounded">
         {{ video.duration }}
-      </div>
-      <!-- 悬停时显示的播放按钮 -->
-      <div
-        class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-        <i class="fas fa-play text-white text-4xl"></i>
-      </div>
+      </span>
     </div>
 
-    <!-- 视频信息 -->
-    <div class="flex gap-3">
-      <!-- 作者头像 -->
-      <div class="flex-shrink-0">
-        <img :src="video.author.avatar" :alt="video.author.name" class="w-9 h-9 rounded-full" />
+    <div class="flex">
+      <div class="mr-3 flex-shrink-0">
+        <img :src="video.author.avatar" :alt="video.author.name" class="w-10 h-10 rounded-full object-cover">
       </div>
 
-      <!-- 视频标题和作者信息 -->
       <div class="flex-1 min-w-0">
-        <h3 class="text-base font-medium text-gray-900 dark:text-white line-clamp-2 mb-1 group-hover:text-blue-500">
+        <h3 class="text-base font-medium text-gray-700 dark:text-gray-300 line-clamp-2 mb-1 group-hover:text-blue-500">
           {{ video.title }}
         </h3>
-        <div class="flex flex-col text-sm text-gray-600 dark:text-gray-400">
-          <span class="hover:text-gray-900 dark:hover:text-gray-200">
+        <div class="flex flex-col text-sm text-gray-700 dark:text-gray-300">
+          <span>
             {{ video.author.name }}
             <span v-if="video.author.verified" class="ml-1">
               <i class="fas fa-check-circle text-blue-500"></i>
             </span>
           </span>
-          <div class="flex items-center">
-            <span>{{ video.views }}次观看</span>
-            <span class="mx-1">•</span>
-            <span>{{ video.publishTime }}</span>
-          </div>
+          <span v-if="video.views">
+            {{ formatViews(video.views) }} 次观看
+            <template v-if="video.publishedAt">• {{ video.publishedAt }}</template>
+            <template v-else-if="video.publishTime">• {{ video.publishTime }}</template>
+            <template v-else-if="video.createdAt">• {{ video.createdAt }}</template>
+          </span>
         </div>
       </div>
     </div>
@@ -46,28 +37,50 @@
 </template>
 
 <script setup lang="ts">
-  defineProps<{
+  const props = defineProps({
     video: {
-      id: string
-      title: string
-      thumbnail: string
-      duration: string
-      author: {
-        name: string
-        avatar: string
-        verified?: boolean
-      }
-      views: string
-      publishTime: string
+      type: Object,
+      required: true
     }
-  }>()
+  })
+
+  // 格式化观看次数
+  const formatViews = (views) => {
+    if (typeof views === 'number') {
+      if (views >= 10000) {
+        return (views / 10000).toFixed(1) + '万'
+      }
+      return views.toString()
+    }
+    return views
+  }
+
+  // 调试属性
+  console.log('Video object:', JSON.stringify(props.video, null, 2))
 </script>
 
 <style scoped>
-  .line-clamp-2 {
+  .video-card {
+    transition: transform 0.2s ease;
+  }
+
+  .video-card:hover {
+    transform: translateY(-4px);
+  }
+
+  /* 确保内容不溢出 */
+  .video-card h3,
+  .video-card span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 允许标题多行显示 */
+  .video-card h3 {
+    white-space: normal;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 </style>

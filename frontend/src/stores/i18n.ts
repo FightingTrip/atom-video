@@ -1,34 +1,28 @@
 import { defineStore } from 'pinia';
-import { createI18n } from 'vue-i18n';
+import { i18n } from '@/plugins/i18n';
 
 // 导入语言包
 import zh from '@/locales/zh-CN';
 import en from '@/locales/en-US';
-
-export const i18n = createI18n({
-  legacy: false,
-  locale: 'zh-CN',
-  messages: {
-    'zh-CN': zh,
-    'en-US': en,
-  },
-});
 
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
     currentLocale: localStorage.getItem('language') || 'zh-CN',
   }),
 
+  getters: {
+    locale: state => state.currentLocale,
+  },
+
   actions: {
     setLocale(locale: string) {
+      console.log('Setting locale to:', locale); // 调试日志
       this.currentLocale = locale;
+      i18n.global.locale.value = locale;
       localStorage.setItem('language', locale);
 
       // 更新页面上的文本
       document.querySelector('html')?.setAttribute('lang', locale);
-
-      // 如果使用了 vue-i18n，还需要更新 i18n 实例的 locale
-      // i18n.global.locale.value = locale
     },
 
     initLocale() {
