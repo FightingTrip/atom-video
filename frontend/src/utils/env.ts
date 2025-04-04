@@ -1,6 +1,6 @@
 // 环境变量类型定义
 interface ImportMetaEnv {
-  VITE_API_URL: string;
+  VITE_API_BASE_URL: string;
   VITE_USE_MOCK: string;
   VITE_APP_TITLE: string;
   VITE_GOOGLE_CLIENT_ID: string;
@@ -8,9 +8,9 @@ interface ImportMetaEnv {
 }
 
 // 环境配置
-export const env = {
+const env = {
   // API 基础 URL
-  apiUrl: import.meta.env.VITE_API_URL,
+  apiUrl: import.meta.env.VITE_API_BASE_URL,
 
   // 是否使用模拟数据
   useMock: import.meta.env.VITE_USE_MOCK === 'true',
@@ -29,3 +29,15 @@ export const env = {
   isProd: import.meta.env.PROD,
   mode: import.meta.env.MODE,
 };
+
+// 调试信息
+console.log('Environment:', {
+  apiUrl: env.apiUrl,
+  useMock: env.useMock,
+  isDev: env.isDev,
+  isProd: env.isProd,
+  mode: env.mode,
+  rawUseMock: import.meta.env.VITE_USE_MOCK,
+});
+
+export { env };

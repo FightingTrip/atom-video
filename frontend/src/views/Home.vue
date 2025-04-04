@@ -80,11 +80,6 @@
 
     try {
       loading.value = true;
-      console.log('Fetching videos...', {
-        page: page.value,
-        limit: 12,
-        tag: selectedTag.value === 'all' ? undefined : selectedTag.value,
-      });
 
       if (env.useMock) {
         // 使用模拟数据
@@ -98,8 +93,6 @@
             totalPages: Math.ceil(mockVideos.length / 12),
           },
         };
-
-        console.log('Mock Response:', mockResponse);
 
         if (mockResponse.success) {
           if (reset) {
@@ -123,8 +116,6 @@
           },
         });
 
-        console.log('API Response:', response);
-
         if (response.data.success) {
           if (reset) {
             videos.value = response.data.data.videos;
@@ -133,12 +124,10 @@
           }
 
           hasMore.value = page.value < response.data.data.totalPages;
-        } else {
-          console.error('API request failed:', response.data.error);
         }
       }
     } catch (error) {
-      console.error('Failed to fetch videos:', error);
+      // 保留错误处理，但移除 console.error
     } finally {
       loading.value = false;
     }

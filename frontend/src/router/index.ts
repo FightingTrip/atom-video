@@ -1,8 +1,12 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
-// 懒加载组件
-const Home = () => import('@/views/Home.vue');
+// 修改懒加载的写法，添加注释和错误处理
+const Home = () =>
+  import('@/views/Home.vue').catch(err => {
+    console.error('Failed to load Home view:', err);
+    return import('@/views/NotFound.vue');
+  });
 const Login = () => import('@/views/auth/Login.vue');
 const Register = () => import('@/views/auth/Register.vue');
 const VerifyEmail = () => import('@/views/auth/VerifyEmail.vue');
@@ -18,6 +22,9 @@ const Trending = () => import('@/views/Trending.vue');
 const Subscriptions = () => import('@/views/Subscriptions.vue');
 const Library = () => import('@/views/Library.vue');
 const History = () => import('@/views/History.vue');
+
+// 使用哈希路由模式
+const history = createWebHashHistory();
 
 // 路由配置
 const routes = [
@@ -158,8 +165,13 @@ const routes = [
 
 // 创建路由实例
 const router = createRouter({
-  history: createWebHistory(),
+  history,
   routes,
+});
+
+// 添加全局错误处理
+router.onError(error => {
+  console.error('Router error:', error);
 });
 
 // 导航守卫
@@ -167,7 +179,7 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
   // 设置页面标题
-  document.title = `${to.meta.title} - Atom Video` || 'Atom Video';
+  document.title = to.meta.title ? `${to.meta.title} - Atom Video` : 'Atom Video';
 
   // 检查认证状态
   if (!authStore.isAuthenticated && authStore.token) {
