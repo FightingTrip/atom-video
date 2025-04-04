@@ -1,29 +1,28 @@
-import express from 'express';
+import { Router } from 'express';
+import { VideoController } from '../controllers/videoController';
 import { authenticate } from '../middleware/auth';
-import { upload } from '../utils/storage';
-import {
-  uploadVideo,
-  getVideos,
-  getVideo,
-  updateVideo,
-  deleteVideo,
-} from '../controllers/videoController';
 
-const router = express.Router();
-
-// 上传视频
-router.post('/upload', authenticate, upload.single('video'), uploadVideo);
+const router = Router();
 
 // 获取视频列表
-router.get('/', getVideos);
+router.get('/', VideoController.getVideos);
 
-// 获取单个视频
-router.get('/:id', getVideo);
+// 获取视频详情
+router.get('/:id', VideoController.getVideo);
 
-// 更新视频
-router.patch('/:id', authenticate, updateVideo);
+// 需要认证的路由
+router.use(authenticate);
+
+// 上传视频
+router.post('/upload', VideoController.uploadVideo);
+
+// 更新视频信息
+router.put('/:id', VideoController.updateVideo);
 
 // 删除视频
-router.delete('/:id', authenticate, deleteVideo);
+router.delete('/:id', VideoController.deleteVideo);
+
+// 点赞/取消点赞视频
+router.post('/:id/like', VideoController.toggleLike);
 
 export default router;
