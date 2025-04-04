@@ -149,7 +149,7 @@
 如果您有任何问题，请：
 
 - 创建一个 issue
-- 发送邮件到 zjtdzyx@163.com
+- 发送邮件到 yuxiangzhang040727@gmail.com
 - 在 GitHub 上联系项目维护者
 
 感谢您的贡献！ 
