@@ -5,11 +5,11 @@ node_modules
 
 # Testing
 coverage
+.nyc_output
 
 # Production
-build
 dist
-.next
+build
 out
 
 # Misc
@@ -25,12 +25,20 @@ out
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# IDE
+# Editor directories and files
 .idea
-.vscode
-*.swp
-*.swo
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # TypeScript
 *.tsbuildinfo
@@ -45,30 +53,14 @@ logs
 
 # Cache
 .cache
-.npm
-.eslintcache
-.stylelintcache
+.temp
+.tmp
 
-# Temporary files
-*.tmp
-*.temp
+# System Files
+Thumbs.db
+.DS_Store
 
 # Environment variables
 .env
 .env.local
-.env.*.local
-
-# Editor directories and files
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# System files
-Thumbs.db
-
-# Prisma
-backend/prisma/migrations/ 
+.env.*.local 
