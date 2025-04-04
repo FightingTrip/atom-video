@@ -34,6 +34,10 @@ jobs:
 
       - name: Build backend
         run: pnpm build:backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NODE_ENV: production
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
@@ -42,10 +46,22 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            # 确保目录存在
+            mkdir -p /var/www/atom-video
+            mkdir -p /var/www/html
+
+            # 部署后端
             cd /var/www/atom-video
             git pull origin main
             pnpm install
+            pnpm build:backend
+            pm2 restart atom-video-backend || pm2 start dist/backend/index.js --name atom-video-backend
+
+            # 部署前端
+            cd /var/www/atom-video/frontend
+            pnpm install
             pnpm build
-            pm2 restart atom-video-backend
-            # 使用 nginx 部署前端静态文件
-            cp -r dist/* /var/www/html/
+            sudo rm -rf /var/www/html/*
+            sudo cp -r dist/* /var/www/html/
+            sudo chown -R www-data:www-data /var/www/html
+            sudo chmod -R 755 /var/www/html
