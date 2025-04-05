@@ -26,12 +26,15 @@
   const handleSubmit = async () => {
     loading.value = true
     try {
+      console.log('Attempting login with:', form.email, form.password);
       const success = await authStore.login(form.email, form.password)
+      console.log('Login result:', success);
       if (success) {
         message.success(t('auth.signInSuccess'))
         router.push('/')
       }
     } catch (error: any) {
+      console.error('Login error:', error);
       message.error(error.message || t('auth.signInError'))
     } finally {
       loading.value = false

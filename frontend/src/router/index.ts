@@ -205,23 +205,20 @@ router.onError(error => {
 // 路由守卫处理标题等
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  const isGuestOnly = to.matched.some(record => record.meta.guest);
 
   document.title = `${to.meta.title || 'Atom Video'} - Make Develop All In One`;
 
-  // 检查认证状态
-  if (!authStore.isAuthenticated && authStore.token) {
-    authStore.checkAuth();
-  }
-
-  // 需要认证的路由
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login', query: { redirect: to.fullPath } });
+  // 如果需要认证且未登录，重定向到登录页
+  if (requiresAuth && !authStore.isAuthenticated) {
+    next({ path: '/auth', query: { redirect: to.fullPath } });
     return;
   }
 
-  // 游客专属路由（已登录用户不能访问）
-  if (to.meta.guest && authStore.isAuthenticated) {
-    next('/');
+  // 如果是访客页面且已登录，重定向到首页
+  if (isGuestOnly && authStore.isAuthenticated) {
+    next({ path: '/' });
     return;
   }
 
