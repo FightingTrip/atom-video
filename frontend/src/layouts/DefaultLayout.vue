@@ -43,19 +43,17 @@
           </n-button>
 
           <!-- 未登录显示登录按钮，已登录显示用户菜单 -->
-          <template v-if="!userStore.user">
-            <router-link to="/auth">
-              <n-button type="primary">
-                {{ t('header.login') }}
-              </n-button>
-            </router-link>
+          <template v-if="!authStore.isAuthenticated">
+            <n-button type="primary" @click="handleLogin">
+              {{ t('header.login') }}
+            </n-button>
           </template>
           <template v-else>
             <n-dropdown :options="userMenuOptions" @select="handleUserMenuSelect">
               <div class="flex items-center cursor-pointer">
-                <img :src="userStore.user.avatar || 'https://i.pravatar.cc/150?img=1'" alt="User Avatar"
+                <img :src="authStore.user?.avatar || 'https://i.pravatar.cc/150?img=1'" alt="User Avatar"
                   class="w-8 h-8 rounded-full object-cover" />
-                <span class="ml-2 text-sm">{{ userStore.user.username }}</span>
+                <span class="ml-2 text-sm">{{ authStore.user?.username }}</span>
               </div>
             </n-dropdown>
           </template>
@@ -91,7 +89,7 @@
   import { useVideoStore } from '@/stores/video'
   import { useI18nStore } from '@/stores/i18n'
   import { useThemeStore } from '@/stores/theme'
-  import { useUserStore } from '@/stores/user'
+  import { useAuthStore } from '@/stores/auth'
   import TheSidebar from '@/components/layout/TheSidebar.vue'
   import TheFooter from '@/components/layout/TheFooter.vue'
 
@@ -100,7 +98,7 @@
   const videoStore = useVideoStore()
   const i18nStore = useI18nStore()
   const themeStore = useThemeStore()
-  const userStore = useUserStore()
+  const authStore = useAuthStore()
 
   const sidebarCollapsed = ref(false)
   const selectedTag = ref('all')
@@ -154,9 +152,13 @@
     return () => h('i', { class: ['fas', icon] })
   }
 
+  const handleLogin = () => {
+    router.push('/auth')
+  }
+
   const handleUserMenuSelect = (key: string) => {
     if (key === 'logout') {
-      userStore.logout()
+      authStore.logout()
       router.push('/')
     } else if (key === 'profile') {
       router.push('/profile')
