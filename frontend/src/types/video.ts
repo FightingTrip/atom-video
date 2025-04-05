@@ -1,3 +1,10 @@
+/**
+ * @file video.ts
+ * @description 视频相关的类型定义
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
 // 技术栈说明：
 // - TypeScript: 强类型支持
 // - Vue 3: 类型集成
@@ -5,17 +12,78 @@
 import type { User, Author } from './index';
 import type { Tag } from './tags';
 
+// 视频状态
+export enum VideoStatus {
+  DRAFT = 'draft',
+  PROCESSING = 'processing',
+  PUBLISHED = 'published',
+  PRIVATE = 'private',
+  DELETED = 'deleted',
+}
+
+// 视频分类
+export enum VideoCategory {
+  ENTERTAINMENT = 'entertainment',
+  EDUCATION = 'education',
+  GAMING = 'gaming',
+  MUSIC = 'music',
+  SPORTS = 'sports',
+  TECH = 'tech',
+  OTHER = 'other',
+}
+
+// 视频信息
 export interface Video {
   id: string;
   title: string;
   description: string;
-  thumbnail: string;
+  coverUrl: string;
+  videoUrl: string;
   duration: number;
   views: number;
   likes: number;
+  favorites: number;
+  comments: number;
+  status: VideoStatus;
+  category: VideoCategory;
+  tags: string[];
+  userId: string;
   createdAt: string;
-  tags: Tag[];
-  user: User;
+  updatedAt: string;
+}
+
+// 视频列表查询参数
+export interface VideoQueryParams {
+  page?: number;
+  pageSize?: number;
+  category?: VideoCategory;
+  tags?: string[];
+  userId?: string;
+  status?: VideoStatus;
+  sortBy?: 'views' | 'likes' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+// 视频上传参数
+export interface VideoUploadParams {
+  title: string;
+  description: string;
+  category: VideoCategory;
+  tags: string[];
+  file: File;
+  thumbnail?: File;
+}
+
+// 视频评论
+export interface VideoComment {
+  id: string;
+  content: string;
+  userId: string;
+  videoId: string;
+  createdAt: string;
+  updatedAt: string;
+  likes: number;
+  replies: VideoComment[];
 }
 
 export interface VideoUploadResponse {
@@ -56,17 +124,6 @@ export interface VideoPlayerConfig {
   quality: '1080p' | '720p' | '480p' | '360p';
   playbackRate: number;
   danmakuEnabled: boolean;
-}
-
-export interface VideoComment {
-  id: string;
-  content: string;
-  user: User;
-  likes: number;
-  dislikes: number;
-  replies: VideoComment[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 // 视频质量选项

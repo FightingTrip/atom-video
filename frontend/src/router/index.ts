@@ -10,7 +10,7 @@ const routes = [
       {
         path: '',
         name: 'Home',
-        component: () => import('@/views/feed/Home.vue'),
+        component: () => import('@/views/feed/HomePage.vue'),
         meta: {
           title: '首页',
         },
@@ -21,7 +21,7 @@ const routes = [
           {
             path: 'upload',
             name: 'Upload',
-            component: () => import('@/views/video/Upload.vue'),
+            component: () => import('@/views/video/UploadPage.vue'),
             meta: {
               title: '上传视频',
               requiresAuth: true,
@@ -30,7 +30,7 @@ const routes = [
           {
             path: ':id',
             name: 'VideoDetail',
-            component: () => import('@/views/video/Player.vue'),
+            component: () => import('@/views/video/PlayerPage.vue'),
             meta: {
               title: '视频播放',
             },
@@ -38,7 +38,7 @@ const routes = [
           {
             path: 'list',
             name: 'VideoList',
-            component: () => import('@/views/video/VideoList.vue'),
+            component: () => import('@/views/video/VideoListPage.vue'),
             meta: {
               title: '视频列表',
             },
@@ -51,7 +51,7 @@ const routes = [
           {
             path: ':id',
             name: 'Profile',
-            component: () => import('@/views/user/Profile.vue'),
+            component: () => import('@/views/user/ProfilePage.vue'),
             meta: {
               title: '个人主页',
             },
@@ -59,7 +59,7 @@ const routes = [
           {
             path: 'settings',
             name: 'Settings',
-            component: () => import('@/views/user/Settings.vue'),
+            component: () => import('@/views/user/SettingsPage.vue'),
             meta: {
               title: '设置',
               requiresAuth: true,
@@ -73,7 +73,7 @@ const routes = [
           {
             path: 'explore',
             name: 'Explore',
-            component: () => import('@/views/feed/Explore.vue'),
+            component: () => import('@/views/feed/ExplorePage.vue'),
             meta: {
               title: '发现',
             },
@@ -81,7 +81,7 @@ const routes = [
           {
             path: 'trending',
             name: 'Trending',
-            component: () => import('@/views/feed/Trending.vue'),
+            component: () => import('@/views/feed/TrendingPage.vue'),
             meta: {
               title: '热门',
             },
@@ -94,7 +94,7 @@ const routes = [
           {
             path: '',
             name: 'Library',
-            component: () => import('@/views/library/Library.vue'),
+            component: () => import('@/views/library/LibraryPage.vue'),
             meta: {
               title: '媒体库',
               requiresAuth: true,
@@ -103,7 +103,7 @@ const routes = [
           {
             path: 'history',
             name: 'History',
-            component: () => import('@/views/library/History.vue'),
+            component: () => import('@/views/library/HistoryPage.vue'),
             meta: {
               title: '观看历史',
               requiresAuth: true,
@@ -112,7 +112,7 @@ const routes = [
           {
             path: 'subscriptions',
             name: 'Subscriptions',
-            component: () => import('@/views/library/Subscriptions.vue'),
+            component: () => import('@/views/library/SubscriptionsPage.vue'),
             meta: {
               title: '订阅',
               requiresAuth: true,
@@ -126,7 +126,7 @@ const routes = [
           {
             path: ':id',
             name: 'TagDetail',
-            component: () => import('@/views/tag/TagDetail.vue'),
+            component: () => import('@/views/tag/TagDetailPage.vue'),
             meta: {
               title: '标签',
             },
@@ -139,7 +139,7 @@ const routes = [
           {
             path: 'about',
             name: 'About',
-            component: () => import('@/views/static/About.vue'),
+            component: () => import('@/views/static/AboutPage.vue'),
             meta: {
               title: '关于',
             },
@@ -159,7 +159,7 @@ const routes = [
       {
         path: 'login',
         name: 'Login',
-        component: () => import('@/views/auth/Login.vue'),
+        component: () => import('@/views/auth/LoginPage.vue'),
         meta: {
           title: '登录',
           guest: true,
@@ -168,7 +168,7 @@ const routes = [
       {
         path: 'register',
         name: 'Register',
-        component: () => import('@/views/auth/Register.vue'),
+        component: () => import('@/views/auth/RegisterPage.vue'),
         meta: {
           title: '注册',
           guest: true,
@@ -215,7 +215,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/views/error/NotFound.vue'),
+    component: () => import('@/views/error/NotFoundPage.vue'),
     meta: {
       title: '页面未找到',
     },
