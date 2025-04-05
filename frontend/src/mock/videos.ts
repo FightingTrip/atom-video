@@ -105,7 +105,7 @@ export const mockVideosApi = {
         createdAt: faker.date.past({ years: 1 }).toISOString(),
         user: {
           id: faker.string.uuid(),
-          nickname: faker.internet.userName(),
+          nickname: faker.internet.username(),
           avatar: faker.image.avatar(),
           verified: faker.datatype.boolean(0.1),
         },
@@ -119,7 +119,7 @@ export const mockVideosApi = {
             createdAt: faker.date.recent({ days: 30 }).toISOString(),
             user: {
               id: faker.string.uuid(),
-              nickname: faker.internet.userName(),
+              nickname: faker.internet.username(),
               avatar: faker.image.avatar(),
               verified: faker.datatype.boolean(0.1),
             },

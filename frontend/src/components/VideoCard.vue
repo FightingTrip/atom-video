@@ -55,8 +55,8 @@
     return views
   }
 
-  // 调试属性
-  console.log('Video object:', JSON.stringify(props.video, null, 2))
+  // 调试属性 用来视频的数据
+  // console.log('Video object:', JSON.stringify(props.video, null, 2))
 </script>
 
 <style scoped>
