@@ -1,3 +1,24 @@
+/**
+* @file Register.vue
+* @description 注册页面组件，提供用户注册功能
+* @author Atom Video Team
+* @date 2025-04-06
+*
+* @features
+* - 邮箱密码注册：支持用户名、邮箱、密码注册
+* - 社交账号注册：支持 Google 和 GitHub 注册
+* - 邮箱验证：支持邮箱验证码
+* - 表单验证：必填字段验证、密码强度验证
+* - 响应式设计：适配不同屏幕尺寸
+* - 主题适配：支持明暗主题
+*
+* @dependencies
+* - useAuthStore: 认证状态管理
+* - naive-ui: UI组件库
+* - vue-i18n: 国际化支持
+* - vue-router: 路由管理
+*/
+
 <script setup lang="ts">
   import { ref, reactive } from 'vue'
   import { useI18n } from 'vue-i18n'
@@ -231,12 +252,12 @@
             </button>
           </div>
 
-          <!-- 切换到登录 -->
-          <div class="text-center">
+          <!-- 登录提示 -->
+          <div class="mt-6 text-center">
             <p class="text-sm text-gray-600 dark:text-gray-400">
-              {{ t('auth.haveAccount') }}
+              {{ t('auth.hasAccount') }}
               <router-link to="/auth/login" class="font-medium text-primary hover:text-primary-dark">
-                {{ t('auth.signInNow') }}
+                {{ t('auth.signIn') }}
               </router-link>
             </p>
           </div>

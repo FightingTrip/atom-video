@@ -2,7 +2,7 @@
 // - TypeScript: 强类型支持
 // - Vue 3: 类型集成
 
-import type { User } from './index';
+import type { User, Author } from './index';
 import type { Tag } from './tags';
 
 export interface Video {
@@ -25,11 +25,11 @@ export interface VideoUploadResponse {
 }
 
 export interface VideoStats {
-  totalViews: number;
-  totalLikes: number;
-  totalDislikes: number;
-  commentsCount: number;
-  sharesCount: number;
+  views: number;
+  likes: number;
+  favorites: number;
+  comments: number;
+  duration: number;
 }
 
 export interface VideoFilter {
@@ -50,13 +50,12 @@ export interface VideoSearchResult {
 
 export interface VideoPlayerConfig {
   autoplay: boolean;
-  controls: boolean;
   loop: boolean;
   muted: boolean;
-  playbackRate: number;
   volume: number;
-  quality: 'auto' | '1080p' | '720p' | '480p' | '360p';
-  subtitles: boolean;
+  quality: '1080p' | '720p' | '480p' | '360p';
+  playbackRate: number;
+  danmakuEnabled: boolean;
 }
 
 export interface VideoComment {
@@ -69,3 +68,63 @@ export interface VideoComment {
   createdAt: string;
   updatedAt: string;
 }
+
+// 视频质量选项
+export type VideoQuality = '1080p' | '720p' | '480p' | '360p';
+
+// 视频来源
+export interface VideoSource {
+  quality: VideoQuality;
+  url: string;
+  type: string;
+}
+
+// 视频表单数据
+export interface VideoFormData {
+  title: string;
+  description: string;
+  tags: string[];
+  visibility: 'public' | 'private' | 'unlisted';
+  coverUrl?: string;
+  videoUrl?: string;
+}
+
+// 视频播放记录
+export interface VideoProgress {
+  videoId: string;
+  currentTime: number;
+  duration: number;
+  lastPlayedAt: string;
+}
+
+// 视频搜索参数
+export interface VideoSearchParams {
+  keyword?: string;
+  tags?: string[];
+  sort?: 'latest' | 'popular' | 'relevant';
+  page?: number;
+  limit?: number;
+}
+
+// 视频列表响应
+export interface VideoListResponse {
+  videos: Video[];
+  total: number;
+  hasMore: boolean;
+}
+
+// 视频评论响应
+export interface VideoCommentsResponse {
+  comments: Comment[];
+  total: number;
+  hasMore: boolean;
+}
+
+// 视频推荐响应
+export interface VideoRecommendationsResponse {
+  videos: Video[];
+  hasMore: boolean;
+}
+
+// 导出其他类型
+export * from './index';

@@ -1,3 +1,24 @@
+/**
+* @file Login.vue
+* @description 登录页面组件，提供用户登录功能
+* @author Atom Video Team
+* @date 2025-04-06
+*
+* @features
+* - 邮箱密码登录：支持记住我功能
+* - 社交账号登录：支持 Google 和 GitHub 登录
+* - 忘记密码：支持密码重置
+* - 表单验证：必填字段验证
+* - 响应式设计：适配不同屏幕尺寸
+* - 主题适配：支持明暗主题
+*
+* @dependencies
+* - useAuthStore: 认证状态管理
+* - naive-ui: UI组件库
+* - vue-i18n: 国际化支持
+* - vue-router: 路由管理
+*/
+
 <script setup lang="ts">
   import { ref, reactive } from 'vue'
   import { useRouter } from 'vue-router'
@@ -185,12 +206,12 @@
             </button>
           </div>
 
-          <!-- 切换到注册 -->
-          <div class="text-center">
+          <!-- 注册提示 -->
+          <div class="mt-6 text-center">
             <p class="text-sm text-gray-600 dark:text-gray-400">
               {{ t('auth.noAccount') }}
               <router-link to="/auth/register" class="font-medium text-primary hover:text-primary-dark">
-                {{ t('auth.signUpNow') }}
+                {{ t('auth.signUp') }}
               </router-link>
             </p>
           </div>

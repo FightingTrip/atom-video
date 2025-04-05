@@ -1,3 +1,24 @@
+/**
+* @file OAuthCallback.vue
+* @description OAuth 回调页面组件，用于处理第三方登录回调
+* @author Atom Video Team
+* @date 2025-04-06
+*
+* @features
+* - OAuth 回调：支持处理第三方登录回调
+* - 状态提示：显示登录成功/失败状态
+* - 自动跳转：登录成功后自动跳转到首页
+* - 错误处理：处理各种 OAuth 错误情况
+* - 响应式设计：适配不同屏幕尺寸
+* - 主题适配：支持明暗主题
+*
+* @dependencies
+* - useAuthStore: 认证状态管理
+* - naive-ui: UI组件库
+* - vue-i18n: 国际化支持
+* - vue-router: 路由管理
+*/
+
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
     <div class="max-w-md w-full space-y-8 text-center">

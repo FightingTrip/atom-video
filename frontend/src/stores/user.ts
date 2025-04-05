@@ -1,18 +1,27 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { User } from '@/types';
+import type { User, Video } from '@/types';
+import api from '@/utils/api';
 
 interface LoginPayload {
   email: string;
   password: string;
-  remember?: boolean;
 }
 
-interface RegisterPayload {
+interface RegisterPayload extends LoginPayload {
   username: string;
-  email: string;
-  password: string;
-  code: string;
+  nickname: string;
+}
+
+interface UpdateProfilePayload {
+  nickname?: string;
+  bio?: string;
+  avatar?: string;
+  social?: {
+    website?: string;
+    github?: string;
+    twitter?: string;
+  };
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -43,131 +52,38 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  // 邮箱登录
+  // 登录
   const login = async (payload: LoginPayload) => {
     loading.value = true;
+    error.value = null;
+
     try {
-      // 这里应该调用实际的登录API
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 模拟验证 (实际应由后端处理)
-      if (payload.email !== 'demo@example.com' || payload.password !== 'password123') {
-        throw new Error('邮箱或密码不正确');
-      }
-
-      // 模拟成功响应
-      const response = {
-        user: {
-          id: '1',
-          username: 'demouser',
-          email: payload.email,
-          avatar: 'https://i.pravatar.cc/150?img=1',
-        },
-        token: 'fake-jwt-token',
-      };
-
-      profile.value = response.user;
-      token.value = response.token;
-
-      if (payload.remember) {
-        localStorage.setItem('token', response.token);
-      } else {
-        sessionStorage.setItem('token', response.token);
-      }
-
-      return response;
+      const response = await api.post('/auth/login', payload);
+      profile.value = response.data as User;
+      return true;
+    } catch (err) {
+      error.value = '登录失败';
+      return false;
     } finally {
       loading.value = false;
     }
   };
 
-  // 发送验证码
-  const sendVerificationCode = async (email: string) => {
-    // 这里应该调用实际的发送验证码API
-    // 模拟API调用 (在实际应用中，这会向用户邮箱发送验证码)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    console.log(`模拟发送验证码到邮箱: ${email}，验证码: 123456`);
-
-    // 模拟成功
-    return { success: true, message: '验证码已发送到您的邮箱' };
-  };
-
-  // 邮箱注册
+  // 注册
   const register = async (payload: RegisterPayload) => {
     loading.value = true;
+    error.value = null;
+
     try {
-      // 这里应该调用实际的注册API
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 模拟验证 (实际应由后端处理)
-      if (payload.code !== '123456') {
-        throw new Error('验证码不正确');
-      }
-
-      // 检查邮箱是否已注册 (模拟)
-      if (payload.email === 'demo@example.com') {
-        throw new Error('该邮箱已被注册');
-      }
-
-      // 模拟成功响应
-      const response = {
-        success: true,
-        message: '注册成功',
-      };
-
-      return response;
+      const response = await api.post('/auth/register', payload);
+      profile.value = response.data as User;
+      return true;
+    } catch (err) {
+      error.value = '注册失败';
+      return false;
     } finally {
       loading.value = false;
     }
-  };
-
-  // 社交登录 (Google, GitHub)
-  const socialLogin = async (provider: string) => {
-    loading.value = true;
-    try {
-      // 在实际应用中，这里应使用OAuth流程:
-      // 1. 重定向用户到OAuth提供商的登录页面
-      // 2. 用户授权后，提供商会重定向回应用，带上授权码
-      // 3. 后端用授权码换取用户信息和访问令牌
-
-      // 模拟OAuth流程
-      console.log(`模拟${provider}登录流程开始`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // 模拟成功登录
-      const response = {
-        user: {
-          id: provider === 'google' ? 'g-123' : 'gh-456',
-          username: `${provider}user`,
-          email: `user@${provider}.com`,
-          avatar: `https://i.pravatar.cc/150?img=${provider === 'google' ? 3 : 4}`,
-        },
-        token: `${provider}-token-xyz`,
-      };
-
-      profile.value = response.user;
-      token.value = response.token;
-      localStorage.setItem('token', response.token);
-
-      return response;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 忘记密码
-  const forgotPassword = async (email: string) => {
-    // 这里应该调用实际的重置密码API
-    // 模拟API调用 (在实际应用中，这会向用户邮箱发送重置链接)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    console.log(`模拟发送密码重置链接到: ${email}`);
-
-    // 模拟成功
-    return { success: true, message: '重置链接已发送到您的邮箱' };
   };
 
   // 登出
@@ -178,14 +94,14 @@ export const useUserStore = defineStore('user', () => {
     sessionStorage.removeItem('token');
   };
 
-  const updateProfile = async (data: Partial<User>) => {
+  // 更新资料
+  const updateProfile = async (payload: UpdateProfilePayload) => {
     loading.value = true;
     error.value = null;
 
     try {
-      // 调用 API 更新用户资料
-      // const response = await api.updateProfile(data);
-      // profile.value = response.data;
+      const response = await api.put('/user/profile', payload);
+      profile.value = response.data as User;
       return true;
     } catch (err) {
       error.value = '更新失败';
@@ -195,18 +111,145 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  const fetchProfile = async () => {
-    loading.value = true;
-    error.value = null;
-
+  // 获取用户信息
+  const getUserInfo = async (userId: string): Promise<User> => {
     try {
-      // 调用 API 获取用户资料
-      // const response = await api.getProfile();
-      // profile.value = response.data;
-      return true;
+      loading.value = true;
+      error.value = null;
+      const response = await api.get(`/users/${userId}`);
+      return response.data;
     } catch (err) {
-      error.value = '获取失败';
-      return false;
+      error.value = err instanceof Error ? err.message : '获取用户信息失败';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取用户视频列表
+  const getUserVideos = async (userId: string, page: number) => {
+    const response = await api.get(`/user/${userId}/videos`, {
+      params: { page, pageSize: 12 },
+    });
+    return {
+      videos: response.data.items as Video[],
+      hasMore: response.data.hasMore,
+    };
+  };
+
+  // 获取用户喜欢的视频
+  const getUserLikedVideos = async (userId: string, page: number) => {
+    const response = await api.get(`/user/${userId}/likes`, {
+      params: { page, pageSize: 12 },
+    });
+    return {
+      videos: response.data.items as Video[],
+      hasMore: response.data.hasMore,
+    };
+  };
+
+  // 关注/取消关注用户
+  const toggleFollow = async (userId: string): Promise<void> => {
+    try {
+      loading.value = true;
+      error.value = null;
+      await api.post(`/users/${userId}/follow`);
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '操作失败';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取当前用户资料
+  const fetchProfile = async () => {
+    try {
+      const response = await api.get('/user/profile');
+      profile.value = response.data as User;
+    } catch (error) {
+      profile.value = null;
+      throw error;
+    }
+  };
+
+  // 更新用户信息
+  const updateUserInfo = async (data: Partial<User>): Promise<User> => {
+    try {
+      loading.value = true;
+      error.value = null;
+      const response = await api.put('/users/profile', data);
+      profile.value = response.data;
+      return response.data;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '更新用户信息失败';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 更新用户设置
+  const updateUserSettings = async (data: Record<string, any>): Promise<void> => {
+    try {
+      loading.value = true;
+      error.value = null;
+      await api.put('/users/settings', data);
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '更新用户设置失败';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取用户统计信息
+  const getUserStats = async (userId: string): Promise<Record<string, number>> => {
+    try {
+      loading.value = true;
+      error.value = null;
+      const response = await api.get(`/users/${userId}/stats`);
+      return response.data;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '获取用户统计信息失败';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取用户订阅列表
+  const getSubscriptions = async (page = 1): Promise<{ users: User[]; hasMore: boolean }> => {
+    try {
+      loading.value = true;
+      error.value = null;
+      const response = await api.get('/users/subscriptions', {
+        params: { page },
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '获取订阅列表失败';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取用户粉丝列表
+  const getFollowers = async (
+    userId: string,
+    page = 1
+  ): Promise<{ users: User[]; hasMore: boolean }> => {
+    try {
+      loading.value = true;
+      error.value = null;
+      const response = await api.get(`/users/${userId}/followers`, {
+        params: { page },
+      });
+      return response.data;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '获取粉丝列表失败';
+      throw err;
     } finally {
       loading.value = false;
     }
@@ -220,11 +263,17 @@ export const useUserStore = defineStore('user', () => {
     initUser,
     login,
     register,
-    socialLogin,
-    sendVerificationCode,
-    forgotPassword,
     logout,
     updateProfile,
+    getUserInfo,
+    getUserVideos,
+    getUserLikedVideos,
+    toggleFollow,
     fetchProfile,
+    updateUserInfo,
+    updateUserSettings,
+    getUserStats,
+    getSubscriptions,
+    getFollowers,
   };
 });

@@ -19,11 +19,11 @@ export interface User {
   subscribing: number;
   totalViews: number;
   joinedAt: string;
-  social: {
+  isFollowed?: boolean;
+  social?: {
     website?: string;
-    twitter?: string;
     github?: string;
-    instagram?: string;
+    twitter?: string;
   };
 }
 
@@ -32,13 +32,28 @@ export interface Video {
   id: string;
   title: string;
   description: string;
-  thumbnail: string;
-  duration: string;
-  views: string;
-  publishTime: string;
+  coverUrl: string;
+  videoUrl: string;
+  duration: number;
+  views: number;
+  likes: number;
+  favorites: number;
+  comments: number;
+  createdAt: string;
   author: Author;
   tags: string[];
-  category: string;
+  sources: Array<{
+    url: string;
+    type: string;
+    size: number;
+    label: string;
+  }>;
+  subtitles: Array<{
+    url: string;
+    label: string;
+    srclang: string;
+    default: boolean;
+  }>;
 }
 
 // 频道相关类型
@@ -75,20 +90,13 @@ export interface Notification {
   relatedVideoId?: string;
 }
 
-// 评论类型
+// 评论相关类型
 export interface Comment {
   id: string;
-  videoId: string;
   content: string;
   likes: number;
   createdAt: string;
-  user: {
-    id: string;
-    nickname: string;
-    avatar: string;
-    verified: boolean;
-  };
-  replies?: Comment[];
+  author: Author;
 }
 
 // 标签相关类型
@@ -171,15 +179,32 @@ export interface VideoService {
   }>;
 }
 
+// 作者相关类型
 export interface Author {
   id: string;
-  name: string;
+  username: string;
+  nickname: string;
   avatar: string;
-  verified?: boolean;
+  description?: string;
+  verified: boolean;
+  followersCount?: number;
+  followingCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface VideoResponse {
   videos: Video[];
-  hasMore: boolean;
   total: number;
+  hasMore: boolean;
+}
+
+// 弹幕相关类型
+export interface Danmaku {
+  id: string;
+  content: string;
+  time: number;
+  color: string;
+  type: 'top' | 'bottom' | 'scroll';
+  userId: string;
 }

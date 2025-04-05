@@ -1,3 +1,24 @@
+/**
+* @file ForgotPassword.vue
+* @description 忘记密码页面组件，用于用户找回密码
+* @author Atom Video Team
+* @date 2025-04-06
+*
+* @features
+* - 密码找回：支持通过邮箱找回密码
+* - 表单验证：邮箱格式验证
+* - 状态提示：显示发送成功/失败状态
+* - 自动跳转：发送成功后自动跳转到登录页
+* - 响应式设计：适配不同屏幕尺寸
+* - 主题适配：支持明暗主题
+*
+* @dependencies
+* - useAuthStore: 认证状态管理
+* - naive-ui: UI组件库
+* - vue-i18n: 国际化支持
+* - vue-router: 路由管理
+*/
+
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">

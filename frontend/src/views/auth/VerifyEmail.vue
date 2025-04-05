@@ -1,3 +1,23 @@
+/**
+ * @file VerifyEmail.vue
+ * @description 邮箱验证页面组件，用于验证用户邮箱
+ * @author Atom Video Team
+ * @date 2025-04-06
+ * 
+ * @features
+ * - 邮箱验证：支持通过链接验证邮箱
+ * - 重新发送：支持重新发送验证邮件
+ * - 状态提示：显示验证成功/失败状态
+ * - 自动跳转：验证成功后自动跳转到登录页
+ * - 响应式设计：适配不同屏幕尺寸
+ * - 主题适配：支持明暗主题
+ * 
+ * @dependencies
+ * - useAuthStore: 认证状态管理
+ * - api: API 请求工具
+ * - vue-router: 路由管理
+ */
+
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
@@ -63,7 +83,7 @@
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import { useAuthStore } from '@/store/auth';
+  import { useAuthStore } from '@/stores/auth';
   import api from '@/utils/api';
 
   const route = useRoute();

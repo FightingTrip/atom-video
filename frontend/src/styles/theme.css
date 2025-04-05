@@ -1,0 +1,177 @@
+:root {
+  /* 主色调 */
+  --primary-bg: #0a0a0a;
+  --secondary-bg: #141414;
+  --tertiary-bg: #1a1a1a;
+  
+  /* 文字颜色 */
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #666666;
+  
+  /* 强调色 */
+  --accent-primary: #ffffff;
+  --accent-secondary: #e0e0e0;
+  --accent-hover: #f0f0f0;
+  
+  /* 边框和分割线 */
+  --border-light: #2a2a2a;
+  --border-medium: #333333;
+  --border-dark: #404040;
+  
+  /* 阴影效果 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  
+  /* 动画效果 */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+  
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+  
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* 字体大小 */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  
+  /* 容器宽度 */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  
+  /* 视频卡片 */
+  --video-card-bg: var(--secondary-bg);
+  --video-card-hover: var(--tertiary-bg);
+  --video-card-shadow: var(--shadow-md);
+  
+  /* 按钮样式 */
+  --button-primary-bg: var(--accent-primary);
+  --button-primary-text: var(--primary-bg);
+  --button-primary-hover: var(--accent-hover);
+  --button-secondary-bg: var(--secondary-bg);
+  --button-secondary-text: var(--text-primary);
+  --button-secondary-hover: var(--tertiary-bg);
+  
+  /* 输入框样式 */
+  --input-bg: var(--secondary-bg);
+  --input-border: var(--border-medium);
+  --input-focus: var(--accent-primary);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-tertiary);
+  
+  /* 导航栏 */
+  --nav-bg: var(--primary-bg);
+  --nav-border: var(--border-light);
+  --nav-item-hover: var(--tertiary-bg);
+  
+  /* 侧边栏 */
+  --sidebar-bg: var(--secondary-bg);
+  --sidebar-border: var(--border-light);
+  --sidebar-item-hover: var(--tertiary-bg);
+  
+  /* 模态框 */
+  --modal-bg: var(--secondary-bg);
+  --modal-border: var(--border-medium);
+  --modal-shadow: var(--shadow-lg);
+  
+  /* 滚动条 */
+  --scrollbar-track: var(--primary-bg);
+  --scrollbar-thumb: var(--border-medium);
+  --scrollbar-thumb-hover: var(--border-dark);
+}
+
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--primary-bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* 通用动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-normal);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 通用过渡效果 */
+.transition-all {
+  transition: all var(--transition-normal);
+}
+
+/* 通用悬停效果 */
+.hover-scale {
+  transition: transform var(--transition-normal);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* 通用阴影效果 */
+.shadow-hover {
+  transition: box-shadow var(--transition-normal);
+}
+
+.shadow-hover:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* 通用边框效果 */
+.border-hover {
+  transition: border-color var(--transition-normal);
+}
+
+.border-hover:hover {
+  border-color: var(--accent-primary);
+} 

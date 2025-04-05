@@ -24,18 +24,22 @@ const generateMockVideos = (): Video[] => {
       id: i.toString(),
       title: `${category} 实战教程 ${i} - 专业技能提升课程`,
       description: `这是一个关于 ${category} 的实战教程，帮助你提升开发技能`,
-      thumbnail: `https://picsum.photos/seed/video${i}/640/360`,
-      duration: Math.floor(Math.random() * 3600).toString(), // 转换为字符串
-      views: Math.floor(Math.random() * 100000).toString(), // 转换为字符串
-      publishTime: faker.date.past().toISOString(),
+      coverUrl: `https://picsum.photos/seed/video${i}/640/360`,
+      duration: Math.floor(Math.random() * 3600), // 直接使用数字
+      views: Math.floor(Math.random() * 100000), // 直接使用数字
+      likes: Math.floor(Math.random() * 10000),
+      favorites: Math.floor(Math.random() * 5000),
+      createdAt: faker.date.past().toISOString(),
       author: {
         id: `author${Math.floor(Math.random() * 10) + 1}`,
-        name: faker.person.fullName(),
+        nickname: faker.person.fullName(),
         avatar: `https://i.pravatar.cc/150?img=${i}`,
         verified: Math.random() > 0.5,
       },
       tags: [category, '编程教程', '实战'],
       category: category,
+      isLiked: Math.random() > 0.5,
+      isFavorited: Math.random() > 0.5,
     });
   }
   return videos;

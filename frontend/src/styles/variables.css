@@ -1,0 +1,51 @@
+/**
+ * @file variables.css
+ * @description 全局CSS变量定义
+ * @created 2024-04-05
+ */
+
+:root {
+  /* 颜色变量 */
+  --primary-color: #2080f0;
+  --success-color: #18a058;
+  --warning-color: #f0a020;
+  --error-color: #d03050;
+  --info-color: #2080f0;
+
+  /* 文本颜色 */
+  --text-color: #333639;
+  --text-color-base: #333639;
+  --text-color-secondary: #666;
+  --text-color-disabled: #999;
+
+  /* 边框 */
+  --border-color: #d9d9d9;
+  --border-radius: 3px;
+
+  /* 背景色 */
+  --bg-color: #fff;
+  --bg-color-secondary: #f7f9fc;
+
+  /* 字体 */
+  --font-family: -apple-system, blinkmacsystemfont, 'Segoe UI', roboto,
+    'Helvetica Neue', arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  
+  /* 过渡 */
+  --transition-duration: 0.3s;
+  
+  /* 阴影 */
+  --box-shadow: 0 2px 4px rgb(0 0 0 / 12%);
+}
+
+/* 暗色主题 */
+.dark {
+  --text-color: #c9d1d9;
+  --text-color-base: #c9d1d9;
+  --text-color-secondary: #8b949e;
+  --text-color-disabled: #6e7681;
+  --border-color: #30363d;
+  --bg-color: #0d1117;
+  --bg-color-secondary: #161b22;
+  --box-shadow: 0 2px 4px rgb(0 0 0 / 40%);
+} 
