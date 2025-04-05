@@ -58,7 +58,7 @@
           <!-- 视频描述 -->
           <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
             <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
-              <span>{{ video?.views || 0 }} 次观看</span>
+              <span>{{ formatViews(video?.views || '0') }} 次观看</span>
               <span>·</span>
               <span>{{ video?.publishTime }}</span>
             </div>
@@ -111,6 +111,7 @@
   import { useAuthStore } from '@/stores/auth';
   import { useToast } from '@/composables/useToast';
   import { mockVideosApi } from '@/mock/videos';
+  import type { Video, VideoComment } from '@/types';
   // 导入 Naive UI 组件
   import {
     NButton,
@@ -128,13 +129,33 @@
   const toast = useToast();
   const currentUser = authStore.user;
 
-  const video = ref<any>(null);
+  const video = ref<Video | null>(null);
   const loading = ref(true);
   const error = ref<string | null>(null);
   const subscribing = ref(false);
   const isSubscribed = ref(false);
-  const comments = ref<any[]>([]);
-  const recommendedVideos = ref<any[]>([]);
+  const comments = ref<VideoComment[]>([]);
+  const recommendedVideos = ref<Video[]>([]);
+
+  const formatViews = (views: string) => {
+    const viewCount = parseInt(views, 10)
+    if (!isNaN(viewCount) && viewCount >= 10000) {
+      return (viewCount / 10000).toFixed(1) + '万'
+    }
+    return views
+  }
+
+  const formatDuration = (duration: string) => {
+    const seconds = parseInt(duration, 10);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   const fetchVideo = async () => {
     loading.value = true;
@@ -150,7 +171,7 @@
 
       // 获取评论数据
       const commentsData = await mockVideosApi.getVideoComments(route.params.id as string);
-      comments.value = commentsData.comments;
+      comments.value = commentsData;
 
       // 获取推荐视频
       const { videos } = await mockVideosApi.getVideos({ page: 1, pageSize: 5 });
@@ -189,19 +210,6 @@
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds
-        .toString()
-        .padStart(2, '0')}`;
-    }
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
@@ -232,3 +240,101 @@
     fetchVideo();
   });
 </script>
+
+<style scoped>
+  .comment-section {
+    @apply space-y-6 mt-8;
+  }
+
+  .comment-item {
+    @apply p-4 rounded-lg;
+    background-color: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(8px);
+  }
+
+  .comment-header {
+    @apply flex items-center justify-between mb-2;
+  }
+
+  .comment-user {
+    @apply flex items-center gap-3;
+  }
+
+  .comment-avatar {
+    @apply w-10 h-10 rounded-full object-cover;
+  }
+
+  .comment-info {
+    @apply flex flex-col;
+  }
+
+  .comment-username {
+    @apply font-medium text-white;
+  }
+
+  .comment-time {
+    @apply text-sm text-gray-300;
+  }
+
+  .comment-content {
+    @apply text-gray-100 leading-relaxed;
+  }
+
+  .comment-actions {
+    @apply flex items-center gap-4 mt-3;
+  }
+
+  .action-button {
+    @apply flex items-center gap-2 text-gray-300 hover:text-white transition-colors;
+  }
+
+  .action-count {
+    @apply text-sm;
+  }
+
+  /* 回复样式 */
+  .reply-section {
+    @apply mt-4 pl-12;
+  }
+
+  .reply-item {
+    @apply p-3 rounded-lg mt-3;
+    background-color: rgba(51, 65, 85, 0.95);
+  }
+
+  /* 输入框样式 */
+  .comment-input {
+    @apply mt-6 p-4 rounded-lg;
+    background-color: rgba(30, 41, 59, 0.95);
+  }
+
+  .input-header {
+    @apply flex items-center gap-3 mb-3;
+  }
+
+  .input-avatar {
+    @apply w-10 h-10 rounded-full;
+  }
+
+  .input-field {
+    @apply w-full p-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors;
+  }
+
+  .input-actions {
+    @apply flex justify-end mt-3 gap-3;
+  }
+
+  .video-container {
+    position: relative;
+    padding-top: 56.25%;
+    /* 16:9 宽高比 */
+  }
+
+  .video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+</style>

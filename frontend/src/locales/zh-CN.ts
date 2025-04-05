@@ -18,6 +18,11 @@ export default {
     views: '次观看',
     monthsAgo: '个月前',
     daysAgo: '天前',
+    noVideos: '暂无视频',
+    noResults: '暂无搜索结果',
+    searchHistory: '搜索历史',
+    searchPlaceholder: '搜索视频、标签或创作者',
+    clearHistory: '清除历史',
   },
   nav: {
     home: '首页',
@@ -25,6 +30,12 @@ export default {
     subscriptions: '订阅',
     library: '媒体库',
     history: '历史记录',
+  },
+  footer: {
+    terms: '服务条款',
+    privacy: '隐私政策',
+    help: '帮助中心',
+    rights: '保留所有权利',
   },
   user: {
     login: '登录',

@@ -42,53 +42,49 @@ const darkThemeOverrides: GlobalThemeOverrides = {
 
 export const useThemeStore = defineStore('theme', {
   state: () => ({
-    isDark: localStorage.getItem('isDark') === 'true',
+    theme: localStorage.getItem('theme') || 'system',
   }),
 
   getters: {
     naiveTheme() {
-      return this.isDark ? darkTheme : null;
+      return this.theme === 'dark' ? darkTheme : null;
     },
     themeOverrides(): GlobalThemeOverrides {
-      return this.isDark ? darkThemeOverrides : lightThemeOverrides;
+      return this.theme === 'dark' ? darkThemeOverrides : lightThemeOverrides;
     },
   },
 
   actions: {
-    toggleTheme() {
-      // 添加过渡动画类
-      document.documentElement.classList.add('theme-transitioning');
-
-      // 切换深色/浅色主题
-      this.isDark = !this.isDark;
-      localStorage.setItem('isDark', this.isDark.toString());
+    setTheme(theme: string) {
+      this.theme = theme;
+      localStorage.setItem('theme', theme);
 
       // 应用主题
-      this.applyTheme();
-
-      // 在动画完成后移除过渡类
-      setTimeout(() => {
-        document.documentElement.classList.remove('theme-transitioning');
-      }, 500);
+      if (
+        theme === 'dark' ||
+        (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      ) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     },
 
     initTheme() {
-      // 从本地存储中获取主题设置
-      const savedDarkMode = localStorage.getItem('isDark');
+      this.setTheme(this.theme);
 
-      if (savedDarkMode !== null) {
-        this.isDark = savedDarkMode === 'true';
-      } else {
-        // 默认匹配系统主题
-        this.isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // 监听系统主题变化
+      if (this.theme === 'system') {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+          if (this.theme === 'system') {
+            if (e.matches) {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          }
+        });
       }
-
-      this.applyTheme();
-    },
-
-    applyTheme() {
-      // 应用主题到文档根元素
-      document.documentElement.classList.toggle('dark', this.isDark);
     },
   },
 });

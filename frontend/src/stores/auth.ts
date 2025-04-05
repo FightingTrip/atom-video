@@ -28,13 +28,13 @@ export const useAuthStore = defineStore('auth', {
       const toast = useToast();
       this.loading = true;
       this.error = null;
-      
+
       console.log('Auth store login attempt:', { email, password }); // 添加调试日志
-      
+
       try {
         const response = await mockLogin({ username: email, password });
         console.log('Auth store login response:', response); // 添加调试日志
-        
+
         if (response.success && response.data) {
           this.setAuth(response.data);
           toast.success('登录成功');
@@ -99,6 +99,10 @@ export const useAuthStore = defineStore('auth', {
     setAuth(auth: AuthResponse) {
       this.token = auth.token;
       this.user = auth.user;
+    },
+
+    setUser(user: User) {
+      this.user = user;
     },
 
     logout() {

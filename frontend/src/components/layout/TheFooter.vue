@@ -16,7 +16,7 @@
       <a href="mailto:yuxiangzhang040727@gmail.com" class="hover:underline">
         <i class="fas fa-envelope"></i>
       </a>
-    </div>
+    </div>  
 
     <div class="flex items-center space-x-1">
       <span>© {{ currentYear }}</span>

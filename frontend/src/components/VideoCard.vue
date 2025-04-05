@@ -1,5 +1,5 @@
 <template>
-  <div class="video-card group">
+  <div class="video-card group cursor-pointer" @click="navigateToVideo">
     <div class="relative overflow-hidden rounded-lg mb-2">
       <img :src="video.thumbnail" :alt="video.title"
         class="w-full aspect-video object-cover transform transition hover:scale-105">
@@ -24,11 +24,8 @@
               <i class="fas fa-check-circle text-blue-500"></i>
             </span>
           </span>
-          <span v-if="video.views">
-            {{ formatViews(video.views) }} 次观看
-            <template v-if="video.publishedAt">• {{ video.publishedAt }}</template>
-            <template v-else-if="video.publishTime">• {{ video.publishTime }}</template>
-            <template v-else-if="video.createdAt">• {{ video.createdAt }}</template>
+          <span>
+            {{ formatViews(video.views) }} 次观看 • {{ video.publishTime }}
           </span>
         </div>
       </div>
@@ -37,22 +34,58 @@
 </template>
 
 <script setup lang="ts">
-  const props = defineProps({
-    video: {
-      type: Object,
-      required: true
-    }
-  })
+  import type { Video } from '@/types'
+  import { useRouter } from 'vue-router'
+
+  const router = useRouter()
+  const props = defineProps<{
+    video: Video
+  }>()
+
+  const navigateToVideo = () => {
+    router.push(`/video/${props.video.id}`)
+  }
 
   // 格式化观看次数
-  const formatViews = (views) => {
-    if (typeof views === 'number') {
-      if (views >= 10000) {
-        return (views / 10000).toFixed(1) + '万'
-      }
-      return views.toString()
+  const formatViews = (views: string) => {
+    const viewCount = parseInt(views, 10)
+    if (!isNaN(viewCount) && viewCount >= 10000) {
+      return (viewCount / 10000).toFixed(1) + '万'
     }
     return views
+  }
+
+  // 格式化视频时长
+  const formatDuration = (duration: number) => {
+    const hours = Math.floor(duration / 3600)
+    const minutes = Math.floor((duration % 3600) / 60)
+    const remainingSeconds = Math.floor(duration % 60)
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
+
+  // 格式化发布时间
+  const formatTimeAgo = (date: string) => {
+    const now = new Date()
+    const past = new Date(date)
+    const diff = now.getTime() - past.getTime()
+
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+    const months = Math.floor(days / 30)
+    const years = Math.floor(months / 12)
+
+    if (years > 0) return `${years}年前`
+    if (months > 0) return `${months}个月前`
+    if (days > 0) return `${days}天前`
+    if (hours > 0) return `${hours}小时前`
+    if (minutes > 0) return `${minutes}分钟前`
+    return '刚刚'
   }
 
   // 调试属性 用来视频的数据

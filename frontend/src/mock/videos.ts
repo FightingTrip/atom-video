@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker/locale/zh_CN';
-import type { Video, Comment, VideoResponse } from '@/types';
+import type { Video, VideoResponse, VideoComment } from '@/types';
 
 // 视频分类数据
 export const videoCategories = [
@@ -14,75 +14,77 @@ export const videoCategories = [
   { id: 'java', name: 'Java', icon: 'fa-java' },
 ];
 
-// 生成随机观看次数
-const generateViews = () => {
-  const num = Math.floor(Math.random() * 1000);
-  return num > 100 ? `${(num / 100).toFixed(1)}K` : `${num}`;
-};
-
-// 生成随机时长
-const generateDuration = () => {
-  const minutes = Math.floor(Math.random() * 120);
-  const seconds = Math.floor(Math.random() * 60);
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-};
-
-// 生成随机发布时间
-const generatePublishTime = () => {
-  const times = ['天前', '周前', '个月前', '年前'];
-  const num = Math.floor(Math.random() * 12) + 1;
-  const timeUnit = times[Math.floor(Math.random() * times.length)];
-  return `${num}${timeUnit}`;
-};
-
 // 生成模拟视频数据
 const generateMockVideos = (): Video[] => {
-  const categories = ['全部', 'JavaScript', 'TypeScript', 'Vue', 'React', 'Node.js', 'Python']
-  const videos: Video[] = []
+  const videos: Video[] = [];
 
   for (let i = 1; i <= 50; i++) {
-    const category = categories[Math.floor(Math.random() * (categories.length - 1)) + 1]
+    const category = videoCategories[Math.floor(Math.random() * videoCategories.length)].id;
     videos.push({
       id: i.toString(),
       title: `${category} 实战教程 ${i} - 专业技能提升课程`,
       description: `这是一个关于 ${category} 的实战教程，帮助你提升开发技能`,
       thumbnail: `https://picsum.photos/seed/video${i}/640/360`,
-      duration: `${Math.floor(Math.random() * 60)}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
-      views: `${(Math.random() * 1000).toFixed(1)}K`,
-      publishTime: `${Math.floor(Math.random() * 12)}个月前`,
+      duration: Math.floor(Math.random() * 3600).toString(), // 转换为字符串
+      views: Math.floor(Math.random() * 100000).toString(), // 转换为字符串
+      publishTime: faker.date.past().toISOString(),
       author: {
         id: `author${Math.floor(Math.random() * 10) + 1}`,
-        name: `讲师${Math.floor(Math.random() * 10) + 1}`,
+        name: faker.person.fullName(),
         avatar: `https://i.pravatar.cc/150?img=${i}`,
-        verified: Math.random() > 0.5
+        verified: Math.random() > 0.5,
       },
       tags: [category, '编程教程', '实战'],
-      category
-    })
+      category: category,
+    });
   }
-  return videos
-}
+  return videos;
+};
 
-const mockVideos = generateMockVideos()
+const mockVideos = generateMockVideos();
+
+// 存储视频评论的 Map
+const videoComments = new Map<string, VideoComment[]>();
+
+// 生成模拟评论数据
+const generateMockComments = (videoId: string, count: number = 5): VideoComment[] => {
+  const comments: VideoComment[] = [];
+  for (let i = 1; i <= count; i++) {
+    comments.push({
+      id: `${videoId}-comment-${i}`,
+      content: faker.lorem.paragraph(),
+      user: {
+        id: `user-${Math.floor(Math.random() * 100)}`,
+        nickname: faker.person.fullName(),
+        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+        verified: Math.random() > 0.8,
+      },
+      likes: Math.floor(Math.random() * 1000),
+      createdAt: faker.date.recent().toISOString(),
+      replies: [],
+    });
+  }
+  return comments;
+};
 
 // Mock API 函数
 export const mockVideosApi = {
-  getVideos: async ({ page = 1, pageSize = 12, category = '全部' }): Promise<VideoResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟延迟
-    
-    let filteredVideos = mockVideos
-    if (category !== '全部') {
-      filteredVideos = mockVideos.filter(video => video.category === category)
+  getVideos: async ({ page = 1, pageSize = 12, category = 'all' }): Promise<VideoResponse> => {
+    await new Promise(resolve => setTimeout(resolve, 500)); // 模拟延迟
+
+    let filteredVideos = mockVideos;
+    if (category !== 'all') {
+      filteredVideos = mockVideos.filter(video => video.tags.includes(category));
     }
 
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+
     return {
       videos: filteredVideos.slice(start, end),
       total: filteredVideos.length,
-      hasMore: end < filteredVideos.length
-    }
+      hasMore: end < filteredVideos.length,
+    };
   },
 
   // 获取单个视频
@@ -92,50 +94,48 @@ export const mockVideosApi = {
   },
 
   // 获取视频评论
-  async getVideoComments(videoId: string, page = 1, limit = 20) {
-    await new Promise(resolve => setTimeout(resolve, 600));
+  async getVideoComments(videoId: string): Promise<VideoComment[]> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    if (!videoComments.has(videoId)) {
+      videoComments.set(videoId, generateMockComments(videoId));
+    }
+    return videoComments.get(videoId) || [];
+  },
 
-    const comments = Array.from(
-      { length: 50 },
-      (): Comment => ({
-        id: faker.string.uuid(),
-        videoId,
-        content: faker.lorem.paragraph(),
-        likes: faker.number.int({ min: 0, max: 1000 }),
-        createdAt: faker.date.past({ years: 1 }).toISOString(),
-        user: {
-          id: faker.string.uuid(),
-          nickname: faker.internet.username(),
-          avatar: faker.image.avatar(),
-          verified: faker.datatype.boolean(0.1),
-        },
-        replies: Array.from(
-          { length: faker.number.int({ min: 0, max: 5 }) },
-          (): Comment => ({
-            id: faker.string.uuid(),
-            videoId,
-            content: faker.lorem.sentence(),
-            likes: faker.number.int({ min: 0, max: 100 }),
-            createdAt: faker.date.recent({ days: 30 }).toISOString(),
-            user: {
-              id: faker.string.uuid(),
-              nickname: faker.internet.username(),
-              avatar: faker.image.avatar(),
-              verified: faker.datatype.boolean(0.1),
-            },
-          })
-        ),
-      })
-    );
-
-    const start = (page - 1) * limit;
-    const end = start + limit;
-
-    return {
-      comments: comments.slice(start, end),
-      total: comments.length,
-      hasMore: end < comments.length,
+  // 添加视频评论
+  async addVideoComment(videoId: string, content: string, userId: string): Promise<VideoComment> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const newComment: VideoComment = {
+      id: `${videoId}-comment-${Date.now()}`,
+      content,
+      user: {
+        id: userId,
+        nickname: faker.person.fullName(),
+        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+        verified: false,
+      },
+      likes: 0,
+      createdAt: new Date().toISOString(),
+      replies: [],
     };
+
+    const comments = videoComments.get(videoId) || [];
+    comments.unshift(newComment);
+    videoComments.set(videoId, comments);
+    return newComment;
+  },
+
+  // 删除视频评论
+  async deleteVideoComment(videoId: string, commentId: string): Promise<boolean> {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const comments = videoComments.get(videoId);
+    if (!comments) return false;
+
+    const index = comments.findIndex(c => c.id === commentId);
+    if (index === -1) return false;
+
+    comments.splice(index, 1);
+    return true;
   },
 };
 

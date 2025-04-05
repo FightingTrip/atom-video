@@ -1,8 +1,7 @@
 <template>
   <div class="relative">
-    <!-- 搜索输入框 -->
     <n-input-group>
-      <n-input v-model:value="searchQuery" type="text" placeholder="搜索视频、标签或创作者..." clearable @input="handleInput"
+      <n-input v-model:value="searchQuery" type="text" :placeholder="t('header.search')" clearable @input="handleInput"
         @clear="clearSearch" class="search-input">
         <template #prefix>
           <n-icon :component="SearchOutline" />
@@ -22,12 +21,12 @@
       <!-- 搜索历史 -->
       <div v-if="searchHistory.length && !searchQuery" class="suggestions-section">
         <div class="suggestions-header">
-          <span>搜索历史</span>
+          <span>{{ t('search.history') }}</span>
           <n-button text @click="clearHistory">
             <template #icon>
               <n-icon :component="TrashOutline" />
             </template>
-            清除历史
+            {{ t('search.clearHistory') }}
           </n-button>
         </div>
         <div class="suggestions-list">
@@ -41,7 +40,7 @@
       <!-- 搜索建议 -->
       <div v-if="searchQuery" class="suggestions-section">
         <div class="suggestions-header">
-          <span>搜索建议</span>
+          <span>{{ t('search.suggestions') }}</span>
         </div>
         <div class="suggestions-list">
           <div v-for="suggestion in filteredSuggestions" :key="suggestion.text" class="suggestion-item"
@@ -56,30 +55,35 @@
 
     <!-- 高级搜索抽屉 -->
     <n-drawer v-model:show="showAdvancedDrawer" :width="300" placement="right">
-      <n-drawer-content title="高级搜索">
+      <n-drawer-content :title="t('search.advancedSearch')">
         <div class="space-y-6">
           <!-- 时间范围 -->
           <div>
-            <h3 class="text-sm font-medium mb-2">上传时间</h3>
-            <n-select v-model:value="advancedFilters.timeRange" :options="timeRangeOptions" placeholder="选择时间范围" />
+            <h3 class="text-sm font-medium mb-2">{{ t('search.timeRange') }}</h3>
+            <n-select v-model:value="advancedFilters.timeRange" :options="timeRangeOptions"
+              :placeholder="t('search.selectTimeRange')" />
           </div>
 
           <!-- 视频时长 -->
           <div>
-            <h3 class="text-sm font-medium mb-2">视频时长</h3>
-            <n-select v-model:value="advancedFilters.duration" :options="durationOptions" placeholder="选择视频时长" />
+            <h3 class="text-sm font-medium mb-2">{{ t('search.duration') }}</h3>
+            <n-select v-model:value="advancedFilters.duration" :options="durationOptions"
+              :placeholder="t('search.selectDuration')" />
           </div>
 
           <!-- 排序方式 -->
           <div>
-            <h3 class="text-sm font-medium mb-2">排序方式</h3>
-            <n-select v-model:value="advancedFilters.sort" :options="sortOptions" placeholder="选择排序方式" />
+            <h3 class="text-sm font-medium mb-2">{{ t('search.sortBy') }}</h3>
+            <n-select v-model:value="advancedFilters.sort" :options="sortOptions"
+              :placeholder="t('search.selectSortBy')" />
           </div>
 
           <!-- 筛选按钮 -->
           <div class="flex justify-end space-x-2">
-            <n-button @click="resetAdvancedFilters">重置</n-button>
-            <n-button type="primary" @click="applyAdvancedFilters">应用筛选</n-button>
+            <n-button @click="resetAdvancedFilters">{{ t('common.reset') }}</n-button>
+            <n-button type="primary" @click="applyAdvancedFilters">
+              {{ t('common.apply') }}
+            </n-button>
           </div>
         </div>
       </n-drawer-content>
@@ -89,6 +93,9 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { useI18n } from 'vue-i18n'
+  import { useStorage } from '@vueuse/core'
   import {
     NInput,
     NInputGroup,
@@ -108,9 +115,11 @@
     PricetagOutline
   } from '@vicons/ionicons5'
   import { useVideoStore } from '../stores/video'
-  import { useStorage } from '@vueuse/core'
 
+  const router = useRouter()
+  const { t } = useI18n()
   const videoStore = useVideoStore()
+
   const searchQuery = ref('')
   const showAdvanced = ref(true)
   const showAdvancedDrawer = ref(false)
@@ -127,29 +136,29 @@
   })
 
   // 时间范围选项
-  const timeRangeOptions = [
-    { label: '全部时间', value: 'all' },
-    { label: '今天', value: 'today' },
-    { label: '本周', value: 'week' },
-    { label: '本月', value: 'month' },
-    { label: '今年', value: 'year' }
-  ]
+  const timeRangeOptions = computed(() => [
+    { label: t('search.timeRange.all'), value: 'all' },
+    { label: t('search.timeRange.today'), value: 'today' },
+    { label: t('search.timeRange.week'), value: 'week' },
+    { label: t('search.timeRange.month'), value: 'month' },
+    { label: t('search.timeRange.year'), value: 'year' }
+  ])
 
   // 视频时长选项
-  const durationOptions = [
-    { label: '全部时长', value: 'all' },
-    { label: '0-5 分钟', value: 'short' },
-    { label: '5-20 分钟', value: 'medium' },
-    { label: '20+ 分钟', value: 'long' }
-  ]
+  const durationOptions = computed(() => [
+    { label: t('search.duration.all'), value: 'all' },
+    { label: t('search.duration.short'), value: 'short' },
+    { label: t('search.duration.medium'), value: 'medium' },
+    { label: t('search.duration.long'), value: 'long' }
+  ])
 
   // 排序方式选项
-  const sortOptions = [
-    { label: '相关度', value: 'relevance' },
-    { label: '最新发布', value: 'date' },
-    { label: '最多观看', value: 'views' },
-    { label: '最多点赞', value: 'likes' }
-  ]
+  const sortOptions = computed(() => [
+    { label: t('search.sortBy.relevance'), value: 'relevance' },
+    { label: t('search.sortBy.date'), value: 'date' },
+    { label: t('search.sortBy.views'), value: 'views' },
+    { label: t('search.sortBy.likes'), value: 'likes' }
+  ])
 
   // 搜索建议
   const suggestions = computed(() => {
@@ -163,7 +172,7 @@
       .filter(video => video.title.toLowerCase().includes(query))
       .map(video => ({
         text: video.title,
-        type: '视频',
+        type: t('search.type.video'),
         icon: VideocamOutline
       })))
 
@@ -172,7 +181,7 @@
       .filter(tag => tag.toLowerCase().includes(query))
       .map(tag => ({
         text: tag,
-        type: '标签',
+        type: t('search.type.tag'),
         icon: PricetagOutline
       })))
 
@@ -181,7 +190,7 @@
       .filter(creator => creator.name.toLowerCase().includes(query))
       .map(creator => ({
         text: creator.name,
-        type: '创作者',
+        type: t('search.type.creator'),
         icon: PersonOutline
       })))
 
@@ -196,7 +205,6 @@
   // 处理输入
   const handleInput = () => {
     showSuggestions.value = true
-    videoStore.search(searchQuery.value, advancedFilters.value)
   }
 
   // 选择建议
@@ -204,7 +212,13 @@
     searchQuery.value = text
     showSuggestions.value = false
     addToHistory(text)
-    videoStore.search(text, advancedFilters.value)
+    router.push({
+      name: 'Search',
+      query: {
+        q: text,
+        ...advancedFilters.value
+      }
+    })
   }
 
   // 添加到搜索历史
@@ -226,7 +240,6 @@
   const clearSearch = () => {
     searchQuery.value = ''
     showSuggestions.value = false
-    videoStore.resetSearch()
   }
 
   // 切换高级搜索抽屉
@@ -245,7 +258,13 @@
 
   // 应用高级筛选
   const applyAdvancedFilters = () => {
-    videoStore.search(searchQuery.value, advancedFilters.value)
+    router.push({
+      name: 'Search',
+      query: {
+        q: searchQuery.value,
+        ...advancedFilters.value
+      }
+    })
     showAdvancedDrawer.value = false
   }
 
@@ -268,7 +287,7 @@
 
 <style scoped>
   .search-input {
-    @apply w-full max-w-2xl;
+    @apply w-full;
   }
 
   .suggestions-dropdown {

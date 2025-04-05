@@ -1,21 +1,28 @@
 <template>
-  <div class="p-4 lg:p-6">
-    <!-- 视频网格 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  <div class="container mx-auto px-4 py-8">
+    <!-- 视频列表 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <template v-if="videoStore.loading && !videoStore.videos.length">
         <VideoCardSkeleton v-for="i in 12" :key="i" />
       </template>
 
-      <template v-else>
+      <template v-else-if="videoStore.videos.length > 0">
         <VideoCard v-for="video in videoStore.filteredVideos" :key="video.id" :video="video"
           @click="$router.push(`/video/${video.id}`)" />
+      </template>
+
+      <!-- 空状态 -->
+      <template v-else>
+        <div class="col-span-full text-center py-8">
+          <n-empty :description="t('common.noVideos')" />
+        </div>
       </template>
     </div>
 
     <!-- 加载更多 -->
     <div v-if="videoStore.hasMore" class="text-center py-8">
       <n-button :loading="videoStore.loading" @click="videoStore.loadMore" type="primary" size="large">
-        {{ videoStore.loading ? '加载中...' : '加载更多' }}
+        {{ videoStore.loading ? t('common.loading') : t('common.loadMore') }}
       </n-button>
     </div>
   </div>
@@ -26,32 +33,18 @@
   import { useVideoStore } from '@/stores/video'
   import VideoCard from '@/components/VideoCard.vue'
   import VideoCardSkeleton from '@/components/VideoCardSkeleton.vue'
+  import { NButton, NEmpty } from 'naive-ui'
   import { useI18n } from 'vue-i18n'
 
   const { t } = useI18n()
   const videoStore = useVideoStore()
 
-  onMounted(() => {
-    videoStore.initialize()
-    videoStore.fetchVideos()
+  onMounted(async () => {
+    await videoStore.fetchVideos()
   })
 </script>
 
 <style scoped>
-  .mask-edges {
-    mask-image: linear-gradient(90deg, transparent, #000 1%, #000 99%, transparent);
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 1%, #000 99%, transparent);
-  }
-
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
   .video-card-wrapper {
     @apply transition-transform duration-200;
   }
@@ -84,18 +77,5 @@
   .load-more-button:hover {
     opacity: 0.9;
     transform: translateY(-2px);
-  }
-
-  .theme-video-title {
-    color: #000000;
-  }
-
-  .theme-video-text {
-    color: #000000;
-  }
-
-  :root.dark .theme-video-title,
-  :root.dark .theme-video-text {
-    color: #ffffff;
   }
 </style>
