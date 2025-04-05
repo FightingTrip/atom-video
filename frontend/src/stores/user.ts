@@ -1,12 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  avatar?: string;
-}
+import type { User } from '@/types';
 
 interface LoginPayload {
   email: string;
@@ -22,9 +16,10 @@ interface RegisterPayload {
 }
 
 export const useUserStore = defineStore('user', () => {
-  const user = ref<User | null>(null);
+  const profile = ref<User | null>(null);
   const token = ref<string | null>(null);
   const loading = ref(false);
+  const error = ref<string | null>(null);
 
   // 初始化用户状态
   const initUser = async () => {
@@ -35,7 +30,7 @@ export const useUserStore = defineStore('user', () => {
         // 这里应该调用API验证token并获取用户信息
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 500));
-        user.value = {
+        profile.value = {
           id: '1',
           username: 'demouser',
           email: 'demo@example.com',
@@ -72,7 +67,7 @@ export const useUserStore = defineStore('user', () => {
         token: 'fake-jwt-token',
       };
 
-      user.value = response.user;
+      profile.value = response.user;
       token.value = response.token;
 
       if (payload.remember) {
@@ -153,7 +148,7 @@ export const useUserStore = defineStore('user', () => {
         token: `${provider}-token-xyz`,
       };
 
-      user.value = response.user;
+      profile.value = response.user;
       token.value = response.token;
       localStorage.setItem('token', response.token);
 
@@ -177,16 +172,51 @@ export const useUserStore = defineStore('user', () => {
 
   // 登出
   const logout = () => {
-    user.value = null;
+    profile.value = null;
     token.value = null;
     localStorage.removeItem('token');
     sessionStorage.removeItem('token');
   };
 
+  const updateProfile = async (data: Partial<User>) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      // 调用 API 更新用户资料
+      // const response = await api.updateProfile(data);
+      // profile.value = response.data;
+      return true;
+    } catch (err) {
+      error.value = '更新失败';
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchProfile = async () => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      // 调用 API 获取用户资料
+      // const response = await api.getProfile();
+      // profile.value = response.data;
+      return true;
+    } catch (err) {
+      error.value = '获取失败';
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
-    user,
+    profile,
     token,
     loading,
+    error,
     initUser,
     login,
     register,
@@ -194,5 +224,7 @@ export const useUserStore = defineStore('user', () => {
     sendVerificationCode,
     forgotPassword,
     logout,
+    updateProfile,
+    fetchProfile,
   };
 });

@@ -99,9 +99,12 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/profile',
-    name: 'profile',
-    component: Profile,
-    meta: { title: '个人资料', requiresAuth: true },
+    name: 'Profile',
+    component: () => import('@/views/Profile.vue'),
+    meta: {
+      requiresAuth: true,
+      title: '个人资料',
+    },
   },
   {
     path: '/settings',
