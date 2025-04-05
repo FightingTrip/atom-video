@@ -22,20 +22,25 @@
 | value | 统计值 | number \| string | - |
 | unit | 单位 | string | - |
 | trend | 趋势值 | number | - |
-| status | 状态 | 'success' \| 'warning' \| 'error' | - |
+| status | 状态 | 'success' \| 'warning' \| 'error' \| 'info' | - |
 | icon | 自定义图标 | ReactNode | - |
 | loading | 加载状态 | boolean | false |
 | onClick | 点击事件 | () => void | - |
 | className | 自定义类名 | string | - |
 | style | 自定义样式 | CSSProperties | - |
+| description | 补充描述文本 | string | - |
+| footer | 卡片底部内容 | ReactNode | - |
+| tooltipContent | 提示内容 | ReactNode | - |
 
 ## 代码示例
 
 ### 基础用法
 ```tsx
+import { formatNumber } from '@/utils/format';
+
 <StatCard
   title="代码行数"
-  value={12345}
+  value={formatNumber(12345)}  // 自动格式化为 "12.3K"
   unit="行"
 />
 ```
@@ -67,6 +72,18 @@
   value={0}
   loading={true}
 />
+```
+
+### 错误处理
+```tsx
+<ErrorBoundary fallback={<ErrorCard />}>
+  <StatCard
+    title="代码分析"
+    value={data?.value ?? '-'}
+    loading={isLoading}
+    error={error}
+  />
+</ErrorBoundary>
 ```
 
 ### 组合使用
@@ -150,9 +167,42 @@
     title="错误处理"
     value={data?.value ?? '-'}
     loading={loading}
+    error={error}
   />
 </ErrorBoundary>
 ```
+
+### 综合最佳实践
+
+1. 数值展示
+- 大数值使用格式化工具 (例如: formatNumber(1234567) → "1.23M")
+- 保持精度一致性 (小数点位数统一)
+- 合理选择单位显示 (K, M, G等)
+
+2. 趋势展示
+- 使用不同颜色区分正负趋势 (上升-绿色，下降-红色)
+- 配合箭头图标增强视觉效果
+- 显示环比数据增强对比性
+
+3. 响应式布局
+- 适配不同尺寸屏幕
+- 在小屏幕上保持数据清晰可读
+- 合理使用空间和间距
+
+4. 性能优化
+- 使用 React.memo 减少不必要的重渲染
+- 避免频繁更新的数据计算
+- 使用缓存优化计算密集型操作
+
+5. 错误处理
+- 提供默认值和占位符
+- 处理数据加载和异常状态
+- 保持视觉反馈的一致性
+
+6. 主题适配
+- 支持明暗主题切换
+- 使用设计变量而非硬编码颜色
+- 保持品牌色系的统一性
 
 ## 实现细节
 
@@ -163,12 +213,15 @@ interface StatCardProps {
   value: number | string;
   unit?: string;
   trend?: number;
-  status?: 'success' | 'warning' | 'error';
+  status?: 'success' | 'warning' | 'error' | 'info';
   icon?: React.ReactNode;
   loading?: boolean;
   onClick?: () => void;
   className?: string;
   style?: React.CSSProperties;
+  description?: string;
+  footer?: React.ReactNode;
+  tooltipContent?: React.ReactNode;
 }
 ```
 
@@ -185,6 +238,9 @@ export const StatCard: React.FC<StatCardProps> = memo(({
   onClick,
   className,
   style,
+  description,
+  footer,
+  tooltipContent,
 }) => {
   const trendColor = useMemo(() => {
     if (!trend) return undefined;

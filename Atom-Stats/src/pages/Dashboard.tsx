@@ -17,11 +17,12 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm text-gray-500 dark:text-gray-400">总代码量</p>
-              <h3 className="text-xl font-bold">128,291 行</h3>
+              <h3 className="text-xl font-bold">128,291 <span className="text-sm font-normal">行</span></h3>
+              <p className="text-xs text-green-500">↑ 2.3% 较上周</p>
             </div>
           </div>
         </Card>
-        
+
         <Card>
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
@@ -29,7 +30,8 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm text-gray-500 dark:text-gray-400">文件数量</p>
-              <h3 className="text-xl font-bold">426 个</h3>
+              <h3 className="text-xl font-bold">426 <span className="text-sm font-normal">个</span></h3>
+              <p className="text-xs text-green-500">↑ 5 较昨天</p>
             </div>
           </div>
         </Card>
@@ -37,31 +39,33 @@ export const Dashboard: React.FC = () => {
         <Card>
           <div className="flex items-center">
             <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
-              <CommitIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <ContributorIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="ml-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400">提交次数</p>
-              <h3 className="text-xl font-bold">1,842 次</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">活跃贡献者</p>
+              <h3 className="text-xl font-bold">8 <span className="text-sm font-normal">人</span></h3>
+              <p className="text-xs text-orange-500">- 与上周持平</p>
             </div>
           </div>
         </Card>
 
         <Card>
           <div className="flex items-center">
-            <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900">
-              <TeamIcon className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900">
+              <QualityIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div className="ml-4">
-              <p className="text-sm text-gray-500 dark:text-gray-400">贡献者</p>
-              <h3 className="text-xl font-bold">16 人</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">代码质量</p>
+              <h3 className="text-xl font-bold">A <span className="text-sm font-normal">级</span></h3>
+              <p className="text-xs text-green-500">↑ 较上月</p>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* 图表区域 */}
+      {/* 统计图表 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="col-span-2">
+        <Card>
           <h2 className="text-lg font-semibold mb-4">代码量趋势</h2>
           <CodeStats className="h-80" />
         </Card>
@@ -76,9 +80,9 @@ export const Dashboard: React.FC = () => {
           <CommitActivity className="h-80" />
         </Card>
 
-        <Card className="col-span-2">
+        <Card>
           <h2 className="text-lg font-semibold mb-4">团队贡献</h2>
-          <TeamContribution className="h-96" />
+          <TeamContribution className="h-80" />
         </Card>
       </div>
     </div>
