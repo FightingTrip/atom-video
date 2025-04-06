@@ -443,7 +443,7 @@ export const useVideoStore = defineStore('video', () => {
   };
 
   // 获取推荐视频
-  const getRecommendedVideos = async (page = 1): Promise<VideoResponse> => {
+  const getRecommendedVideosByPage = async (page = 1): Promise<VideoResponse> => {
     try {
       loading.value = true;
       error.value = null;
@@ -587,6 +587,7 @@ export const useVideoStore = defineStore('video', () => {
     toggleCommentLike,
     getVideos,
     getTrendingVideos,
+    getRecommendedVideosByPage,
     getLibraryVideos,
     getHistory,
     clearHistory,
