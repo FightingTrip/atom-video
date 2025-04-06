@@ -1,79 +1,90 @@
+/**
+ * 主题状态管理
+ */
 import { defineStore } from 'pinia';
-import { darkTheme, lightTheme } from 'naive-ui';
-import type { GlobalTheme, GlobalThemeOverrides } from 'naive-ui';
+import { ref, computed, watch } from 'vue';
+import { darkTheme } from 'naive-ui';
+import type { GlobalThemeOverrides } from 'naive-ui';
 
-// 浅色主题 - 简洁大气
-const lightThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    primaryColor: '#2080f0',
-    primaryColorHover: '#4098fc',
-    primaryColorPressed: '#1060c9',
-    infoColor: '#0284C7',
-    successColor: '#10B981',
-    warningColor: '#F59E0B',
-    errorColor: '#EF4444',
-    borderRadius: '3px',
-  },
-  Button: {
-    borderRadius: '6px',
-  },
-  Card: {
-    borderRadius: '8px',
-  },
-};
+// 主题类型
+type ThemeType = 'light' | 'dark' | 'system';
 
-// 深色主题 - 高端沉稳
-const darkThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    primaryColor: '#2080f0',
-    primaryColorHover: '#4098fc',
-    primaryColorPressed: '#1060c9',
-    infoColor: '#38BDF8',
-    successColor: '#34D399',
-    warningColor: '#FBBF24',
-    errorColor: '#F87171',
-    borderRadius: '3px',
-  },
-  Button: {
-    borderRadius: '6px',
-  },
-  Card: {
-    borderRadius: '8px',
-  },
-};
+// 主题状态
+export const useThemeStore = defineStore('theme', () => {
+  // 状态
+  const themeType = ref<ThemeType>((localStorage.getItem('theme') as ThemeType) || 'system');
+  const systemDarkMode = ref(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-export const useThemeStore = defineStore('theme', {
-  state: () => ({
-    isDark: false,
-  }),
+  // 计算当前是否应该使用深色主题
+  const isDark = computed(() => {
+    if (themeType.value === 'system') {
+      return systemDarkMode.value;
+    }
+    return themeType.value === 'dark';
+  });
 
-  getters: {
-    theme(): GlobalTheme {
-      return this.isDark ? darkTheme : lightTheme;
-    },
-    themeOverrides(): GlobalThemeOverrides {
-      return this.isDark ? darkThemeOverrides : lightThemeOverrides;
-    },
-  },
+  // 监听系统主题变化
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  mediaQuery.addEventListener('change', e => {
+    systemDarkMode.value = e.matches;
+  });
 
-  actions: {
-    toggleTheme() {
-      this.isDark = !this.isDark;
-      // 更新 body class
-      if (this.isDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    },
+  // 根据主题类型计算主题覆盖配置
+  const themeOverrides = computed<GlobalThemeOverrides>(() => {
+    // 默认主题覆盖配置
+    return {
+      common: {
+        primaryColor: '#3b82f6',
+        primaryColorHover: '#60a5fa',
+        primaryColorPressed: '#2563eb',
+      },
+    };
+  });
 
-    initTheme() {
-      // 从系统主题初始化
-      const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      this.isDark = darkMode;
-      if (darkMode) {
-        document.documentElement.classList.add('dark');
-      }
-    },
-  },
+  // 设置主题类型
+  function setTheme(type: ThemeType) {
+    themeType.value = type;
+    localStorage.setItem('theme', type);
+  }
+
+  // 切换主题
+  function toggleTheme() {
+    const newTheme = isDark.value ? 'light' : 'dark';
+    setTheme(newTheme);
+  }
+
+  // 初始化主题
+  function initTheme() {
+    // 从localStorage获取保存的主题
+    const savedTheme = localStorage.getItem('theme') as ThemeType;
+    if (savedTheme) {
+      themeType.value = savedTheme;
+    }
+
+    // 设置body的data-theme属性以支持CSS变量
+    applyThemeClass();
+  }
+
+  // 应用主题类到body元素
+  function applyThemeClass() {
+    if (isDark.value) {
+      document.body.setAttribute('data-theme', 'dark');
+    } else {
+      document.body.setAttribute('data-theme', 'light');
+    }
+  }
+
+  // 监听主题变化，更新CSS变量
+  watch(isDark, () => {
+    applyThemeClass();
+  });
+
+  return {
+    themeType,
+    isDark,
+    themeOverrides,
+    setTheme,
+    toggleTheme,
+    initTheme,
+  };
 });

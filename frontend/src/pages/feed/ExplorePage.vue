@@ -7,16 +7,21 @@
 
 <template>
   <div class="explore-page">
-    <Explore />
+    <h1>探索页</h1>
+    <p>此页面正在开发中...</p>
   </div>
 </template>
 
 <script setup lang="ts">
-  import Explore from '@/components/business/feed/Explore.vue'
+  import { onMounted } from 'vue';
+
+  onMounted(() => {
+    console.log('[ExplorePage] 组件已挂载');
+  });
 </script>
 
 <style scoped>
   .explore-page {
-    min-height: 100vh;
+    padding: 20px;
   }
 </style>

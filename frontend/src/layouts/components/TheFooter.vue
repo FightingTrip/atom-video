@@ -1,201 +1,129 @@
 /**
 * @file TheFooter.vue
 * @description 页脚组件
-* @features
-* - 响应式布局
-* - 主题适配
-* - 链接导航
-* - 版权信息
 * @author Atom Video Team
 * @date 2025-04-06
 */
 
 <template>
-  <footer class="the-footer">
+  <footer class="footer">
     <div class="footer-content">
-      <!-- 链接区域 -->
       <div class="footer-links">
-        <div class="link-group">
-          <h3 class="link-title">关于我们</h3>
-          <router-link to="/about" class="link-item">关于 Atom Video</router-link>
-          <router-link to="/contact" class="link-item">联系我们</router-link>
-          <router-link to="/careers" class="link-item">加入我们</router-link>
-          <router-link to="/press" class="link-item">新闻中心</router-link>
+        <div class="footer-section">
+          <a href="/about" class="footer-link">关于我们</a>
+          <a href="/terms" class="footer-link">服务条款</a>
+          <a href="/privacy" class="footer-link">隐私政策</a>
         </div>
-
-        <div class="link-group">
-          <h3 class="link-title">帮助中心</h3>
-          <router-link to="/help" class="link-item">帮助文档</router-link>
-          <router-link to="/faq" class="link-item">常见问题</router-link>
-          <router-link to="/feedback" class="link-item">意见反馈</router-link>
-          <router-link to="/report" class="link-item">举报中心</router-link>
-        </div>
-
-        <div class="link-group">
-          <h3 class="link-title">创作者</h3>
-          <router-link to="/creator" class="link-item">创作者中心</router-link>
-          <router-link to="/creator/guide" class="link-item">创作指南</router-link>
-          <router-link to="/creator/studio" class="link-item">创作者工作室</router-link>
-          <router-link to="/creator/analytics" class="link-item">数据分析</router-link>
-        </div>
-
-        <div class="link-group">
-          <h3 class="link-title">法律</h3>
-          <router-link to="/terms" class="link-item">服务条款</router-link>
-          <router-link to="/privacy" class="link-item">隐私政策</router-link>
-          <router-link to="/copyright" class="link-item">版权政策</router-link>
-          <router-link to="/community" class="link-item">社区规范</router-link>
+        <div class="footer-section">
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <n-icon class="footer-icon">
+              <LogoGithub />
+            </n-icon>
+          </a>
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <n-icon class="footer-icon">
+              <LogoTwitter />
+            </n-icon>
+          </a>
+          <a href="https://discord.com" target="_blank" rel="noopener noreferrer" class="footer-link">
+            <n-icon class="footer-icon">
+              <ChatbubblesOutline />
+            </n-icon>
+          </a>
         </div>
       </div>
-
-      <!-- 社交媒体 -->
-      <div class="social-links">
-        <a href="#" class="social-link" target="_blank" rel="noopener noreferrer">
-          <n-icon size="20">
-            <LogoGithubIcon />
-          </n-icon>
-        </a>
-        <a href="#" class="social-link" target="_blank" rel="noopener noreferrer">
-          <n-icon size="20">
-            <LogoTwitterIcon />
-          </n-icon>
-        </a>
-        <a href="#" class="social-link" target="_blank" rel="noopener noreferrer">
-          <n-icon size="20">
-            <LogoDiscordIcon />
-          </n-icon>
-        </a>
-      </div>
-
-      <!-- 版权信息 -->
-      <div class="copyright">
-        <p>© {{ currentYear }} Atom Video. All rights reserved.</p>
-        <p class="copyright-links">
-          <router-link to="/terms" class="copyright-link">服务条款</router-link>
-          <span class="separator">·</span>
-          <router-link to="/privacy" class="copyright-link">隐私政策</router-link>
-        </p>
+      <div class="footer-copyright">
+        © {{ currentYear }} Atom Video. All rights reserved.
       </div>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue'
-  import { NIcon } from 'naive-ui'
-  import {
-    LogoGithub as LogoGithubIcon,
-    LogoTwitter as LogoTwitterIcon,
-    LogoDiscord as LogoDiscordIcon
-  } from '@vicons/ionicons5'
+  import { computed } from 'vue';
+  import { NIcon } from 'naive-ui';
+  import { LogoGithub, LogoTwitter, ChatbubblesOutline } from '@vicons/ionicons5';
 
-  const currentYear = computed(() => new Date().getFullYear())
+  const currentYear = computed(() => new Date().getFullYear());
 </script>
 
 <style scoped>
-  .the-footer {
-    background-color: var(--background-color);
+  .footer {
+    background-color: var(--bg-color);
     border-top: 1px solid var(--border-color);
-    padding: var(--spacing-xl) 0 var(--spacing-lg);
-    margin-top: auto;
+    height: 40px;
+    width: 100%;
+    z-index: 10;
   }
 
   .footer-content {
-    max-width: var(--max-width);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1800px;
     margin: 0 auto;
-    padding: 0 var(--spacing-lg);
+    padding: 0 16px;
+    height: 100%;
   }
 
   .footer-links {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-xl);
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .link-group {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    align-items: center;
+    gap: 16px;
   }
 
-  .link-title {
-    margin: 0;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--text-color);
-    margin-bottom: var(--spacing-xs);
+  .footer-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
-  .link-item {
+  .footer-link {
     color: var(--text-color-secondary);
     text-decoration: none;
-    font-size: var(--text-sm);
-    transition: color var(--transition-duration);
+    font-size: 12px;
+    transition: color 0.2s;
   }
 
-  .link-item:hover {
+  .footer-link:hover {
     color: var(--primary-color);
   }
 
-  .social-links {
-    display: flex;
-    justify-content: center;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
+  .footer-icon {
+    width: 16px;
+    height: 16px;
   }
 
-  .social-link {
+  .footer-copyright {
     color: var(--text-color-secondary);
-    transition: color var(--transition-duration);
-  }
-
-  .social-link:hover {
-    color: var(--primary-color);
-  }
-
-  .copyright {
-    text-align: center;
-    color: var(--text-color-secondary);
-    font-size: var(--text-sm);
-  }
-
-  .copyright p {
-    margin: 0;
-  }
-
-  .copyright-links {
-    margin-top: var(--spacing-xs);
-  }
-
-  .copyright-link {
-    color: var(--text-color-secondary);
-    text-decoration: none;
-    transition: color var(--transition-duration);
-  }
-
-  .copyright-link:hover {
-    color: var(--primary-color);
-  }
-
-  .separator {
-    margin: 0 var(--spacing-xs);
-    color: var(--text-color-secondary);
-  }
-
-  @media (max-width: 1024px) {
-    .footer-links {
-      grid-template-columns: repeat(2, 1fr);
-    }
+    font-size: 12px;
   }
 
   @media (max-width: 768px) {
-    .footer-links {
-      grid-template-columns: 1fr;
+    .footer {
+      height: 32px;
     }
 
     .footer-content {
-      padding: 0 var(--spacing-md);
+      padding: 0 12px;
+    }
+
+    .footer-section {
+      gap: 8px;
+    }
+
+    .footer-link {
+      font-size: 11px;
+    }
+
+    .footer-copyright {
+      font-size: 11px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .footer-section:first-child {
+      display: none;
     }
   }
 </style>
