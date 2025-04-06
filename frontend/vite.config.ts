@@ -1,57 +1,42 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { fileURLToPath, URL } from 'node:url';
 import legacy from '@vitejs/plugin-legacy';
 import path from 'path';
+import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
     legacy({
-      targets: [
-        '> 1%',
-        'last 2 versions',
-        'not dead',
-        'not ie 11',
-        'chrome >= 51',
-        'firefox >= 54',
-        'edge >= 79',
-        'safari >= 10',
-      ],
+      targets: ['defaults', 'not IE 11'],
+      additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
       modernPolyfills: true,
+    }),
+    VueI18nPlugin({
+      include: path.resolve(__dirname, './src/locales/**'),
+      strictMessage: false,
+      runtimeOnly: false,
     }),
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': path.resolve(__dirname, './src'),
       '~@': path.resolve(__dirname, 'src'),
-    },
-  },
-  server: {
-    port: 5173,
-    host: true,
-    open: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-      },
+      '~': path.resolve(__dirname, './node_modules'),
     },
   },
   css: {
-    devSourcemap: true,
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "@/assets/styles/variables.scss";`,
+        additionalData: `@import "@/styles/variables.css";`,
       },
     },
   },
   build: {
-    sourcemap: true,
-    chunkSizeWarningLimit: 1000,
-    target: 'es2015',
+    outDir: 'dist/build',
+    emptyOutDir: true,
+    manifest: true,
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -60,15 +45,42 @@ export default defineConfig({
       },
     },
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html'),
+      onwarn(warning, warn) {
+        if (warning.code === 'MODULE_NOT_FOUND') return;
+        if (warning.code === 'MISSING_EXPORT') return;
+        if (warning.code === 'EMPTY_BUNDLE') return;
+        warn(warning);
       },
       output: {
-        manualChunks: {
-          'naive-ui': ['naive-ui'],
-          vue: ['vue', 'vue-router', 'pinia'],
-          dayjs: ['dayjs'],
+        chunkFileNames: 'js/[name]-[hash].js',
+        entryFileNames: 'js/[name]-[hash].js',
+        assetFileNames: assetInfo => {
+          const name = assetInfo.name || '';
+          const info = name.split('.');
+          let extType = info[info.length - 1];
+
+          if (/\.(png|jpe?g|gif|svg|webp|ico)$/.test(name)) {
+            extType = 'img';
+          } else if (/\.(woff2?|eot|ttf|otf)$/.test(name)) {
+            extType = 'fonts';
+          } else if (/\.css$/.test(name)) {
+            extType = 'css';
+          }
+
+          return `${extType}/[name]-[hash][extname]`;
         },
+      },
+    },
+    commonjsOptions: {
+      transformMixedEsModules: true,
+      esmExternals: true,
+    },
+    chunkSizeWarningLimit: 1600,
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
       },
     },
   },
