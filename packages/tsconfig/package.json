@@ -1,0 +1,22 @@
+{
+  "name": "@atom/tsconfig",
+  "version": "0.1.0",
+  "description": "TypeScript配置预设，适用于Atom Video项目",
+  "type": "module",
+  "files": [
+    "base.json",
+    "nextjs.json",
+    "node.json",
+    "react.json",
+    "vue-app.json"
+  ],
+  "keywords": [
+    "typescript",
+    "tsconfig",
+    "config",
+    "atom-video"
+  ],
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+} 

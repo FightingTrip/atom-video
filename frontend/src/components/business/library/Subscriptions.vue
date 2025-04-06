@@ -19,26 +19,6 @@
 * - vue-i18n: 国际化支持
 * - vue-router: 路由管理
 */
-
-<!--
- * @description 订阅页面组件
- * @features
- * - 频道列表：展示用户订阅的频道
- * - 频道分类：支持按分类筛选频道
- * - 频道排序：支持按订阅时间排序
- * - 频道搜索：支持搜索频道名称
- * - 分页加载：支持分页加载更多频道
- * - 响应式布局：适配不同屏幕尺寸
- * - 主题适配：支持亮色和暗色主题
- * @dependencies
- * - naive-ui: UI组件库
- * - @vueuse/core: 实用工具集
- * @props
- * - 无
- * @emits
- * - 无
- -->
-
 <template>
   <div class="subscriptions-container">
     <h1 class="page-title">{{ $t('nav.subscriptions') }}</h1>

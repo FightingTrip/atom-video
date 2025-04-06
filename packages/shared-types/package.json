@@ -1,0 +1,23 @@
+{
+  "name": "@atom/shared-types",
+  "version": "0.1.0",
+  "description": "Atom Video项目的共享TypeScript类型定义",
+  "type": "module",
+  "types": "index.d.ts",
+  "files": [
+    "*.d.ts",
+    "api/**/*.d.ts",
+    "models/**/*.d.ts",
+    "utils/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.3"
+  }
+} 
