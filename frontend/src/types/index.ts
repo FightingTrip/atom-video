@@ -1,11 +1,3 @@
-import type { User, AuthResponse, ApiResponse } from '@/types';
-import { faker } from '@faker-js/faker';
-import { zh_CN } from '@faker-js/faker/locale/zh_CN';
-import type { Channel, Playlist } from '@/types';
-
-// 设置中文语言
-faker.setDefaultLocale(zh_CN);
-
 // 用户相关类型
 export interface User {
   id: string;
@@ -19,11 +11,11 @@ export interface User {
   subscribing: number;
   totalViews: number;
   joinedAt: string;
-  social: {
+  isFollowed?: boolean;
+  social?: {
     website?: string;
-    twitter?: string;
     github?: string;
-    instagram?: string;
+    twitter?: string;
   };
 }
 
@@ -32,13 +24,28 @@ export interface Video {
   id: string;
   title: string;
   description: string;
-  thumbnail: string;
-  duration: string;
-  views: string;
-  publishTime: string;
+  coverUrl: string;
+  videoUrl: string;
+  duration: number;
+  views: number;
+  likes: number;
+  favorites: number;
+  comments: number;
+  createdAt: string;
   author: Author;
   tags: string[];
-  category: string;
+  sources: Array<{
+    url: string;
+    type: string;
+    size: number;
+    label: string;
+  }>;
+  subtitles: Array<{
+    url: string;
+    label: string;
+    srclang: string;
+    default: boolean;
+  }>;
 }
 
 // 频道相关类型
@@ -73,22 +80,6 @@ export interface Notification {
   createdAt: string;
   relatedUserId?: string;
   relatedVideoId?: string;
-}
-
-// 评论类型
-export interface Comment {
-  id: string;
-  videoId: string;
-  content: string;
-  likes: number;
-  createdAt: string;
-  user: {
-    id: string;
-    nickname: string;
-    avatar: string;
-    verified: boolean;
-  };
-  replies?: Comment[];
 }
 
 // 标签相关类型
@@ -138,48 +129,54 @@ export interface ApiError {
   status?: number;
 }
 
-// 导出其他类型
-export * from './video';
-export * from './tags';
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
-
-// 视频服务类型
-export interface VideoService {
-  getVideos(
-    page: number,
-    limit: number,
-    tag?: string
-  ): Promise<{
-    videos: Video[];
-    hasMore: boolean;
-  }>;
-  getVideoById(id: string): Promise<Video>;
-  getVideosByUser(
-    userId: string,
-    page?: number,
-    limit?: number
-  ): Promise<{
-    videos: Video[];
-    hasMore: boolean;
-  }>;
-}
-
+// 作者相关类型
 export interface Author {
   id: string;
-  name: string;
+  username: string;
+  nickname: string;
   avatar: string;
-  verified?: boolean;
+  description?: string;
+  verified: boolean;
+  followersCount?: number;
+  followingCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface VideoResponse {
   videos: Video[];
-  hasMore: boolean;
   total: number;
+  hasMore: boolean;
+}
+
+// 弹幕相关类型
+export interface Danmaku {
+  id: string;
+  content: string;
+  time: number;
+  color: string;
+  type: 'top' | 'bottom' | 'scroll';
+  userId: string;
+}
+
+// 导出其他类型
+export * from './video';
+export * from './tags';
+export * from './comment';
+
+export interface TrendingItem {
+  id: string;
+  title: string;
+  views: number;
+  likes: number;
+  author: {
+    id: string;
+    nickname: string;
+    avatar: string;
+  };
+}
+
+export interface Category {
+  id: string;
+  name: string;
 }

@@ -1,3 +1,10 @@
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
+
+dayjs.extend(relativeTime);
+dayjs.locale('zh-cn');
+
 /**
  * 格式化视频时长
  * @param seconds 视频时长（秒）
@@ -17,10 +24,14 @@ export const formatDuration = (seconds: number): string => {
  * 格式化观看次数
  * @param views 观看次数
  */
-export const formatViews = (views: number): string => {
-  if (views >= 1000000) return `${(views / 1000000).toFixed(1)}M`;
-  if (views >= 1000) return `${(views / 1000).toFixed(1)}K`;
-  return views.toString();
+export const formatViews = (num: number): string => {
+  if (num >= 100000000) {
+    return (num / 100000000).toFixed(1) + '亿';
+  }
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '万';
+  }
+  return num.toString();
 };
 
 /**
@@ -28,16 +39,7 @@ export const formatViews = (views: number): string => {
  * @param date 时间字符串
  */
 export const formatTime = (date: string): string => {
-  const now = new Date();
-  const past = new Date(date);
-  const diff = Math.floor((now.getTime() - past.getTime()) / 1000);
-
-  if (diff < 60) return '刚刚';
-  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-  if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`;
-  if (diff < 31536000) return `${Math.floor(diff / 2592000)}个月前`;
-  return `${Math.floor(diff / 31536000)}年前`;
+  return dayjs(date).fromNow();
 };
 
 /**
@@ -56,4 +58,25 @@ export const formatNumber = (num: number): string => {
     return (num / 1000).toFixed(1) + 'K';
   }
   return num.toString();
+};
+
+/**
+ * 格式化文件大小
+ * @param bytes 文件大小（字节）
+ */
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+/**
+ * 格式化日期
+ * @param date 日期字符串
+ * @param format 日期格式，默认为 'YYYY-MM-DD'
+ */
+export const formatDate = (date: string, format: string = 'YYYY-MM-DD'): string => {
+  return dayjs(date).format(format);
 };

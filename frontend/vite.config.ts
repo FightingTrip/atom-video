@@ -25,6 +25,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      '~@': path.resolve(__dirname, 'src'),
     },
   },
   server: {
@@ -41,6 +42,11 @@ export default defineConfig({
   },
   css: {
     devSourcemap: true,
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@import "@/assets/styles/variables.scss";`,
+      },
+    },
   },
   build: {
     sourcemap: true,
@@ -51,6 +57,18 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+      },
+      output: {
+        manualChunks: {
+          'naive-ui': ['naive-ui'],
+          vue: ['vue', 'vue-router', 'pinia'],
+          dayjs: ['dayjs'],
+        },
       },
     },
   },

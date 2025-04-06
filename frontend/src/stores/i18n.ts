@@ -11,7 +11,12 @@ export const useI18nStore = defineStore('i18n', {
   }),
 
   getters: {
-    locale: state => state.locale,
+    currentLocale(): string {
+      return this.locale;
+    },
+    isZhCN(): boolean {
+      return this.locale === 'zh-CN';
+    },
   },
 
   actions: {
@@ -26,12 +31,6 @@ export const useI18nStore = defineStore('i18n', {
 
     initLocale() {
       this.setLocale(this.locale);
-    },
-  },
-
-  getters: {
-    isZhCN(): boolean {
-      return this.locale === 'zh-CN';
     },
   },
 });
