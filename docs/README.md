@@ -40,7 +40,7 @@ Atom Video 平台包含以下核心功能：
 
 ## Monorepo 架构
 
-项目采用 Monorepo 架构，使用 pnpm workspaces 管理多个相关包：
+项目采用 Monorepo 架构，使用 pnpm workspaces + Lerna 管理多个相关包：
 
 ```
 atom-video/
@@ -53,6 +53,13 @@ atom-video/
 └── docs/               # 项目文档
 ```
 
+### Monorepo 相关文档
+
+我们提供了详细的Monorepo相关文档，帮助开发者理解架构和快速上手：
+
+- [Monorepo开发指南](../monorepo-guide.md) - 日常开发流程和实用命令
+- [Monorepo最佳实践](./technical/monorepo-best-practices.md) - 架构设计和最佳实践
+
 ### Monorepo 的优势
 
 - **代码共享**：前端和后端可以共享类型定义、工具函数和配置
@@ -60,6 +67,7 @@ atom-video/
 - **原子提交**：关联变更可以一次性提交，保持一致性
 - **简化协作**：团队成员可以更容易地理解和贡献整个项目
 - **统一构建流程**：可以实现统一的构建、测试和部署流程
+- **高效依赖管理**：使用pnpm的硬链接和符号链接优化依赖安装
 
 ### 工作区详情
 
@@ -139,6 +147,7 @@ pnpm dev:backend
 - 个人资料管理
 - 基础UI组件
 - Monorepo架构搭建
+- 用户互动功能(点赞、评论、收藏)
 
 ### 开发中功能
 

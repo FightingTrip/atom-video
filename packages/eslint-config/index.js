@@ -1,30 +1,35 @@
 /**
  * @type {import('eslint').Linter.Config}
  */
-export default {
-  root: true,
-  env: {
-    es6: true,
-    browser: true,
-    node: true,
-  },
+module.exports = {
+  parser: '@typescript-eslint/parser',
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
-    'plugin:prettier/recommended',
+    'plugin:prettier/recommended'
   ],
-  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint', 'prettier'],
   parserOptions: {
-    ecmaVersion: 'latest',
+    ecmaVersion: 2020,
     sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
   },
-  plugins: ['@typescript-eslint'],
   rules: {
-    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-    'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'prettier/prettier': 'error',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
   },
-  ignorePatterns: ['node_modules', 'dist', 'build', 'coverage'],
+  env: {
+    node: true,
+    browser: true,
+    es6: true,
+    jest: true
+  },
+  root: true,
+  ignorePatterns: ['node_modules', 'dist', 'build', 'coverage']
 }; 

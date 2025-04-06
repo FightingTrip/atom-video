@@ -12,17 +12,6 @@ import { UnauthorizedError, ForbiddenError } from '../utils/app-error';
 import config from '../config/env';
 
 /**
- * 扩展Request类型，添加认证用户信息
- */
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-    [key: string]: any;
-  };
-}
-
-/**
  * 用户角色枚举类型
  */
 export enum UserRole {
@@ -30,6 +19,24 @@ export enum UserRole {
   MODERATOR = 'MODERATOR',
   CREATOR = 'CREATOR',
   USER = 'USER',
+}
+
+// 扩展Express的命名空间来包含用户类型
+declare global {
+  namespace Express {
+    interface User {
+      id: string;
+      role: UserRole;
+      [key: string]: any;
+    }
+  }
+}
+
+/**
+ * 扩展Request类型，添加认证用户信息
+ */
+export interface AuthenticatedRequest extends Request {
+  user?: Express.User;
 }
 
 /**
@@ -61,6 +68,9 @@ export const authenticateJwt = async (req: Request, res: Response, next: NextFun
     return next(new UnauthorizedError('认证失败'));
   }
 };
+
+// 为向后兼容性添加authenticate作为authenticateJwt的别名
+export const authenticate = authenticateJwt;
 
 /**
  * 可选JWT验证中间件
@@ -110,6 +120,9 @@ export const authorizeRoles = (roles: UserRole[]) => {
     next();
   };
 };
+
+// 为向后兼容性添加authorize作为authorizeRoles的简化版本
+export const authorize = (role: UserRole) => authorizeRoles([role]);
 
 /**
  * 资源所有者授权中间件

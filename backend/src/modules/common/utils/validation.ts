@@ -16,31 +16,76 @@ import { ApiResponse } from './api-response';
 type ValidateLocation = 'body' | 'query' | 'params';
 
 /**
+ * 验证策略接口
+ */
+interface ValidationStrategy {
+  body?: Joi.Schema;
+  query?: Joi.Schema;
+  params?: Joi.Schema;
+}
+
+/**
  * 请求验证中间件
  * 使用Joi模式验证请求数据
- * @param schema Joi验证模式
- * @param location 要验证的请求部分
+ * @param schema 验证策略对象或单一Joi模式
+ * @param location 要验证的请求部分（当schema为单一Joi模式时使用）
  * @returns Express中间件
  */
-export const validateRequest = (schema: Joi.Schema, location: ValidateLocation = 'body') => {
+export const validateRequest = (schema: ValidationStrategy | Joi.Schema, location: ValidateLocation = 'body') => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const { error, value } = schema.validate(req[location], {
-      abortEarly: false, // 收集所有错误
-      stripUnknown: true, // 删除未在schema中定义的字段
-    });
+    // 判断schema是否为ValidationStrategy对象
+    if (typeof schema === 'object' && !schema.validate) {
+      const validationStrategy = schema as ValidationStrategy;
+      const errors: any[] = [];
 
-    if (error) {
-      const errorDetails = error.details.map(detail => ({
-        message: detail.message,
-        path: detail.path,
-        type: detail.type,
-      }));
+      // 验证各个部分
+      for (const [loc, schemaForLoc] of Object.entries(validationStrategy) as [ValidateLocation, Joi.Schema][]) {
+        if (schemaForLoc) {
+          const { error, value } = schemaForLoc.validate(req[loc], {
+            abortEarly: false,
+            stripUnknown: true,
+          });
 
-      return ApiResponse.error(res, '数据验证失败', 400, { errors: errorDetails });
+          if (error) {
+            errors.push(...error.details.map(detail => ({
+              location: loc,
+              message: detail.message,
+              path: detail.path,
+              type: detail.type,
+            })));
+          } else {
+            // 更新经过验证的值
+            req[loc] = value;
+          }
+        }
+      }
+
+      if (errors.length > 0) {
+        return ApiResponse.error(res, '数据验证失败', 400, { errors });
+      }
+    } else {
+      // 向后兼容的单一模式验证
+      const joiSchema = schema as Joi.Schema;
+      const { error, value } = joiSchema.validate(req[location], {
+        abortEarly: false,
+        stripUnknown: true,
+      });
+
+      if (error) {
+        const errorDetails = error.details.map(detail => ({
+          location,
+          message: detail.message,
+          path: detail.path,
+          type: detail.type,
+        }));
+
+        return ApiResponse.error(res, '数据验证失败', 400, { errors: errorDetails });
+      }
+
+      // 更新经过验证的值
+      req[location] = value;
     }
 
-    // 更新经过验证的值
-    req[location] = value;
     next();
   };
 };
