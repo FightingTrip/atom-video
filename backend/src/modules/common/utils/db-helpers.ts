@@ -1,69 +1,101 @@
 /**
- * 数据库辅助工具模块
+ * 数据库助手工具模块
  *
- * 提供Prisma客户端的管理和数据库操作辅助功能
+ * 提供数据库操作的辅助方法，如连接管理、事务处理和分页参数生成
  * @module common/utils/db-helpers
  */
 
 import { PrismaClient } from '@prisma/client';
 import { DatabaseError } from './app-error';
 
-// 声明全局变量用于存储Prisma实例
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+// 创建PrismaClient单例
+let prismaClient: PrismaClient | null = null;
 
 /**
- * 获取Prisma客户端实例
- * 在开发环境下实现热重载不重复创建连接
+ * 获取Prisma客户端实例（单例模式）
  * @returns PrismaClient实例
  */
 export function getPrismaClient(): PrismaClient {
-  if (process.env.NODE_ENV === 'production') {
-    return new PrismaClient();
-  } else {
-    if (!global.prisma) {
-      global.prisma = new PrismaClient();
-    }
-    return global.prisma;
+  if (!prismaClient) {
+    prismaClient = new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    });
   }
+  return prismaClient;
 }
 
 /**
- * 使用提供的Prisma客户端执行数据库操作
- * @param callback 接受Prisma客户端的回调函数
- * @returns 回调函数的返回值
- * @throws DatabaseError 数据库操作失败时抛出
+ * 使用数据库客户端执行操作的包装函数
+ * @param callback 操作回调
+ * @returns 操作结果
+ * @throws DatabaseError 数据库错误
  */
-export async function withDbClient<T>(callback: (client: PrismaClient) => Promise<T>): Promise<T> {
+export async function withDbClient<T>(callback: (prisma: PrismaClient) => Promise<T>): Promise<T> {
   const prisma = getPrismaClient();
   try {
     return await callback(prisma);
   } catch (error) {
-    if (error instanceof DatabaseError) {
-      throw error;
-    }
-    // 记录详细错误信息，但在响应中提供友好消息
-    console.error('数据库操作错误:', error);
-    throw new DatabaseError('数据库操作失败');
+    console.error('Database operation error:', error);
+    throw new DatabaseError('数据库操作失败', {
+      originalError: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
 /**
- * 构建分页参数
- * @param page 页码
- * @param pageSize 每页大小
- * @returns Prisma分页参数对象
+ * 在事务中执行操作的包装函数
+ * @param callback 事务回调
+ * @returns 事务执行结果
+ * @throws DatabaseError 数据库错误
  */
-export function getPaginationParams(page: number = 1, pageSize: number = 10) {
-  // 确保页码和页大小为正整数
-  const validPage = Math.max(1, Math.floor(page));
-  const validPageSize = Math.max(1, Math.min(100, Math.floor(pageSize))); // 限制最大为100
+export async function performTransaction<T>(
+  callback: (prisma: PrismaClient) => Promise<T>
+): Promise<T> {
+  const prisma = getPrismaClient();
+  try {
+    return await prisma.$transaction(async tx => {
+      return await callback(tx as unknown as PrismaClient);
+    });
+  } catch (error) {
+    console.error('Transaction error:', error);
+    throw new DatabaseError('事务执行失败', {
+      originalError: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * 获取分页参数
+ * @param page 页码（从1开始）
+ * @param pageSize 每页大小
+ * @returns 包含skip和take的分页参数对象
+ */
+export function getPaginationParams(
+  page: number = 1,
+  pageSize: number = 10
+): { skip: number; take: number } {
+  // 确保页码和每页大小是有效值
+  const validPage = page < 1 ? 1 : page;
+  const validPageSize = pageSize < 1 ? 10 : pageSize > 100 ? 100 : pageSize;
+
+  // 计算偏移量
+  const skip = (validPage - 1) * validPageSize;
 
   return {
-    skip: (validPage - 1) * validPageSize,
+    skip,
     take: validPageSize,
   };
+}
+
+/**
+ * 关闭数据库连接
+ * 在应用程序退出时使用
+ */
+export async function disconnectDatabase(): Promise<void> {
+  if (prismaClient) {
+    await prismaClient.$disconnect();
+    prismaClient = null;
+  }
 }
 
 /**
@@ -99,23 +131,4 @@ export function getSortParams(sortBy?: string, sortOrder: 'asc' | 'desc' = 'desc
   return {
     [sortBy]: sortOrder,
   };
-}
-
-/**
- * 执行事务
- * @param operations 事务中的操作数组
- * @returns 返回事务操作结果
- */
-export async function performTransaction<T>(
-  operations: (prisma: PrismaClient) => Promise<T>
-): Promise<T> {
-  const prisma = getPrismaClient();
-  try {
-    return await prisma.$transaction(async tx => {
-      return await operations(tx as unknown as PrismaClient);
-    });
-  } catch (error) {
-    console.error('事务执行错误:', error);
-    throw new DatabaseError('事务执行失败');
-  }
 }

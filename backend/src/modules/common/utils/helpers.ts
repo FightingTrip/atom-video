@@ -1,67 +1,35 @@
 /**
- * 通用辅助工具模块
+ * 通用辅助函数模块
  *
- * 提供各种通用的辅助函数
+ * 提供各种通用的实用工具函数
  * @module common/utils/helpers
  */
 
 /**
- * 移除对象中的null和undefined值
+ * 从对象中移除值为null或undefined的属性
  * @param obj 要处理的对象
- * @returns 移除null和undefined值后的新对象
+ * @returns 处理后的对象（不包含null或undefined值）
  */
-export function removeNullUndefined<T extends object>(obj: T): T {
-  const result: any = {};
+export function removeNullUndefined<T>(obj: T): Partial<T> {
+  const result: Partial<T> = {};
 
-  for (const [key, value] of Object.entries(obj)) {
-    if (value === null || value === undefined) {
-      continue;
+  Object.entries(obj as Record<string, any>).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) {
+      (result as Record<string, any>)[key] = value;
     }
+  });
 
-    if (typeof value === 'object' && !Array.isArray(value)) {
-      result[key] = removeNullUndefined(value);
-    } else {
-      result[key] = value;
-    }
-  }
-
-  return result as T;
+  return result;
 }
 
 /**
- * 延迟指定时间
- * @param ms 延迟的毫秒数
- * @returns Promise对象
+ * 检查字符串是否是有效的UUID格式
+ * @param str 要检查的字符串
+ * @returns 是否为有效UUID
  */
-export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * 格式化日期为yyyy-MM-dd格式
- * @param date 日期对象
- * @returns 格式化后的日期字符串
- */
-export function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-}
-
-/**
- * 格式化日期时间为yyyy-MM-dd HH:mm:ss格式
- * @param date 日期对象
- * @returns 格式化后的日期时间字符串
- */
-export function formatDateTime(date: Date): string {
-  const dateStr = formatDate(date);
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return `${dateStr} ${hours}:${minutes}:${seconds}`;
+export function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
 }
 
 /**
@@ -69,62 +37,136 @@ export function formatDateTime(date: Date): string {
  * @param length 字符串长度
  * @returns 随机字符串
  */
-export function generateRandomString(length: number): string {
+export function generateRandomString(length: number = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
+  const charsLength = chars.length;
 
   for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(Math.floor(Math.random() * charsLength));
   }
 
   return result;
 }
 
 /**
+ * 延迟执行
+ * @param ms 毫秒数
+ * @returns Promise
+ */
+export function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * 格式化日期时间
+ * @param date 日期对象或字符串
+ * @param format 格式化字符串
+ * @returns 格式化后的日期字符串
+ */
+export function formatDateTime(
+  date: Date | string,
+  format: string = 'YYYY-MM-DD HH:mm:ss'
+): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+
+  if (isNaN(d.getTime())) {
+    return 'Invalid Date';
+  }
+
+  const pad = (num: number): string => num.toString().padStart(2, '0');
+
+  const replacements: Record<string, string> = {
+    YYYY: d.getFullYear().toString(),
+    MM: pad(d.getMonth() + 1),
+    DD: pad(d.getDate()),
+    HH: pad(d.getHours()),
+    mm: pad(d.getMinutes()),
+    ss: pad(d.getSeconds()),
+  };
+
+  return format.replace(/YYYY|MM|DD|HH|mm|ss/g, match => replacements[match]);
+}
+
+/**
  * 截断字符串并添加省略号
- * @param str 原始字符串
+ * @param str 字符串
  * @param maxLength 最大长度
  * @returns 截断后的字符串
  */
 export function truncateString(str: string, maxLength: number): string {
-  if (str.length <= maxLength) {
+  if (!str || str.length <= maxLength) {
     return str;
   }
 
-  return str.slice(0, maxLength) + '...';
+  return str.substring(0, maxLength) + '...';
 }
 
 /**
- * 将秒数转换为时分秒格式
- * @param seconds 秒数
- * @returns 格式化的时间字符串，如"1:23:45"
+ * 解析JSON字符串，失败则返回默认值
+ * @param jsonString JSON字符串
+ * @param defaultValue 默认值
+ * @returns 解析后的对象或默认值
  */
-export function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+export function safeJsonParse<T>(jsonString: string, defaultValue: T): T {
+  try {
+    return JSON.parse(jsonString) as T;
+  } catch (error) {
+    return defaultValue;
   }
-
-  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
 /**
- * 将文件大小（字节）转换为人类可读的格式
- * @param bytes 字节数
- * @param decimals 小数位数
- * @returns 格式化的文件大小字符串，如"1.23 MB"
+ * 检查字符串是否为有效的电子邮件地址
+ * @param email 电子邮件地址
+ * @returns 是否有效
  */
-export function formatFileSize(bytes: number, decimals: number = 2): string {
-  if (bytes === 0) return '0 Bytes';
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
 
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+/**
+ * 检查字符串是否为有效的URL
+ * @param url URL
+ * @returns 是否有效
+ */
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+/**
+ * 深度合并对象
+ * @param target 目标对象
+ * @param source 源对象
+ * @returns 合并后的对象
+ */
+export function deepMerge<T>(target: T, source: Partial<T>): T {
+  const result: any = { ...target };
 
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  Object.entries(source as Record<string, any>).forEach(([key, value]) => {
+    if (value === undefined) {
+      return;
+    }
+
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      result[key] !== null &&
+      typeof result[key] === 'object' &&
+      !Array.isArray(result[key])
+    ) {
+      result[key] = deepMerge(result[key], value);
+    } else {
+      result[key] = value;
+    }
+  });
+
+  return result as T;
 }

@@ -79,4 +79,5 @@ router.delete(
  */
 router.post('/:videoId/progress', authenticateJwt, videoController.updateVideoProgress);
 
-export default router;
+// 使用命名导出而不是默认导出
+export const videoRoutes = router;
