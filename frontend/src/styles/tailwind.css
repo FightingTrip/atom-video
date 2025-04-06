@@ -1,3 +1,8 @@
+/**
+ * Tailwind CSS配置
+ * 提供基础的工具类和组件类
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,6 +15,10 @@
 
   .dark body {
     background-color: rgb(17 24 39);
+  }
+
+  html {
+    @apply antialiased;
   }
 }
 
@@ -41,6 +50,67 @@
     color: transparent;
     background-clip: text;
     background-image: linear-gradient(to right, var(--primary-color), var(--accent-color));
+  }
+
+  /* 按钮组件 */
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-blue-500 text-white hover:bg-blue-600;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-500 text-white hover:bg-gray-600;
+  }
+
+  .btn-outline {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+  }
+
+  /* 输入框组件 */
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  /* 卡片组件 */
+  .card {
+    @apply bg-white rounded-lg shadow-sm p-4;
+  }
+
+  /* 标签组件 */
+  .tag {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .tag-primary {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .tag-secondary {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  /* 图片懒加载组件 */
+  .lazy-image {
+    @apply relative overflow-hidden;
+  }
+
+  .lazy-image img {
+    @apply transition-opacity duration-300;
+  }
+
+  .lazy-image.loaded img {
+    @apply opacity-100;
+  }
+
+  .lazy-image:not(.loaded) img {
+    @apply opacity-0;
+  }
+
+  .lazy-image .placeholder {
+    @apply absolute inset-0 bg-dark-lighter animate-pulse;
   }
 }
 

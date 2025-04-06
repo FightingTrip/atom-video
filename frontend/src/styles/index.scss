@@ -1,7 +1,25 @@
-@import 'tailwind.css';
+/**
+ * 主样式入口文件
+ * 按照样式架构设计，集中导入所有样式
+ */
+
+/* 导入设计标记变量 - 定义所有设计变量 */
 @import 'variables.css';
+
+/* 导入Tailwind基础样式 */
+@import 'tailwind.css';
+
+/* 导入主题样式 */
 @import 'theme.css';
+
+/* 导入组件样式 */
 @import 'components.css';
+
+/* 导入动画 */
+@import 'animations.css';
+
+/* 导入工具类 */
+@import 'utils.css';
 
 /* 全局样式 */
 body {

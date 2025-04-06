@@ -11,13 +11,7 @@ import router from './router';
 import i18n from './plugins/i18n';
 import setupNaiveUI from './plugins/naive-ui';
 
-// 导入样式
-import './style.css';
-import './styles/variables.css';
-import './styles/index.css';
-import './styles/tailwind.css';
-import './styles/theme.css';
-import './styles/components.css';
+// 导入样式 - 统一使用样式入口文件
 import '@/styles/index.scss';
 
 const app = createApp(App);
