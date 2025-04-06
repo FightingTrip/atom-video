@@ -11,7 +11,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import passport from 'passport';
-import routes from './routes';
+// 模块化架构中，主路由统一入口
+import routes from './routes/index';
 import { errorHandler } from './modules/common/middleware/error.middleware';
 import { getPrismaClient } from './modules/common/utils/db-helpers';
 import config from './modules/common/config/env';
