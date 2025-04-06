@@ -15,14 +15,7 @@
 
   // 导入功能组件
   import Toast from '@/components/common/Toast.vue'
-  import LanguageSelector from '@/components/business/user/LanguageSelector.vue'
   import ThemeToggle from '@/components/common/ThemeToggle.vue'
-  import UserMenu from '@/components/business/user/UserMenu.vue'
-  import SearchBar from '@/components/common/search/SearchBar.vue'
-  import TheHeader from '@/layouts/TheHeader.vue'
-  import TheSidebar from '@/layouts/TheSidebar.vue'
-  import TheFooter from '@/layouts/TheFooter.vue'
-  import TagList from '@/components/business/tag/TagList.vue'
 
   // 导入状态管理
   import { useThemeStore } from '@/stores/theme'
@@ -38,14 +31,7 @@
   const components = {
     RouterView,
     Toast,
-    LanguageSelector,
-    ThemeToggle,
-    UserMenu,
-    SearchBar,
-    TheHeader,
-    TheSidebar,
-    TheFooter,
-    TagList
+    ThemeToggle
   }
 
   // 状态管理

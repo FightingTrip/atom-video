@@ -11,10 +11,8 @@ import router from './router';
 import i18n from './plugins/i18n';
 import setupNaiveUI from './plugins/naive-ui';
 
-// 导入样式
-import './styles/variables.css';
-import './styles/main.css';
-import './styles/tailwind.css';
+// 导入样式 - 统一使用样式入口文件
+import '@/styles/index.scss';
 
 const app = createApp(App);
 const pinia = createPinia();

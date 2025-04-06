@@ -10,6 +10,8 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: 'var(--color-bg-canvas)',
+        foreground: 'var(--color-text-primary)',
         bg: {
           canvas: 'var(--color-bg-canvas)',
           surface: 'var(--color-bg-surface)',

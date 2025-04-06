@@ -40,18 +40,37 @@ Atom Video 平台包含以下核心功能：
 
 ## Monorepo 架构
 
-项目采用 Monorepo 架构，使用 pnpm workspaces + Lerna 管理多个相关包：
+项目采用 Monorepo 架构，使用 pnpm workspaces + Lerna 组合管理多个相关包：
 
 ```
 atom-video/
 ├── frontend/           # 前端应用
 ├── backend/            # 后端应用
+├── Atom-Stats/         # 代码统计分析工具
 ├── packages/           # 共享包
 │   ├── eslint-config/  # ESLint配置
 │   ├── shared-types/   # 共享类型定义
-│   └── tsconfig/       # TypeScript配置
+│   ├── tsconfig/       # TypeScript配置
+│   └── ui/             # UI组件库
 └── docs/               # 项目文档
 ```
+
+### Monorepo 技术实现
+
+我们采用 **pnpm workspaces + Lerna** 的组合方案来实现 Monorepo 架构：
+
+- **pnpm workspaces**: 提供高效的依赖管理
+  - 使用硬链接和符号链接优化存储空间
+  - 通过 `pnpm-workspace.yaml` 定义工作区
+  - 提供 `--filter` 等命令用于工作区操作
+
+- **Lerna**: 提供高级的多包管理功能
+  - 版本管理与发布自动化
+  - 基于 Git 的变更检测
+  - 支持依赖关系的拓扑排序
+  - 提供 `lerna run/exec/watch` 等命令
+
+这种组合充分发挥了 pnpm 在依赖管理方面的优势和 Lerna 在版本控制方面的强大功能。
 
 ### Monorepo 相关文档
 
@@ -68,14 +87,18 @@ atom-video/
 - **简化协作**：团队成员可以更容易地理解和贡献整个项目
 - **统一构建流程**：可以实现统一的构建、测试和部署流程
 - **高效依赖管理**：使用pnpm的硬链接和符号链接优化依赖安装
+- **智能发布**：通过Lerna实现只发布已更改的包
+- **自动化版本管理**：基于conventional commits自动生成版本和变更日志
 
 ### 工作区详情
 
 - **frontend**：Vue 3 前端应用
 - **backend**：Express 后端服务
+- **Atom-Stats**：代码统计分析工具
 - **packages/shared-types**：TypeScript 类型定义共享包
 - **packages/eslint-config**：共享的 ESLint 配置
 - **packages/tsconfig**：共享的 TypeScript 配置
+- **packages/ui**：共享UI组件库
 
 ## 快速开始
 
