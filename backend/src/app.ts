@@ -1,3 +1,9 @@
+/**
+ * 应用入口模块
+ *
+ * 配置和初始化Express应用
+ */
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -6,8 +12,9 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import passport from 'passport';
 import routes from './routes';
-import { errorHandler } from './middleware/error.middleware';
-import { getPrismaClient } from './utils/db-helpers';
+import { errorHandler } from './modules/common/middleware/error.middleware';
+import { getPrismaClient } from './modules/common/utils/db-helpers';
+import config from './modules/common/config/env';
 
 // 加载环境变量
 dotenv.config();
@@ -19,7 +26,14 @@ const app = express();
 
 // 安全中间件
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: config.app.corsOrigin,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
 
 // 性能中间件
 app.use(compression());
@@ -30,6 +44,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
   max: 100, // 限制每个IP 15分钟内最多100个请求
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use(limiter);
 
@@ -38,7 +54,7 @@ app.use(passport.initialize());
 
 // 健康检查
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // 根路由
@@ -47,6 +63,7 @@ app.get('/', (req, res) => {
     message: 'Welcome to Atom Video API',
     version: '1.0.0',
     documentation: '/api-docs',
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 

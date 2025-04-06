@@ -1,22 +1,36 @@
+/**
+ * 视频控制器模块
+ *
+ * 处理视频相关的HTTP请求和响应
+ * @module video/controllers/video
+ */
+
 import { Request, Response } from 'express';
 import { VideoService } from '../services/video.service';
-import { ApiResponse } from '../utils/api-response';
+import { ApiResponse } from '../../common/utils/api-response';
 import { VideoSearchDto, CreateVideoDto, UpdateVideoDto } from '../models/video.model';
-import { AppError } from '../utils/app-error';
-import { removeNullUndefined } from '../utils/helpers';
+import { AppError } from '../../common/utils/app-error';
+import { removeNullUndefined } from '../../common/utils/helpers';
 
 /**
- * 视频控制器 - 处理视频相关的HTTP请求
+ * 视频控制器
+ * 处理视频相关的HTTP请求
  */
 export class VideoController {
   private videoService: VideoService;
 
+  /**
+   * 构造函数
+   * 初始化视频服务
+   */
   constructor() {
     this.videoService = new VideoService();
   }
 
   /**
    * 获取视频详情
+   * @param req Express请求对象
+   * @param res Express响应对象
    */
   getVideoById = async (req: Request, res: Response) => {
     try {
@@ -35,6 +49,8 @@ export class VideoController {
 
   /**
    * 获取视频列表
+   * @param req Express请求对象
+   * @param res Express响应对象
    */
   getVideos = async (req: Request, res: Response) => {
     try {
@@ -99,6 +115,8 @@ export class VideoController {
 
   /**
    * 创建视频
+   * @param req Express请求对象
+   * @param res Express响应对象
    */
   createVideo = async (req: Request, res: Response) => {
     try {
@@ -121,6 +139,8 @@ export class VideoController {
 
   /**
    * 更新视频
+   * @param req Express请求对象
+   * @param res Express响应对象
    */
   updateVideo = async (req: Request, res: Response) => {
     try {
@@ -145,6 +165,8 @@ export class VideoController {
 
   /**
    * 删除视频
+   * @param req Express请求对象
+   * @param res Express响应对象
    */
   deleteVideo = async (req: Request, res: Response) => {
     try {
@@ -168,6 +190,8 @@ export class VideoController {
 
   /**
    * 更新视频观看进度
+   * @param req Express请求对象
+   * @param res Express响应对象
    */
   updateVideoProgress = async (req: Request, res: Response) => {
     try {
