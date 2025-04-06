@@ -1,18 +1,13 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import legacy from '@vitejs/plugin-legacy';
 import path from 'path';
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
+import { fileURLToPath } from 'url';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    legacy({
-      targets: ['defaults', 'not IE 11'],
-      additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
-      modernPolyfills: true,
-    }),
     VueI18nPlugin({
       include: path.resolve(__dirname, './src/locales/**'),
       strictMessage: false,
@@ -21,7 +16,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       '~@': path.resolve(__dirname, 'src'),
       '~': path.resolve(__dirname, './node_modules'),
     },
@@ -37,6 +32,7 @@ export default defineConfig({
     outDir: 'dist/build',
     emptyOutDir: true,
     manifest: true,
+    target: 'es2022',
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -49,6 +45,7 @@ export default defineConfig({
         if (warning.code === 'MODULE_NOT_FOUND') return;
         if (warning.code === 'MISSING_EXPORT') return;
         if (warning.code === 'EMPTY_BUNDLE') return;
+        if (warning.message?.includes('Big integer literals are not available')) return;
         warn(warning);
       },
       output: {
@@ -70,6 +67,7 @@ export default defineConfig({
           return `${extType}/[name]-[hash][extname]`;
         },
       },
+      external: ['@faker-js/faker'],
     },
     commonjsOptions: {
       transformMixedEsModules: true,
@@ -78,6 +76,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 1600,
   },
   optimizeDeps: {
+    exclude: ['@faker-js/faker'],
     esbuildOptions: {
       define: {
         global: 'globalThis',
