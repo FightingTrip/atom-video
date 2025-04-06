@@ -1,3 +1,8 @@
+/**
+ * @deprecated 此文件已废弃，请使用 video.routes.ts
+ * 此文件将在后续版本中移除
+ */
+
 import { Router } from 'express';
 import { VideoController } from '../controllers/videoController';
 import { authenticate } from '../middleware/auth';

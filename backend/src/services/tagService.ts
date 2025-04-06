@@ -1,3 +1,8 @@
+/**
+ * @deprecated 此文件已废弃，请使用 tag.service.ts
+ * 此文件将在后续版本中移除
+ */
+
 import { PrismaClient, TechTag } from '@prisma/client';
 import { AppError } from '../utils/AppError';
 import { logger } from '../utils/logger';
