@@ -92,7 +92,8 @@ export class AuthController {
       const refreshToken = req.body.refreshToken;
 
       if (!refreshToken) {
-        return ApiResponse.badRequest(res, '缺少刷新令牌');
+        ApiResponse.badRequest(res, '缺少刷新令牌');
+        return;
       }
 
       await this.authService.logout(userId, refreshToken);

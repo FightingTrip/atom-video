@@ -5,7 +5,7 @@
  * @module common/config/env
  */
 
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import { AppError } from '../utils/app-error';
 
 // 加载环境变量

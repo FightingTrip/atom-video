@@ -1,37 +1,34 @@
 /**
  * 认证服务模块
- * 
+ *
  * 提供认证相关的业务逻辑实现
  * @module auth/services/auth
  */
 
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import { 
-  LoginDto, 
-  RegisterDto, 
-  TokenResponse, 
-  RequestPasswordResetDto, 
-  ResetPasswordDto, 
+import {
+  LoginDto,
+  RegisterDto,
+  TokenResponse,
+  RequestPasswordResetDto,
+  ResetPasswordDto,
   RefreshTokenDto,
-  AuthSession
+  AuthSession,
 } from '../models/auth.model';
 import { UserService } from '../../user/services/user.service';
 import { CreateUserDto } from '../../user/models/user.model';
-import { 
-  withDbClient, 
-  performTransaction,
-  getPrismaClient
-} from '../../common/utils/db-helpers';
-import { 
-  NotFoundError, 
-  ConflictError, 
-  ValidationError, 
-  UnauthorizedError, 
-  ForbiddenError
+import { withDbClient, performTransaction, getPrismaClient } from '../../common/utils/db-helpers';
+import {
+  NotFoundError,
+  ConflictError,
+  ValidationError,
+  UnauthorizedError,
+  ForbiddenError,
 } from '../../common/utils/app-error';
 import { removeNullUndefined, generateRandomString } from '../../common/utils/helpers';
+import { UserRole } from '../../common/middleware/auth.middleware';
 
 /**
  * 认证服务类
@@ -61,11 +58,8 @@ export class AuthService {
       // 根据用户名或者邮箱查找用户
       const user = await prisma.user.findFirst({
         where: {
-          OR: [
-            { username: loginDto.username },
-            { email: loginDto.username }
-          ]
-        }
+          OR: [{ username: loginDto.username }, { email: loginDto.username }],
+        },
       });
 
       if (!user) {
@@ -102,9 +96,9 @@ export class AuthService {
       email: registerDto.email,
       password: registerDto.password,
       name: registerDto.name,
-      role: 'USER', // 默认角色为普通用户
+      role: UserRole.USER, // 使用枚举值
       isVerified: false, // 默认未验证
-      isCreator: false // 默认不是创作者
+      isCreator: false, // 默认不是创作者
     };
 
     // 创建用户
@@ -126,7 +120,7 @@ export class AuthService {
         // 根据刷新令牌查找对应记录
         const refreshTokenRecord = await prisma.refreshToken.findUnique({
           where: { token: refreshTokenDto.refreshToken },
-          include: { user: true }
+          include: { user: true },
         });
 
         if (!refreshTokenRecord) {
@@ -137,15 +131,15 @@ export class AuthService {
         if (new Date() > refreshTokenRecord.expiresAt) {
           // 删除过期令牌
           await prisma.refreshToken.delete({
-            where: { id: refreshTokenRecord.id }
+            where: { id: refreshTokenRecord.id },
           });
-          
+
           throw new UnauthorizedError('刷新令牌已过期');
         }
 
         // 删除旧的刷新令牌
         await prisma.refreshToken.delete({
-          where: { id: refreshTokenRecord.id }
+          where: { id: refreshTokenRecord.id },
         });
 
         // 生成新的令牌
@@ -170,8 +164,8 @@ export class AuthService {
       await prisma.refreshToken.deleteMany({
         where: {
           userId,
-          token: refreshToken
-        }
+          token: refreshToken,
+        },
       });
     });
   }
@@ -184,7 +178,7 @@ export class AuthService {
     return performTransaction(async prisma => {
       // 删除用户的所有刷新令牌
       await prisma.refreshToken.deleteMany({
-        where: { userId }
+        where: { userId },
       });
     });
   }
@@ -198,7 +192,7 @@ export class AuthService {
     return performTransaction(async prisma => {
       // 根据邮箱查找用户
       const user = await prisma.user.findFirst({
-        where: { email: requestDto.email }
+        where: { email: requestDto.email },
       });
 
       if (!user) {
@@ -215,8 +209,8 @@ export class AuthService {
         data: {
           userId: user.id,
           token,
-          expiresAt: expires
-        }
+          expiresAt: expires,
+        },
       });
 
       // 在实际应用中，这里应该发送邮件，包含重置链接
@@ -242,8 +236,8 @@ export class AuthService {
       const resetRecord = await prisma.passwordReset.findFirst({
         where: {
           token: resetDto.token,
-          expiresAt: { gt: new Date() } // 确保令牌未过期
-        }
+          expiresAt: { gt: new Date() }, // 确保令牌未过期
+        },
       });
 
       if (!resetRecord) {
@@ -257,12 +251,12 @@ export class AuthService {
       // 更新用户密码
       await prisma.user.update({
         where: { id: resetRecord.userId },
-        data: { password: hashedPassword }
+        data: { password: hashedPassword },
       });
 
       // 删除重置令牌
       await prisma.passwordReset.delete({
-        where: { id: resetRecord.id }
+        where: { id: resetRecord.id },
       });
     });
   }
@@ -275,19 +269,17 @@ export class AuthService {
    */
   private async generateTokens(userId: string, role: string): Promise<TokenResponse> {
     // 生成访问令牌
-    const accessToken = jwt.sign(
-      { userId, role },
-      this.jwtSecret,
-      { expiresIn: this.jwtExpiresIn }
-    );
+    const accessToken = jwt.sign({ userId, role }, this.jwtSecret, {
+      expiresIn: this.jwtExpiresIn,
+    });
 
     // 计算访问令牌过期时间（秒）
     const decoded = jwt.decode(accessToken) as { exp: number };
-    const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
+    const expiresIn = decoded && decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : 3600;
 
     // 生成刷新令牌
     const refreshToken = uuidv4();
-    
+
     // 计算刷新令牌过期时间
     const refreshExpiresIn = this.parseTimeString(this.refreshTokenExpiresIn);
     const refreshExpiresAt = new Date();
@@ -300,7 +292,7 @@ export class AuthService {
       accessToken,
       refreshToken,
       tokenType: 'Bearer',
-      expiresIn
+      expiresIn,
     };
   }
 
@@ -312,13 +304,13 @@ export class AuthService {
    */
   private async storeRefreshToken(userId: string, token: string, expiresAt: Date): Promise<void> {
     const prisma = getPrismaClient();
-    
+
     await prisma.refreshToken.create({
       data: {
         userId,
         token,
-        expiresAt
-      }
+        expiresAt,
+      },
     });
   }
 
@@ -330,17 +322,25 @@ export class AuthService {
   private parseTimeString(timeString: string): number {
     const regex = /^(\d+)([smhd])$/;
     const match = timeString.match(regex);
-    
+
     if (!match) {
       return 3600; // 默认1小时
     }
-    
+
     const value = parseInt(match[1]);
     const unit = match[2];
-    
+
     switch (unit) {
-      case 's': return value;
-      case 'm': return value * 60;
-      case 'h': return value * 60 * 60;
-      case 'd': return value * 24 * 60 * 60;
- 
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 60 * 60;
+      case 'd':
+        return value * 24 * 60 * 60;
+      default:
+        return 3600;
+    }
+  }
+}

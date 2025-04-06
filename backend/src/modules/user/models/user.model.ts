@@ -6,7 +6,19 @@
  */
 
 import { UserRole } from '../../common/middleware/auth.middleware';
-import { Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+
+// 直接定义Prisma类型，而不是从@prisma/client导入
+// 这是因为Prisma类型实际上是由Prisma生成的
+type Prisma = {
+  UserWhereInput: {
+    OR?: any[];
+    role?: string;
+    isVerified?: boolean;
+    isCreator?: boolean;
+    [key: string]: any;
+  };
+};
 
 /**
  * 用户基本信息DTO

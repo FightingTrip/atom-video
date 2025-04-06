@@ -6,7 +6,7 @@
 
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';

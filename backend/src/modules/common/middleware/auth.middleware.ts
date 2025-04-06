@@ -6,10 +6,21 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { ApiResponse } from '../utils/api-response';
 import { UnauthorizedError, ForbiddenError } from '../utils/app-error';
 import config from '../config/env';
+
+/**
+ * 扩展Request类型，添加认证用户信息
+ */
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+    [key: string]: any;
+  };
+}
 
 /**
  * 用户角色枚举类型

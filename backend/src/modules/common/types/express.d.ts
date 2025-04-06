@@ -1,36 +1,22 @@
 /**
- * Express.js类型扩展模块
+ * Express模块类型声明
  *
- * 扩展Express的Request接口，添加用户和文件处理相关的类型定义
- * @module common/types/express
+ * 扩展Express命名空间以添加用户认证信息
  */
 
-import { User } from '@prisma/client';
+import { UserRole } from '../middleware/auth.middleware';
 
 declare global {
   namespace Express {
-    /**
-     * 扩展Express请求接口
-     */
-    interface Request {
-      /**
-       * 已认证的用户信息
-       */
-      user?: {
-        /** 用户ID */
-        id: string;
-        /** 用户电子邮件 */
-        email: string;
-        /** 用户名 */
-        username: string;
-        /** 用户角色 */
-        role: string;
-      };
+    interface User {
+      id: string;
+      role: UserRole;
+      [key: string]: any;
+    }
 
-      /**
-       * 上传的文件
-       */
-      file?: Express.Multer.File;
+    // 扩展Request接口，添加user属性
+    interface Request {
+      user?: User;
     }
   }
 }
