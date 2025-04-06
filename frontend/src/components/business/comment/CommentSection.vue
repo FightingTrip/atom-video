@@ -15,16 +15,16 @@
 */
 
 <template>
-  <div class="space-y-4">
+  <div class="comment-section">
     <!-- 评论输入框 -->
-    <div class="flex gap-4">
-      <n-avatar :src="userAvatar" :round="true" />
-      <div class="flex-grow">
+    <div class="comment-input-container">
+      <n-avatar :src="userAvatar" :round="true" class="user-avatar" />
+      <div class="comment-input-wrapper">
         <n-input v-model:value="commentText" type="textarea" placeholder="添加评论..."
-          :autosize="{ minRows: 2, maxRows: 6 }" />
-        <div class="flex justify-end mt-2 gap-2">
-          <n-button @click="commentText = ''">取消</n-button>
-          <n-button type="primary" :disabled="!commentText.trim()" @click="submitComment">
+          :autosize="{ minRows: 2, maxRows: 6 }" class="comment-textarea" />
+        <div class="comment-actions">
+          <n-button @click="commentText = ''" class="cancel-button">取消</n-button>
+          <n-button type="primary" :disabled="!commentText.trim()" @click="submitComment" class="submit-button">
             评论
           </n-button>
         </div>
@@ -32,65 +32,63 @@
     </div>
 
     <!-- 评论列表 -->
-    <div class="space-y-4">
-      <div v-for="comment in comments" :key="comment.id" class="flex gap-4">
-        <n-avatar :src="comment.user.avatar" :round="true" />
-        <div class="flex-grow">
-          <div class="flex items-center gap-2">
-            <router-link :to="`/user/${comment.user.id}`" class="font-medium hover:text-blue-500">
+    <div class="comment-list">
+      <div v-for="comment in comments" :key="comment.id" class="comment-item">
+        <n-avatar :src="comment.user.avatar" :round="true" class="user-avatar" />
+        <div class="comment-content">
+          <div class="comment-header">
+            <router-link :to="`/user/${comment.user.id}`" class="user-link">
               {{ comment.user.nickname }}
             </router-link>
-            <span class="text-sm text-gray-500">{{ formatTime(comment.createdAt) }}</span>
+            <span class="timestamp">{{ formatTime(comment.createdAt) }}</span>
           </div>
-          <p class="mt-1">{{ comment.content }}</p>
-          <div class="flex items-center gap-4 mt-2">
-            <button class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-              @click="handleLike(comment)">
+          <p class="comment-text">{{ comment.content }}</p>
+          <div class="comment-actions">
+            <button class="action-button" @click="handleLike(comment)">
               <n-icon>
                 <ThumbsUp v-if="comment.isLiked" />
                 <ThumbsUpOutline v-else />
               </n-icon>
               {{ formatNumber(comment.likes) }}
             </button>
-            <button class="text-sm text-gray-500 hover:text-gray-700" @click="handleReply(comment)">
+            <button class="action-button" @click="handleReply(comment)">
               回复
             </button>
           </div>
 
           <!-- 回复输入框 -->
-          <div v-if="replyingTo?.id === comment.id" class="mt-4">
+          <div v-if="replyingTo?.id === comment.id" class="reply-input-container">
             <n-input v-model:value="replyText" type="textarea" placeholder="回复评论..."
-              :autosize="{ minRows: 2, maxRows: 4 }" />
-            <div class="flex justify-end mt-2 gap-2">
-              <n-button @click="cancelReply">取消</n-button>
-              <n-button type="primary" :disabled="!replyText.trim()" @click="submitReply">
+              :autosize="{ minRows: 2, maxRows: 4 }" class="reply-textarea" />
+            <div class="reply-actions">
+              <n-button @click="cancelReply" class="cancel-button">取消</n-button>
+              <n-button type="primary" :disabled="!replyText.trim()" @click="submitReply" class="submit-button">
                 回复
               </n-button>
             </div>
           </div>
 
           <!-- 回复列表 -->
-          <div v-if="comment.replies?.length" class="mt-4 ml-8 space-y-4">
-            <div v-for="reply in comment.replies" :key="reply.id" class="flex gap-4">
-              <n-avatar :src="reply.user.avatar" :round="true" :size="32" />
-              <div class="flex-grow">
-                <div class="flex items-center gap-2">
-                  <router-link :to="`/user/${reply.user.id}`" class="font-medium hover:text-blue-500">
+          <div v-if="comment.replies?.length" class="reply-list">
+            <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+              <n-avatar :src="reply.user.avatar" :round="true" :size="32" class="user-avatar-small" />
+              <div class="reply-content">
+                <div class="reply-header">
+                  <router-link :to="`/user/${reply.user.id}`" class="user-link">
                     {{ reply.user.nickname }}
                   </router-link>
-                  <span class="text-sm text-gray-500">{{ formatTime(reply.createdAt) }}</span>
+                  <span class="timestamp">{{ formatTime(reply.createdAt) }}</span>
                 </div>
-                <p class="mt-1">{{ reply.content }}</p>
-                <div class="flex items-center gap-4 mt-2">
-                  <button class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-                    @click="handleLike(reply)">
+                <p class="reply-text">{{ reply.content }}</p>
+                <div class="reply-actions">
+                  <button class="action-button" @click="handleLike(reply)">
                     <n-icon>
                       <ThumbsUp v-if="reply.isLiked" />
                       <ThumbsUpOutline v-else />
                     </n-icon>
                     {{ formatNumber(reply.likes) }}
                   </button>
-                  <button class="text-sm text-gray-500 hover:text-gray-700" @click="handleReply(comment, reply)">
+                  <button class="action-button" @click="handleReply(comment, reply)">
                     回复
                   </button>
                 </div>
@@ -200,26 +198,159 @@
 
 <style scoped>
   .comment-section {
-    @apply space-y-6;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
   }
 
-  .reply-section {
-    @apply mt-4 ml-8 space-y-4;
+  .comment-input-container {
+    display: flex;
+    gap: var(--spacing-md);
   }
 
-  .comment-actions {
-    @apply flex items-center gap-4 mt-2;
+  .user-avatar {
+    flex-shrink: 0;
   }
 
-  .action-button {
-    @apply flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700;
+  .user-avatar-small {
+    flex-shrink: 0;
+  }
+
+  .comment-input-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .comment-textarea,
+  .reply-textarea {
+    width: 100%;
+  }
+
+  .comment-actions,
+  .reply-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+  }
+
+  .cancel-button {
+    color: var(--text-secondary);
+    background-color: transparent;
+    border: 1px solid var(--border-light);
+    transition: all var(--transition-normal);
+  }
+
+  .cancel-button:hover {
+    color: var(--text-primary);
+    border-color: var(--border-dark);
+  }
+
+  .submit-button {
+    color: var(--text-inverse);
+    background-color: var(--primary-color);
+    border: none;
+    transition: background-color var(--transition-normal);
+  }
+
+  .submit-button:hover:not(:disabled) {
+    background-color: var(--primary-color-dark);
+  }
+
+  .submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .comment-item {
+    display: flex;
+    gap: var(--spacing-md);
+  }
+
+  .comment-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .comment-header,
+  .reply-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
   }
 
   .user-link {
-    @apply font-medium hover:text-blue-500;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: color var(--transition-normal);
+  }
+
+  .user-link:hover {
+    color: var(--primary-color);
   }
 
   .timestamp {
-    @apply text-sm text-gray-500;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .comment-text,
+  .reply-text {
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .action-button {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color var(--transition-normal);
+  }
+
+  .action-button:hover {
+    color: var(--text-primary);
+  }
+
+  .reply-input-container {
+    margin-top: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .reply-list {
+    margin-top: var(--spacing-md);
+    margin-left: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    border-left: 2px solid var(--border-light);
+    padding-left: var(--spacing-md);
+  }
+
+  .reply-item {
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+
+  .reply-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
   }
 </style>

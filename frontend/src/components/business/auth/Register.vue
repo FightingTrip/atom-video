@@ -278,15 +278,11 @@
 
 <style scoped>
   .auth-background {
-    background-color: #f9fafb;
-  }
-
-  :root.dark .auth-background {
-    background-color: #111827;
+    background-color: var(--primary-bg);
   }
 
   .brand-section {
-    background: linear-gradient(135deg, #3182ce 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     position: relative;
     overflow: hidden;
   }
@@ -303,63 +299,38 @@
   }
 
   .brand-logo {
-    color: #ffffff;
+    color: var(--text-inverse);
   }
 
   .form-section {
-    background-color: #ffffff;
-  }
-
-  :root.dark .form-section {
-    background-color: #1f2937;
-    color: #f3f4f6;
+    background-color: var(--secondary-bg);
   }
 
   .auth-input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
-    background-color: #ffffff;
-    color: #1f2937;
-    transition: all 0.2s;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    transition: all var(--transition-normal);
   }
 
   .auth-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  :root.dark .auth-input {
-    background-color: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
-  }
-
-  :root.dark .auth-input:focus {
-    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
   }
 
   .social-btn {
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
-    background-color: #ffffff;
-    color: #1f2937;
-    transition: all 0.2s;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    transition: all var(--transition-normal);
   }
 
   .social-btn:hover {
-    background-color: #f9fafb;
-  }
-
-  :root.dark .social-btn {
-    background-color: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
-  }
-
-  :root.dark .social-btn:hover {
-    background-color: #4b5563;
+    background-color: var(--tertiary-bg);
   }
 </style>

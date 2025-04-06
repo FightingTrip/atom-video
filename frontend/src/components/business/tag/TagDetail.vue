@@ -154,51 +154,90 @@
 
 <style scoped>
   .tag-detail {
-    @apply container mx-auto px-4 py-8;
+    max-width: var(--container-lg);
+    margin: 0 auto;
+    padding: var(--spacing-lg);
   }
 
   .tag-header {
-    @apply text-center mb-8;
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
   }
 
   .video-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 gap-6;
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  @media (min-width: 640px) {
+    .video-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
   .pagination {
-    @apply flex justify-center gap-2;
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
   }
 
   .page-button {
-    @apply px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    transition: background-color var(--transition-normal);
+  }
+
+  .page-button:hover {
+    background-color: var(--tertiary-bg);
   }
 
   .page-button.active {
-    @apply bg-blue-500 text-white;
+    background-color: var(--primary-color);
+    color: var(--text-inverse);
   }
 
   .tag-item {
-    @apply px-3 py-1 rounded-full text-sm transition-all duration-200;
-    @apply hover:shadow-md hover:scale-105;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    transition: all var(--transition-normal);
+  }
+
+  .tag-item:hover {
+    box-shadow: var(--shadow-md);
+    transform: scale(1.05);
   }
 
   .tag-small {
-    @apply bg-blue-100 text-blue-800;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
   }
 
   .tag-medium {
-    @apply bg-green-100 text-green-800;
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
   }
 
   .tag-large {
-    @apply bg-purple-100 text-purple-800;
+    background-color: var(--tertiary-bg);
+    color: var(--text-primary);
   }
 
   .tag-count {
-    @apply text-xs ml-1 opacity-75;
+    font-size: var(--text-xs);
+    margin-left: var(--spacing-xs);
+    opacity: 0.75;
   }
 
   .related-tags {
-    @apply p-4 bg-white rounded-lg shadow;
+    padding: var(--spacing-md);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
   }
 </style>

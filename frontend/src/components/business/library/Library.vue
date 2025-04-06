@@ -258,15 +258,18 @@
 
 <style scoped>
   .library-container {
-    @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+    min-height: 100vh;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 
   /* 视频卡片悬停效果 */
   .video-card-hover {
-    @apply transition-all duration-300 ease-in-out;
+    transition: all var(--transition-normal);
   }
 
   .video-card-hover:hover {
-    @apply transform scale-105 shadow-lg;
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
   }
 </style>

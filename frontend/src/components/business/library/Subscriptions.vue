@@ -20,16 +20,35 @@
 * - vue-router: 路由管理
 */
 
+<!--
+ * @description 订阅页面组件
+ * @features
+ * - 频道列表：展示用户订阅的频道
+ * - 频道分类：支持按分类筛选频道
+ * - 频道排序：支持按订阅时间排序
+ * - 频道搜索：支持搜索频道名称
+ * - 分页加载：支持分页加载更多频道
+ * - 响应式布局：适配不同屏幕尺寸
+ * - 主题适配：支持亮色和暗色主题
+ * @dependencies
+ * - naive-ui: UI组件库
+ * - @vueuse/core: 实用工具集
+ * @props
+ * - 无
+ * @emits
+ * - 无
+ -->
+
 <template>
-  <div class="space-y-4">
-    <h1 class="text-2xl font-bold">{{ $t('nav.subscriptions') }}</h1>
-    <div v-if="!isAuthenticated" class="text-center py-8">
-      <p class="text-gray-400">{{ $t('auth.loginRequired') }}</p>
-      <router-link to="/auth/login" class="btn btn-primary mt-4">
+  <div class="subscriptions-container">
+    <h1 class="page-title">{{ $t('nav.subscriptions') }}</h1>
+    <div v-if="!isAuthenticated" class="login-prompt">
+      <p class="prompt-text">{{ $t('auth.loginRequired') }}</p>
+      <router-link to="/auth/login" class="login-button">
         {{ $t('user.login') }}
       </router-link>
     </div>
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div v-else class="subscriptions-grid">
       <VideoCard v-for="video in videos" :key="video.id" :video="video" />
     </div>
   </div>
@@ -57,3 +76,62 @@
     }
   });
 </script>
+
+<style scoped>
+  .subscriptions-container {
+    padding: var(--spacing-lg);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  .page-title {
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .login-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl) 0;
+  }
+
+  .prompt-text {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .login-button {
+    display: inline-block;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background-color: var(--primary-color);
+    color: var(--text-inverse);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    transition: background-color var(--transition-normal);
+  }
+
+  .login-button:hover {
+    background-color: var(--primary-color-dark);
+  }
+
+  .subscriptions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  @media (max-width: 768px) {
+    .subscriptions-container {
+      padding: var(--spacing-md);
+    }
+
+    .subscriptions-grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--spacing-md);
+    }
+  }
+</style>

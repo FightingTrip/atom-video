@@ -9,6 +9,19 @@
 * @date 2025-04-06
 */
 
+<!--
+ * @description 视频卡片骨架屏组件
+ * @features
+ * - 加载状态展示：模拟视频卡片布局
+ * - 动画效果：支持加载动画
+ * - 响应式布局：适配不同屏幕尺寸
+ * @dependencies
+ * - naive-ui: UI组件库
+ * @props
+ * - count: 显示数量
+ * - layout: 布局方式（grid/list）
+ -->
+
 <template>
   <div class="video-card-skeleton" :class="layout">
     <!-- 视频缩略图占位 -->
@@ -45,24 +58,90 @@
 <style scoped>
   .video-card-skeleton {
     width: 100%;
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
   .video-card-skeleton.list {
     display: flex;
-    gap: 1rem;
+    gap: var(--spacing-lg);
   }
 
   .video-card-skeleton.list .aspect-video {
     flex: 0 0 320px;
   }
 
-  @media (max-width: 640px) {
+  .aspect-video {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .skeleton-content {
+    margin-top: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-md);
+  }
+
+  .avatar-skeleton {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-full);
+    background-color: var(--secondary-bg);
+  }
+
+  .text-skeleton {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .title-skeleton {
+    height: 16px;
+    width: 75%;
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-sm);
+  }
+
+  .channel-skeleton {
+    height: 16px;
+    width: 50%;
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-sm);
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .video-card-skeleton {
+      padding: var(--spacing-sm);
+    }
+
     .video-card-skeleton.list {
       flex-direction: column;
     }
 
     .video-card-skeleton.list .aspect-video {
       flex: none;
+    }
+
+    .skeleton-content {
+      margin-top: var(--spacing-sm);
     }
   }
 </style>

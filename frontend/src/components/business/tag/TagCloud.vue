@@ -70,27 +70,43 @@
 
 <style scoped>
   .tag-cloud {
-    @apply p-4 bg-white rounded-lg shadow;
+    padding: var(--spacing-md);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
   }
 
   .tag-item {
-    @apply px-3 py-1 rounded-full text-sm transition-all duration-200;
-    @apply hover:shadow-md hover:scale-105;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    transition: all var(--transition-normal);
+  }
+
+  .tag-item:hover {
+    box-shadow: var(--shadow-md);
+    transform: scale(1.05);
   }
 
   .tag-small {
-    @apply bg-blue-100 text-blue-800;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
   }
 
   .tag-medium {
-    @apply bg-green-100 text-green-800;
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
   }
 
   .tag-large {
-    @apply bg-purple-100 text-purple-800;
+    background-color: var(--tertiary-bg);
+    color: var(--text-primary);
   }
 
   .tag-count {
-    @apply text-xs ml-1 opacity-75;
+    font-size: var(--text-xs);
+    margin-left: var(--spacing-xs);
+    opacity: 0.75;
   }
 </style>

@@ -1,16 +1,23 @@
-<!-- 
-  技术栈说明：
-  - Vue 3: 使用 Composition API 和 <script setup> 语法
-  - TypeScript: 强类型支持
-  - Tailwind CSS: 样式框架
-  - Vite: 构建工具
-
-  组件功能：
-  - 视频上传表单
-  - 支持拖拽上传
-  - 文件类型和大小验证
-  - 上传进度显示
-  - 错误处理和提示
+<!--
+ * @description 视频上传组件
+ * @features
+ * - 视频文件上传：支持拖拽和点击上传
+ * - 文件验证：类型、大小、格式检查
+ * - 上传进度：实时显示上传进度
+ * - 视频信息：标题、描述、标签编辑
+ * - 封面设置：支持自定义封面
+ * - 错误处理：完整的错误提示和处理
+ * @dependencies
+ * - naive-ui: UI组件库
+ * - @vueuse/core: 实用工具集
+ * - tailwindcss: 样式框架
+ * @props
+ * - maxSize: 最大文件大小（MB）
+ * - allowedTypes: 允许的文件类型
+ * @emits
+ * - upload-success: 上传成功事件
+ * - upload-error: 上传错误事件
+ * - upload-progress: 上传进度事件
 -->
 <template>
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -338,3 +345,270 @@
     (e: 'cancel'): void;
   }>();
 </script>
+
+<style scoped>
+  .upload-modal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+  }
+
+  .modal-content {
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    max-width: var(--container-md);
+    width: 100%;
+    margin: var(--spacing-md);
+  }
+
+  .modal-header {
+    padding: var(--spacing-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .modal-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .close-button {
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color var(--transition-normal);
+  }
+
+  .close-button:hover {
+    color: var(--text-primary);
+  }
+
+  .modal-body {
+    padding: var(--spacing-lg);
+  }
+
+  .form-group {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .form-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .form-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    transition: border-color var(--transition-normal);
+  }
+
+  .form-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+  }
+
+  .upload-area {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    border: 2px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color var(--transition-normal);
+  }
+
+  .upload-area:hover {
+    border-color: var(--primary-color);
+  }
+
+  .upload-content {
+    text-align: center;
+  }
+
+  .upload-icon {
+    font-size: var(--text-4xl);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .upload-text {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .upload-hint {
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    margin-top: var(--spacing-xs);
+  }
+
+  .file-info {
+    margin-top: var(--spacing-sm);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .video-preview {
+    margin-top: var(--spacing-lg);
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .preview-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .preview-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-md);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    color: var(--text-inverse);
+    font-size: var(--text-sm);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .upload-progress {
+    margin-top: var(--spacing-lg);
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .progress-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--primary-color);
+    background-color: var(--primary-bg-light);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+  }
+
+  .progress-percentage {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+
+  .progress-bar {
+    height: var(--spacing-xs);
+    background-color: var(--primary-bg-light);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+    transition: width var(--transition-normal);
+  }
+
+  .progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+
+  .error-message {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--error-bg);
+    border-radius: var(--radius-md);
+    color: var(--error-color);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .error-icon {
+    flex-shrink: 0;
+  }
+
+  .modal-footer {
+    padding: var(--spacing-lg);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    border-top: 1px solid var(--border-light);
+  }
+
+  .cancel-button {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+  }
+
+  .cancel-button:hover {
+    background-color: var(--secondary-bg);
+  }
+
+  .upload-button {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: var(--primary-color);
+    color: var(--text-inverse);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--transition-normal);
+  }
+
+  .upload-button:hover:not(:disabled) {
+    background-color: var(--primary-color-dark);
+  }
+
+  .upload-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    .modal-content {
+      margin: var(--spacing-sm);
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+      padding: var(--spacing-md);
+    }
+
+    .upload-area {
+      padding: var(--spacing-md);
+    }
+  }
+</style>

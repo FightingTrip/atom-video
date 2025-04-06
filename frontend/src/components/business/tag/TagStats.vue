@@ -117,10 +117,13 @@
 
 <style scoped>
   .tag-stats {
-    @apply p-4 bg-white rounded-lg shadow;
+    padding: var(--spacing-md);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
   }
 
   .chart-container {
-    @apply h-64;
+    height: 16rem;
   }
 </style>

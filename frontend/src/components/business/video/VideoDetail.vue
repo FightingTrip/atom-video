@@ -1,15 +1,38 @@
-<!--
-  VideoDetail.vue
-  视频详情组件
-  功能：
-  - 视频播放器
-  - 视频信息展示
-  - 作者信息展示
-  - 互动功能
-  - 评论区
-  依赖：
-  - @vueuse/core
--->
+/**
+* @file VideoDetail.vue
+* @description 视频详情页面组件
+* @author Atom Video Team
+* @date 2025-04-06
+*
+* @features
+* - 视频播放：支持播放、暂停、进度控制、音量调节
+* - 视频信息：标题、描述、标签、观看数据
+* - 作者信息：头像、昵称、简介、关注状态
+* - 互动功能：点赞、收藏、分享、关注
+* - 评论系统：评论发布、回复、点赞、分页加载
+* - 响应式布局：适配不同屏幕尺寸
+* - 主题适配：支持明暗主题切换
+*
+* @dependencies
+* - naive-ui: UI组件库
+* - @vueuse/core: 实用工具集
+* - @vicons/ionicons5: 图标库
+*
+* @props
+* - video: 视频信息对象
+* - currentTime: 当前播放时间（可选）
+*
+* @emits
+* - time-update: 播放时间更新
+* - play: 开始播放
+* - pause: 暂停播放
+* - ended: 播放结束
+* - like: 点赞操作
+* - favorite: 收藏操作
+* - subscribe: 关注操作
+* - comment: 发表评论
+* - load-more-comments: 加载更多评论
+*/
 <template>
   <div class="video-detail">
     <!-- 视频播放器 -->
@@ -271,52 +294,55 @@
 
 <style scoped>
   .video-detail {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
+    max-width: var(--container-lg);
+    margin: 0 auto;
     padding: var(--spacing-lg);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 
   .video-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .title {
-    margin: 0;
-    font-size: var(--text-xl);
-    font-weight: 500;
-    color: var(--text-color);
-    line-height: 1.4;
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
   }
 
   .meta {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: var(--spacing-md);
   }
 
   .stats {
     display: flex;
     gap: var(--spacing-md);
+    color: var(--text-secondary);
     font-size: var(--text-sm);
-    color: var(--text-color-secondary);
   }
 
   .author-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    background-color: var(--background-color-secondary);
-    border-radius: var(--border-radius);
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .author-header {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
   }
 
   .author-meta {
@@ -324,59 +350,58 @@
   }
 
   .author-name {
-    margin: 0;
-    font-size: var(--text-base);
-    font-weight: 500;
-    color: var(--text-color);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
   }
 
   .author-bio {
-    margin: var(--spacing-xs) 0 0;
+    color: var(--text-secondary);
     font-size: var(--text-sm);
-    color: var(--text-color-secondary);
   }
 
   .author-stats {
     display: flex;
     gap: var(--spacing-lg);
+    color: var(--text-secondary);
     font-size: var(--text-sm);
-    color: var(--text-color-secondary);
   }
 
   .description {
-    font-size: var(--text-base);
-    color: var(--text-color);
-    line-height: 1.6;
-    white-space: pre-wrap;
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .tags {
-    margin-top: var(--spacing-md);
     display: flex;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
     flex-wrap: wrap;
   }
 
   .comments {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .comments-title {
-    margin: 0;
-    font-size: var(--text-lg);
-    font-weight: 500;
-    color: var(--text-color);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-lg);
+    color: var(--text-primary);
   }
 
   .comment-input {
     display: flex;
     gap: var(--spacing-md);
-  }
-
-  .comment-input .n-input {
-    flex: 1;
+    margin-bottom: var(--spacing-lg);
   }
 
   .comment-list {
@@ -397,60 +422,48 @@
   .comment-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     margin-bottom: var(--spacing-xs);
   }
 
   .comment-author {
-    font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--text-color);
+    font-weight: 600;
+    color: var(--text-primary);
   }
 
   .comment-date {
+    color: var(--text-secondary);
     font-size: var(--text-sm);
-    color: var(--text-color-secondary);
   }
 
   .comment-text {
-    margin: 0;
-    font-size: var(--text-base);
-    color: var(--text-color);
-    line-height: 1.6;
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    line-height: 1.5;
   }
 
   .comment-actions {
     display: flex;
     gap: var(--spacing-md);
-    margin-top: var(--spacing-xs);
   }
 
   .load-more {
     display: flex;
     justify-content: center;
-    padding: var(--spacing-md);
+    margin-top: var(--spacing-lg);
   }
 
-  /* 响应式布局 */
   @media (max-width: 768px) {
     .video-detail {
       padding: var(--spacing-md);
-      gap: var(--spacing-md);
-    }
-
-    .title {
-      font-size: var(--text-lg);
     }
 
     .meta {
       flex-direction: column;
       gap: var(--spacing-md);
-      align-items: flex-start;
     }
 
     .author-header {
       flex-direction: column;
-      align-items: flex-start;
       text-align: center;
     }
 
@@ -460,10 +473,6 @@
 
     .comment-input {
       flex-direction: column;
-    }
-
-    .comment-input .n-button {
-      align-self: flex-end;
     }
   }
 </style>

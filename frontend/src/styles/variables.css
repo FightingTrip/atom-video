@@ -1,41 +1,199 @@
 /**
- * @file variables.css
- * @description 全局CSS变量定义
- * @created 2024-04-05
+ * @file design-tokens.css
+ * @description 全局设计标记变量 - 参考 GitHub/Vercel 面向开发者的界面风格
+ * @created 2024-04-06
  */
 
 :root {
-  /* 颜色变量 */
-  --primary-color: #2080f0;
-  --success-color: #18a058;
-  --warning-color: #f0a020;
-  --error-color: #d03050;
-  --info-color: #2080f0;
+  /* ===== 颜色系统 ===== */
+  /* 中性色 - 背景、文本、边框 */
+  --color-bg-canvas: #0d1117;     /* 主背景 */
+  --color-bg-surface: #161b22;    /* 卡片、元素背景 */
+  --color-bg-overlay: #21262d;    /* 弹出层背景 */
+  --color-bg-inset: #0d1117;      /* 凹陷区域背景 */
+  --color-bg-subtle: #1c2128;     /* 次要背景，如按钮 */
+  --color-bg-input: #0d1117;      /* 输入框背景 */
+  --color-bg-danger: #da3633;     /* 危险区域背景 */
+  --color-bg-success: #238636;    /* 成功区域背景 */
+  --color-bg-warning: #9e6a03;    /* 警告区域背景 */
+  --color-bg-info: #1f6feb;       /* 信息区域背景 */
 
-  /* 文本颜色 */
-  --text-color: #333639;
-  --text-color-base: #333639;
-  --text-color-secondary: #666;
-  --text-color-disabled: #999;
+  --color-text-primary: #f0f6fc;  /* 主要文本 */
+  --color-text-secondary: #8b949e; /* 次要文本 */
+  --color-text-muted: #6e7681;    /* 弱化文本 */
+  --color-text-danger: #f85149;   /* 危险文本 */
+  --color-text-success: #56d364;  /* 成功文本 */
+  --color-text-warning: #e3b341;  /* 警告文本 */
+  --color-text-info: #58a6ff;     /* 信息文本 */
+  --color-text-link: #58a6ff;     /* 链接文本 */
+  --color-text-inverse: #0d1117;  /* 反色文本，用于深色背景上 */
 
-  /* 边框 */
-  --border-color: #d9d9d9;
-  --border-radius: 3px;
+  --color-border-primary: #30363d; /* 主要边框 */
+  --color-border-secondary: #21262d; /* 次要边框 */
+  --color-border-muted: #2d333b;  /* 弱化边框 */
+  --color-border-danger: #f85149; /* 危险边框 */
+  --color-border-success: #56d364; /* 成功边框 */
+  --color-border-info: #58a6ff;   /* 信息边框 */
 
-  /* 背景色 */
-  --bg-color: #fff;
-  --bg-color-secondary: #f7f9fc;
+  /* 品牌色 - 主题色、强调色 */
+  --color-accent-primary: #58a6ff; /* 主题色 */
+  --color-accent-secondary: #1f6feb; /* 次要主题色 */
+  --color-accent-tertiary: #388bfd; /* 第三主题色 */
+  --color-accent-emphasis: #1f6feb; /* 强调色 */
+  --color-accent-muted: rgb(56 139 253 / 40%); /* 弱化主题色 */
 
-  /* 字体 */
-  --font-family: -apple-system, blinkmacsystemfont, 'Segoe UI', roboto,
-    'Helvetica Neue', arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  
-  /* 过渡 */
-  --transition-duration: 0.3s;
-  
+  /* ===== 排版系统 ===== */
+  /* 字体大小 */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-4xl: 2.25rem;    /* 36px */
+
+  /* 字体粗细 */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 行高 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ===== 布局系统 ===== */
+  /* 边距/间距 */
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-5: 1.25rem;   /* 20px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-10: 2.5rem;   /* 40px */
+  --spacing-12: 3rem;     /* 48px */
+
+  /* 圆角 */
+  --radius-sm: 0.125rem;  /* 2px */
+  --radius-md: 0.375rem;  /* 6px */
+  --radius-lg: 0.5rem;    /* 8px */
+  --radius-xl: 0.75rem;   /* 12px */
+  --radius-full: 9999px;  /* 圆形 */
+
   /* 阴影 */
-  --box-shadow: 0 2px 4px rgb(0 0 0 / 12%);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -1px rgb(0 0 0 / 6%);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -2px rgb(0 0 0 / 5%);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 10%), 0 10px 10px -5px rgb(0 0 0 / 4%);
+
+  /* 动画/过渡 */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 宽度/容器 */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+
+  /* Z-index层级 */
+  --z-negative: -1;
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal: 40;
+  --z-popover: 50;
+  --z-tooltip: 60;
+}
+
+/* 浅色主题 - 反转颜色系统 */
+:root.light {
+  /* 中性色 - 背景、文本、边框 */
+  --color-bg-canvas: #fff;      /* 主背景 */
+  --color-bg-surface: #f6f8fa;     /* 卡片、元素背景 */
+  --color-bg-overlay: #fafbfc;     /* 弹出层背景 */
+  --color-bg-inset: #f6f8fa;       /* 凹陷区域背景 */
+  --color-bg-subtle: #eaeef2;      /* 次要背景，如按钮 */
+  --color-bg-input: #fff;       /* 输入框背景 */
+  --color-bg-danger: #ffebe9;      /* 危险区域背景 */
+  --color-bg-success: #dafbe1;     /* 成功区域背景 */
+  --color-bg-warning: #fff8c5;     /* 警告区域背景 */
+  --color-bg-info: #ddf4ff;        /* 信息区域背景 */
+
+  --color-text-primary: #24292f;   /* 主要文本 */
+  --color-text-secondary: #57606a; /* 次要文本 */
+  --color-text-muted: #6e7781;     /* 弱化文本 */
+  --color-text-danger: #cf222e;    /* 危险文本 */
+  --color-text-success: #1a7f37;   /* 成功文本 */
+  --color-text-warning: #9a6700;   /* 警告文本 */
+  --color-text-info: #0969da;      /* 信息文本 */
+  --color-text-link: #0969da;      /* 链接文本 */
+  --color-text-inverse: #fff;   /* 反色文本，用于深色背景上 */
+
+  --color-border-primary: #d0d7de; /* 主要边框 */
+  --color-border-secondary: #eaeef2; /* 次要边框 */
+  --color-border-muted: #afb8c1;   /* 弱化边框 */
+  --color-border-danger: #cf222e;  /* 危险边框 */
+  --color-border-success: #1a7f37; /* 成功边框 */
+  --color-border-info: #0969da;    /* 信息边框 */
+
+  /* 品牌色 - 主题色、强调色 */
+  --color-accent-primary: #0969da; /* 主题色 */
+  --color-accent-secondary: #218bff; /* 次要主题色 */
+  --color-accent-tertiary: #54aeff; /* 第三主题色 */
+  --color-accent-emphasis: #0969da; /* 强调色 */
+  --color-accent-muted: rgb(9 105 218 / 10%); /* 弱化主题色 */
+}
+
+/* 兼容性变量 - 用于平滑过渡 */
+:root {
+  /* 旧变量映射到新变量 */
+  --primary-bg: var(--color-bg-canvas);
+  --secondary-bg: var(--color-bg-surface); 
+  --tertiary-bg: var(--color-bg-overlay);
+  
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-muted);
+  
+  --accent-primary: var(--color-accent-primary);
+  --accent-secondary: var(--color-accent-secondary);
+  --accent-hover: var(--color-accent-emphasis);
+  
+  --border-light: var(--color-border-secondary);
+  --border-medium: var(--color-border-primary);
+  --border-dark: var(--color-border-muted);
+  
+  --spacing-xs: var(--spacing-1);
+  --spacing-sm: var(--spacing-2);
+  --spacing-md: var(--spacing-4);
+  --spacing-lg: var(--spacing-6);
+  --spacing-xl: var(--spacing-8);
+}
+
+/* 浅色主题 */
+:root.light {
+  --primary-bg: #fff;
+  --secondary-bg: #f7f9fc;
+  --tertiary-bg: #f0f2f5;
+  --text-primary: #333639;
+  --text-secondary: #666;
+  --text-tertiary: #999;
+  --accent-primary: #2080f0;
+  --accent-secondary: #4098f3;
+  --accent-hover: #1060d0;
+  --border-light: #e5e7eb;
+  --border-medium: #d1d5db;
+  --border-dark: #9ca3af;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-md: 0 4px 6px rgb(0 0 0 / 10%);
+  --shadow-lg: 0 10px 15px rgb(0 0 0 / 15%);
 }
 
 /* 暗色主题 */

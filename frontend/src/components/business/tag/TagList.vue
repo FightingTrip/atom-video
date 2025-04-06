@@ -118,6 +118,12 @@
 
 <style scoped>
   .tag-list {
-    @apply space-y-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm;
+    padding: var(--spacing-md);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
   }
 </style>

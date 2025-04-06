@@ -1,15 +1,27 @@
 <!--
  * @description 视频播放器组件
  * @features
- * - 基本播放控制：播放/暂停、进度条、音量、全屏
- * - 清晰度切换：支持多种清晰度选择
+ * - 基础播放控制：播放、暂停、进度条、音量
+ * - 画质切换：支持多清晰度切换
  * - 弹幕系统：支持发送和显示弹幕
- * - 快捷键控制：空格播放/暂停、方向键调整进度等
- * - 自适应布局：支持不同尺寸和比例
- * - 主题适配：支持亮色和暗色主题
+ * - 快捷键：支持键盘快捷键控制
+ * - 全屏控制：支持全屏和画中画模式
+ * - 字幕支持：支持多语言字幕切换
  * @dependencies
- * - vue-plyr: 视频播放器基础库
+ * - naive-ui: UI组件库
  * - @vueuse/core: 实用工具集
+ * - video.js: 视频播放核心
+ * @props
+ * - src: 视频源地址
+ * - poster: 视频封面
+ * - autoplay: 是否自动播放
+ * - controls: 是否显示控制栏
+ * @emits
+ * - play: 播放事件
+ * - pause: 暂停事件
+ * - ended: 播放结束事件
+ * - timeupdate: 播放进度更新事件
+ * - error: 错误事件
  -->
 
 <template>
@@ -268,72 +280,91 @@
   .video-player {
     position: relative;
     width: 100%;
-    background-color: var(--background-color);
-    border-radius: var(--border-radius);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
     overflow: hidden;
   }
 
   .loading-overlay,
   .error-overlay {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: var(--background-color);
-    z-index: 1;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    z-index: 10;
   }
 
   .loading-text,
   .error-text {
-    margin: var(--spacing-md) 0 0;
+    margin-top: var(--spacing-md);
     font-size: var(--text-base);
-    color: var(--text-color-secondary);
+    color: var(--text-secondary);
   }
 
   .error-icon {
-    color: var(--text-color-secondary);
+    color: var(--error-color);
+    margin-bottom: var(--spacing-md);
   }
 
   .player-container {
     position: relative;
     width: 100%;
+    aspect-ratio: 16 / 9;
   }
 
   .danmaku-container {
     position: absolute;
-    inset: 0;
-    z-index: 2;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 5;
   }
 
   .danmaku-controls {
     position: absolute;
     top: var(--spacing-md);
     right: var(--spacing-md);
-    z-index: 3;
+    pointer-events: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xs);
   }
 
   .danmaku-input {
     position: absolute;
-    bottom: var(--spacing-md);
-    left: var(--spacing-md);
-    right: var(--spacing-md);
+    bottom: var(--spacing-lg);
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     gap: var(--spacing-sm);
-    z-index: 3;
+    pointer-events: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm);
   }
 
   .danmaku-area {
     position: absolute;
-    inset: 0;
-    pointer-events: none;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
   }
 
   .danmaku-item {
     position: absolute;
     white-space: nowrap;
-    font-size: var(--text-base);
+    font-size: var(--text-lg);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     pointer-events: none;
     animation: danmaku-move 8s linear;
@@ -423,13 +454,12 @@
     }
 
     .danmaku-input {
-      bottom: var(--spacing-sm);
-      left: var(--spacing-sm);
-      right: var(--spacing-sm);
+      bottom: var(--spacing-md);
+      width: 90%;
     }
 
     .danmaku-item {
-      font-size: var(--text-sm);
+      font-size: var(--text-base);
     }
   }
 </style>

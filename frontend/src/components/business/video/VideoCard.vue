@@ -1,17 +1,20 @@
 <!--
  * @description 视频卡片组件
  * @features
- * - 视频封面展示
- * - 视频基本信息：标题、作者、播放量等
- * - 支持水平和垂直两种布局
- * - 响应式设计
- * - 主题适配
- * - 懒加载优化
- * - 骨架屏加载
- * - 错误处理
+ * - 视频信息展示：标题、作者、时长、播放量
+ * - 封面展示：支持懒加载和加载失败处理
+ * - 交互功能：点击跳转、悬停效果
+ * - 响应式布局：适配不同屏幕尺寸
+ * - 主题适配：支持亮色和暗色主题
  * @dependencies
- * - naive-ui: UI 组件库
- * - dayjs: 日期处理库
+ * - naive-ui: UI组件库
+ * - @vueuse/core: 实用工具集
+ * @props
+ * - video: 视频信息对象
+ * - loading: 是否显示加载状态
+ * @emits
+ * - click: 点击事件
+ * - hover: 悬停事件
  -->
 
 <template>
@@ -22,7 +25,7 @@
       <div class="duration">{{ formatDuration(video.duration) }}</div>
       <div class="overlay">
         <n-icon size="48" class="play-icon">
-          <PlayCircleIcon />
+          <PlayCircle />
         </n-icon>
       </div>
     </div>
@@ -33,7 +36,7 @@
       <div class="meta">
         <div class="author">
           <n-avatar round :size="24" :src="video.author.avatar" :fallback-src="fallbackAvatar" />
-          <span class="author-name">{{ video.author.name }}</span>
+          <span class="author-name">{{ video.author.nickname }}</span>
         </div>
         <div class="stats">
           <span class="views">{{ formatNumber(video.views) }} 次观看</span>
@@ -52,7 +55,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import { NAvatar, NIcon, NTag } from 'naive-ui'
-  import { PlayCircleIcon } from '@vicons/ionicons5'
+  import { PlayCircle } from '@vicons/ionicons5'
   import type { Video } from '@/types'
 
   const props = defineProps<{
@@ -119,12 +122,12 @@
   .video-card {
     position: relative;
     width: 100%;
-    background-color: var(--background-color);
-    border-radius: var(--border-radius);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
     overflow: hidden;
     cursor: pointer;
-    transition: transform var(--transition-duration),
-      box-shadow var(--transition-duration);
+    transition: transform var(--transition-normal),
+      box-shadow var(--transition-normal);
   }
 
   .video-card:hover {
@@ -137,7 +140,7 @@
     width: 100%;
     padding-top: 56.25%;
     /* 16:9 比例 */
-    background-color: var(--background-color-secondary);
+    background-color: var(--secondary-bg);
     overflow: hidden;
   }
 
@@ -148,7 +151,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--transition-duration);
+    transition: transform var(--transition-normal);
   }
 
   .video-card:hover .thumbnail img {
@@ -161,9 +164,9 @@
     right: var(--spacing-xs);
     padding: 2px 4px;
     background-color: rgba(0, 0, 0, 0.8);
-    border-radius: var(--border-radius-sm);
+    border-radius: var(--radius-sm);
     font-size: var(--text-sm);
-    color: var(--text-color-inverse);
+    color: var(--text-inverse);
   }
 
   .overlay {
@@ -174,7 +177,7 @@
     justify-content: center;
     background-color: rgba(0, 0, 0, 0.2);
     opacity: 0;
-    transition: opacity var(--transition-duration);
+    transition: opacity var(--transition-normal);
   }
 
   .video-card:hover .overlay {
@@ -182,19 +185,19 @@
   }
 
   .play-icon {
-    color: var(--text-color-inverse);
+    color: var(--text-inverse);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   }
 
   .info {
-    padding: var(--spacing-sm);
+    padding: var(--spacing-md);
   }
 
   .title {
     margin: 0;
     font-size: var(--text-base);
-    font-weight: 500;
-    color: var(--text-color);
+    font-weight: 600;
+    color: var(--text-primary);
     line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -203,10 +206,10 @@
   }
 
   .meta {
-    margin-top: var(--spacing-xs);
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
+    justify-content: space-between;
+    align-items: center;
+    margin-top: var(--spacing-sm);
   }
 
   .author {
@@ -217,29 +220,39 @@
 
   .author-name {
     font-size: var(--text-sm);
-    color: var(--text-color-secondary);
+    color: var(--text-secondary);
   }
 
   .stats {
     display: flex;
     gap: var(--spacing-sm);
     font-size: var(--text-sm);
-    color: var(--text-color-secondary);
+    color: var(--text-secondary);
   }
 
   .tags {
-    margin-top: var(--spacing-xs);
     display: flex;
     gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+    flex-wrap: wrap;
   }
 
   /* 响应式布局 */
   @media (max-width: 768px) {
+    .info {
+      padding: var(--spacing-sm);
+    }
+
     .title {
       font-size: var(--text-sm);
     }
 
-    .author-name,
+    .meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-xs);
+    }
+
     .stats {
       font-size: var(--text-xs);
     }

@@ -1,22 +1,22 @@
 /**
- * @file TagFilter.vue
- * @description 标签筛选组件，用于筛选和搜索标签
- * @author Atom Video Team
- * @date 2025-04-06
- *
- * @features
- * - 标签搜索：支持按名称搜索标签
- * - 标签筛选：支持按使用频率、创建时间等条件筛选
- * - 标签排序：支持多种排序方式
- * - 多选功能：支持多标签选择
- * - 响应式设计：适配不同屏幕尺寸
- * - 主题适配：支持明暗主题
- *
- * @dependencies
- * - useTagStore: 标签状态管理
- * - naive-ui: UI组件库
- * - vue-i18n: 国际化支持
- */
+* @file TagFilter.vue
+* @description 标签筛选组件，用于筛选和搜索标签
+* @author Atom Video Team
+* @date 2025-04-06
+*
+* @features
+* - 标签搜索：支持按名称搜索标签
+* - 标签筛选：支持按使用频率、创建时间等条件筛选
+* - 标签排序：支持多种排序方式
+* - 多选功能：支持多标签选择
+* - 响应式设计：适配不同屏幕尺寸
+* - 主题适配：支持明暗主题
+*
+* @dependencies
+* - useTagStore: 标签状态管理
+* - naive-ui: UI组件库
+* - vue-i18n: 国际化支持
+*/
 
 <template>
   <div class="tag-filter">
@@ -217,38 +217,75 @@
 
 <style scoped>
   .tag-filter {
-    @apply p-4 bg-white rounded-lg shadow;
+    padding: var(--spacing-md);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
   }
 
   .category-button {
-    @apply px-3 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    transition: background-color var(--transition-normal);
+  }
+
+  .category-button:hover {
+    background-color: var(--tertiary-bg);
   }
 
   .category-button.active {
-    @apply bg-blue-500 text-white;
+    background-color: var(--primary-color);
+    color: var(--text-inverse);
   }
 
   .category-section {
-    @apply mb-4;
+    margin-bottom: var(--spacing-md);
   }
 
   .category-title {
-    @apply text-lg font-semibold mb-2;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
   }
 
   .tag-button {
-    @apply px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    transition: background-color var(--transition-normal);
+  }
+
+  .tag-button:hover {
+    background-color: var(--tertiary-bg);
   }
 
   .tag-button.active {
-    @apply bg-blue-500 text-white;
+    background-color: var(--primary-color);
+    color: var(--text-inverse);
   }
 
   .selected-tag {
-    @apply px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 flex items-center gap-1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-full);
+    font-size: var(--text-sm);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
   }
 
   .remove-tag {
-    @apply text-lg hover:text-red-500 transition-colors;
+    font-size: var(--text-lg);
+    transition: color var(--transition-normal);
+  }
+
+  .remove-tag:hover {
+    color: var(--error-color);
   }
 </style>

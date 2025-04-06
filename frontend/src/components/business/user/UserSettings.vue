@@ -256,76 +256,95 @@
 
 <style scoped>
   .user-settings {
-    max-width: 800px;
+    max-width: var(--container-md);
     margin: 0 auto;
-    padding: 2rem;
+    padding: var(--spacing-lg);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 
   .page-title {
-    font-size: 2rem;
+    font-size: var(--text-2xl);
     font-weight: 600;
-    margin-bottom: 2rem;
-    color: var(--text-color);
+    margin-bottom: var(--spacing-lg);
+    color: var(--text-primary);
   }
 
   .settings-section {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+    background: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    border: 1px solid var(--border-light);
   }
 
   .section-title {
-    font-size: 1.25rem;
+    font-size: var(--text-xl);
     font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: var(--text-color);
+    margin-bottom: var(--spacing-lg);
+    color: var(--text-primary);
   }
 
   .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-lg);
   }
 
   .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
-    color: var(--text-color);
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
   }
 
   .avatar-upload {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--spacing-md);
+    background-color: var(--primary-bg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .checkbox-label {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
     cursor: pointer;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
   }
 
   .actions {
     display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .error-container {
-    margin-top: 1rem;
+    margin-top: var(--spacing-md);
+    background-color: var(--error-bg);
+    color: var(--error-text);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--error-border);
   }
 
   @media (max-width: 768px) {
     .user-settings {
-      padding: 1rem;
+      padding: var(--spacing-md);
     }
 
     .page-title {
-      font-size: 1.5rem;
+      font-size: var(--text-xl);
     }
 
     .settings-section {
-      padding: 1rem;
+      padding: var(--spacing-md);
     }
   }
 </style>

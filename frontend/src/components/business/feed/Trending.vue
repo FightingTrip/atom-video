@@ -6,160 +6,206 @@
 */
 
 <template>
-  <div class="trending">
-    <!-- 时间范围选择器 -->
-    <section class="filter-section">
-      <TimeRangeSelector v-model="timeRange" @change="handleTimeRangeChange" />
-    </section>
-
-    <!-- 视频列表 -->
-    <section class="video-list">
-      <VideoCard v-for="(video, index) in videos" :key="video.id" :video="video" :rank="index + 1"
-        @click="handleVideoClick(video)" />
-    </section>
-
-    <!-- 加载更多按钮 -->
-    <div v-if="hasMore" class="load-more">
-      <Button :loading="loading" @click="loadMore">
-        加载更多
-      </Button>
+  <div class="trending-section">
+    <div class="section-header">
+      <h2 class="section-title">热门趋势</h2>
+      <n-button text @click="refreshTrending" class="refresh-button">
+        <template #icon>
+          <n-icon>
+            <RefreshOutline />
+          </n-icon>
+        </template>
+        刷新
+      </n-button>
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading && !videos.length" class="loading-container">
-      <LoadingSpinner />
+    <div class="trending-list">
+      <div v-for="(item, index) in trendingItems" :key="item.id" class="trending-item">
+        <div class="trending-rank" :class="{ 'top-rank': index < 3 }">{{ index + 1 }}</div>
+        <div class="trending-content">
+          <div class="trending-info">
+            <h3 class="trending-title">{{ item.title }}</h3>
+            <p class="trending-stats">
+              <span class="stat-item">
+                <n-icon>
+                  <EyeOutline />
+                </n-icon>
+                {{ formatNumber(item.views) }}
+              </span>
+              <span class="stat-item">
+                <n-icon>
+                  <HeartOutline />
+                </n-icon>
+                {{ formatNumber(item.likes) }}
+              </span>
+            </p>
+          </div>
+          <n-avatar round :size="40" :src="item.author.avatar" class="author-avatar" />
+        </div>
+      </div>
     </div>
 
-    <!-- 错误提示 -->
-    <div v-if="error" class="error-container">
-      <ErrorMessage :message="error" />
+    <div v-if="loading" class="loading-state">
+      <n-spin />
     </div>
 
-    <!-- 空状态 -->
-    <div v-if="!loading && !error && !videos.length" class="empty-container">
-      <EmptyState message="暂无热门视频" />
+    <div v-else-if="trendingItems.length === 0" class="empty-state">
+      <n-empty description="暂无热门内容" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
-  import { useRouter } from 'vue-router';
-  import { useVideo } from '@/composables/useVideo';
-  import TimeRangeSelector from '@/components/common/filter/TimeRangeSelector.vue';
-  import VideoCard from '@/components/common/video/VideoCard.vue';
-  import Button from '@/components/common/button/Button.vue';
-  import LoadingSpinner from '@/components/common/loading/LoadingSpinner.vue';
-  import ErrorMessage from '@/components/common/feedback/ErrorMessage.vue';
-  import EmptyState from '@/components/common/feedback/EmptyState.vue';
-  import type { Video } from '@/types';
+  import { NButton, NAvatar, NIcon, NSpin, NEmpty } from 'naive-ui';
+  import { RefreshOutline, EyeOutline, HeartOutline } from '@vicons/ionicons5';
+  import type { TrendingItem } from '@/types';
 
-  const router = useRouter();
-
-  // 状态
   const loading = ref(false);
-  const error = ref<string | null>(null);
-  const videos = ref<Video[]>([]);
-  const timeRange = ref('day');
-  const currentPage = ref(1);
-  const hasMore = ref(true);
+  const trendingItems = ref<TrendingItem[]>([]);
 
-  // 组合式函数
-  const { fetchTrendingVideos } = useVideo();
+  const formatNumber = (num: number) => {
+    if (num >= 10000) {
+      return (num / 10000).toFixed(1) + '万';
+    }
+    return num.toString();
+  };
 
-  // 方法
-  const handleTimeRangeChange = async () => {
+  const fetchTrending = async () => {
+    loading.value = true;
     try {
-      loading.value = true;
-      error.value = null;
-      currentPage.value = 1;
-      videos.value = [];
-      hasMore.value = true;
-
-      const result = await fetchTrendingVideos({
-        page: 1,
-        pageSize: 20,
-        timeRange: timeRange.value,
-      });
-
-      videos.value = result;
-      hasMore.value = result.length === 20;
-    } catch (err) {
-      error.value = '加载热门视频失败';
-      console.error('加载热门视频失败:', err);
+      // TODO: 实现获取热门内容的API调用
+      trendingItems.value = [];
+    } catch (error) {
+      console.error('获取热门内容失败:', error);
     } finally {
       loading.value = false;
     }
   };
 
-  const loadMore = async () => {
-    if (loading.value || !hasMore.value) return;
-
-    try {
-      loading.value = true;
-      error.value = null;
-      currentPage.value++;
-
-      const result = await fetchTrendingVideos({
-        page: currentPage.value,
-        pageSize: 20,
-        timeRange: timeRange.value,
-      });
-
-      videos.value.push(...result);
-      hasMore.value = result.length === 20;
-    } catch (err) {
-      error.value = '加载更多失败';
-      console.error('加载更多失败:', err);
-    } finally {
-      loading.value = false;
-    }
+  const refreshTrending = () => {
+    fetchTrending();
   };
 
-  const handleVideoClick = (video: Video) => {
-    router.push(`/video/${video.id}`);
-  };
-
-  // 初始化
-  onMounted(async () => {
-    await handleTimeRangeChange();
+  onMounted(() => {
+    fetchTrending();
   });
 </script>
 
 <style scoped>
-  .trending {
-    padding: 2rem;
-  }
-
-  .filter-section {
-    margin-bottom: 2rem;
-  }
-
-  .video-list {
+  .trending-section {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-lg);
   }
 
-  .load-more {
+  .section-header {
     display: flex;
-    justify-content: center;
-    margin-top: 2rem;
-  }
-
-  .loading-container,
-  .error-container,
-  .empty-container {
-    display: flex;
-    justify-content: center;
     align-items: center;
-    min-height: 200px;
+    justify-content: space-between;
   }
 
-  @media (max-width: 768px) {
-    .trending {
-      padding: 1rem;
-    }
+  .section-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .refresh-button {
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    transition: color var(--transition-normal);
+  }
+
+  .refresh-button:hover {
+    color: var(--text-primary);
+  }
+
+  .trending-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .trending-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-md);
+    transition: transform var(--transition-normal);
+  }
+
+  .trending-item:hover {
+    transform: translateX(var(--spacing-sm));
+  }
+
+  .trending-rank {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-secondary);
+    width: 24px;
+    text-align: center;
+  }
+
+  .top-rank {
+    color: var(--primary-color);
+  }
+
+  .trending-content {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+
+  .trending-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .trending-title {
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .trending-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin: 0;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .author-avatar {
+    flex-shrink: 0;
+  }
+
+  .loading-state {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-xl) 0;
+  }
+
+  .empty-state {
+    padding: var(--spacing-xl) 0;
   }
 </style>

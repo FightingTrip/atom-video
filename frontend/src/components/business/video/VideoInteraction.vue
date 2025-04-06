@@ -10,6 +10,13 @@
  * @dependencies
  * - naive-ui: UI组件库
  * - dayjs: 日期处理
+ * @props
+ * - videoId: 视频ID
+ * - initialStats: 初始统计数据
+ * @emits
+ * - like: 点赞事件
+ * - favorite: 收藏事件
+ * - share: 分享事件
  -->
 
 <template>
@@ -173,58 +180,122 @@
 
 <style scoped>
   .video-interaction {
-    @apply space-y-4 p-4 bg-white dark:bg-gray-800 rounded-lg;
+    padding: var(--spacing-lg);
+    background-color: var(--primary-bg);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
   }
 
   .video-info {
-    @apply space-y-2;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .video-title {
-    @apply text-xl font-bold;
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
   }
 
   .video-stats {
-    @apply text-sm text-gray-500 dark:text-gray-400;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
   }
 
   .dot {
-    @apply mx-2;
+    color: var(--text-tertiary);
   }
 
   .interaction-buttons {
-    @apply flex items-center justify-between border-t border-b border-gray-200 dark:border-gray-700 py-2;
+    display: flex;
+    justify-content: flex-end;
   }
 
   .author-info {
-    @apply flex items-center justify-between;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .author-profile {
-    @apply flex items-center space-x-3 cursor-pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    cursor: pointer;
   }
 
   .author-meta {
-    @apply space-y-0.5;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
   }
 
   .author-name {
-    @apply text-base font-medium hover:text-primary cursor-pointer;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
   }
 
   .author-stats {
-    @apply text-sm text-gray-500 dark:text-gray-400;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: 0;
   }
 
   .video-description {
-    @apply mt-4;
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .description-header {
-    @apply text-base font-medium;
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--text-primary);
   }
 
   .description-content {
-    @apply text-sm whitespace-pre-wrap;
+    padding: var(--spacing-md);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  @media (max-width: 768px) {
+    .video-interaction {
+      padding: var(--spacing-md);
+      gap: var(--spacing-md);
+    }
+
+    .video-title {
+      font-size: var(--text-xl);
+    }
+
+    .author-info {
+      flex-direction: column;
+      gap: var(--spacing-md);
+      text-align: center;
+    }
+
+    .author-profile {
+      flex-direction: column;
+    }
+
+    .interaction-buttons {
+      justify-content: center;
+    }
   }
 </style>

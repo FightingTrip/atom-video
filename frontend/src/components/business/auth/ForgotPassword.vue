@@ -20,70 +20,68 @@
 */
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+  <div class="forgot-password">
+    <div class="forgot-password-container">
       <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 class="forgot-password-title">
           忘记密码
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        <p class="forgot-password-desc">
           请输入您的邮箱地址，我们将发送重置密码的链接
         </p>
       </div>
 
       <!-- 错误提示 -->
-      <div v-if="error" class="rounded-md bg-red-50 p-4">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+      <div v-if="error" class="error-alert">
+        <div class="error-alert-content">
+          <div class="error-alert-icon">
+            <svg class="error-icon" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                 clip-rule="evenodd" />
             </svg>
           </div>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-red-800">{{ error }}</p>
+          <div class="error-alert-text">
+            <p class="error-message">{{ error }}</p>
           </div>
         </div>
       </div>
 
       <!-- 成功提示 -->
-      <div v-if="success" class="rounded-md bg-green-50 p-4">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+      <div v-if="success" class="success-alert">
+        <div class="success-alert-content">
+          <div class="success-alert-icon">
+            <svg class="success-icon" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                 clip-rule="evenodd" />
             </svg>
           </div>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-green-800">{{ success }}</p>
+          <div class="success-alert-text">
+            <p class="success-message">{{ success }}</p>
           </div>
         </div>
       </div>
 
-      <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
+      <form class="forgot-password-form" @submit.prevent="handleSubmit">
         <div>
           <label for="email" class="sr-only">邮箱地址</label>
-          <input id="email" v-model="email" name="email" type="email" required
-            class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-            placeholder="邮箱地址" :class="{ 'border-red-500': emailError }" />
-          <p v-if="emailError" class="mt-1 text-sm text-red-600">{{ emailError }}</p>
+          <input id="email" v-model="email" name="email" type="email" required class="auth-input" placeholder="邮箱地址"
+            :class="{ 'input-error': emailError }" />
+          <p v-if="emailError" class="error-text">{{ emailError }}</p>
         </div>
 
         <div>
-          <button type="submit" :disabled="isLoading"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" :disabled="isLoading" class="submit-button" :class="{ 'button-disabled': isLoading }">
             {{ isLoading ? '发送中...' : '发送重置链接' }}
           </button>
         </div>
       </form>
 
-      <div class="text-center">
-        <p class="text-sm text-gray-600">
+      <div class="forgot-password-footer">
+        <p class="forgot-password-text">
           想起密码了？
-          <router-link to="/auth/login" class="font-medium text-indigo-600 hover:text-indigo-500">
+          <router-link to="/auth/login" class="forgot-password-link">
             返回登录
           </router-link>
         </p>
@@ -137,3 +135,169 @@
     }
   };
 </script>
+
+<style scoped>
+  .forgot-password {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-bg);
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .forgot-password-container {
+    max-width: 28rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .forgot-password-title {
+    margin-top: var(--spacing-md);
+    text-align: center;
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .forgot-password-desc {
+    margin-top: var(--spacing-sm);
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .error-alert,
+  .success-alert {
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+  }
+
+  .error-alert {
+    background-color: var(--error-bg);
+  }
+
+  .success-alert {
+    background-color: var(--success-bg);
+  }
+
+  .error-alert-content,
+  .success-alert-content {
+    display: flex;
+  }
+
+  .error-alert-icon,
+  .success-alert-icon {
+    flex-shrink: 0;
+  }
+
+  .error-icon,
+  .success-icon {
+    height: 1.25rem;
+    width: 1.25rem;
+  }
+
+  .error-icon {
+    color: var(--error-color);
+  }
+
+  .success-icon {
+    color: var(--success-color);
+  }
+
+  .error-alert-text,
+  .success-alert-text {
+    margin-left: var(--spacing-sm);
+  }
+
+  .error-message,
+  .success-message {
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+
+  .error-message {
+    color: var(--error-color);
+  }
+
+  .success-message {
+    color: var(--success-color);
+  }
+
+  .forgot-password-form {
+    margin-top: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .auth-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    transition: all var(--transition-normal);
+  }
+
+  .auth-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
+  }
+
+  .input-error {
+    border-color: var(--error-color);
+  }
+
+  .error-text {
+    margin-top: var(--spacing-xs);
+    font-size: var(--text-sm);
+    color: var(--error-color);
+  }
+
+  .submit-button {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-inverse);
+    background-color: var(--primary-color);
+    transition: background-color var(--transition-normal);
+  }
+
+  .submit-button:hover:not(.button-disabled) {
+    background-color: var(--primary-color-dark);
+  }
+
+  .button-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .forgot-password-footer {
+    text-align: center;
+  }
+
+  .forgot-password-text {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .forgot-password-link {
+    font-weight: 500;
+    color: var(--primary-color);
+    transition: color var(--transition-normal);
+  }
+
+  .forgot-password-link:hover {
+    color: var(--primary-color-dark);
+  }
+</style>

@@ -9,7 +9,7 @@
 // - TypeScript: 强类型支持
 // - Vue 3: 类型集成
 
-import type { User, Author } from './index';
+import type { User, Author, Video } from './index';
 import type { Tag } from './tags';
 
 // 视频状态
@@ -33,12 +33,13 @@ export enum VideoCategory {
 }
 
 // 视频信息
-export interface Video {
+export interface VideoInfo {
   id: string;
   title: string;
   description: string;
   coverUrl: string;
   videoUrl: string;
+  thumbnail: string;
   duration: number;
   views: number;
   likes: number;
@@ -110,7 +111,7 @@ export interface VideoFilter {
 }
 
 export interface VideoSearchResult {
-  videos: Video[];
+  videos: VideoInfo[];
   total: number;
   page: number;
   pageSize: number;
@@ -165,7 +166,7 @@ export interface VideoSearchParams {
 
 // 视频列表响应
 export interface VideoListResponse {
-  videos: Video[];
+  videos: VideoInfo[];
   total: number;
   hasMore: boolean;
 }
@@ -179,9 +180,39 @@ export interface VideoCommentsResponse {
 
 // 视频推荐响应
 export interface VideoRecommendationsResponse {
-  videos: Video[];
+  videos: VideoInfo[];
   hasMore: boolean;
 }
 
 // 导出其他类型
 export * from './index';
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface VideoService {
+  getVideos(
+    page: number,
+    limit: number,
+    tag?: string
+  ): Promise<{
+    videos: VideoInfo[];
+    hasMore: boolean;
+  }>;
+
+  getVideoById(id: string): Promise<VideoInfo>;
+
+  getVideosByUser(
+    userId: string,
+    page?: number,
+    limit?: number
+  ): Promise<{
+    videos: VideoInfo[];
+    hasMore: boolean;
+  }>;
+}

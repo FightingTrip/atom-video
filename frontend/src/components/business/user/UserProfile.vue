@@ -5,6 +5,27 @@
 * @date 2025-04-06
 */
 
+<!--
+ * @description 用户资料组件
+ * @features
+ * - 用户信息展示：头像、用户名、个人简介
+ * - 数据统计：视频数、粉丝数、关注数
+ * - 头像管理：支持头像上传和更换
+ * - 关注功能：支持关注和取消关注
+ * - 视频列表：展示用户上传的视频
+ * - 响应式布局：适配不同屏幕尺寸
+ * - 主题适配：支持亮色和暗色主题
+ * @dependencies
+ * - naive-ui: UI组件库
+ * - @vueuse/core: 实用工具集
+ * @props
+ * - userId: 用户ID
+ * @emits
+ * - avatar-update: 头像更新事件
+ * - follow-toggle: 关注状态切换事件
+ * - video-click: 视频点击事件
+ -->
+
 <template>
   <div class="user-profile">
     <!-- 用户基本信息 -->
@@ -192,13 +213,19 @@
 
 <style scoped>
   .user-profile {
-    padding: 2rem;
+    padding: var(--spacing-lg);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 
   .profile-header {
     display: flex;
-    gap: 2rem;
-    margin-bottom: 2rem;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .avatar-container {
@@ -212,9 +239,9 @@
     right: 0;
     display: flex;
     justify-content: center;
-    padding: 0.5rem;
+    padding: var(--spacing-sm);
     background: rgba(0, 0, 0, 0.5);
-    border-radius: 0 0 60px 60px;
+    border-radius: 0 0 var(--radius-full) var(--radius-full);
   }
 
   .user-info {
@@ -222,21 +249,25 @@
   }
 
   .username {
-    font-size: 1.5rem;
+    font-size: var(--text-2xl);
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--text-color);
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
   }
 
   .bio {
     color: var(--text-secondary);
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-md);
     line-height: 1.5;
   }
 
   .stats {
     display: flex;
-    gap: 2rem;
+    gap: var(--spacing-lg);
+    background-color: var(--primary-bg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .stat-item {
@@ -246,31 +277,42 @@
   }
 
   .stat-item .value {
-    font-size: 1.25rem;
+    font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text-color);
+    color: var(--text-primary);
   }
 
   .stat-item .label {
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
   }
 
   .profile-actions {
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-lg);
+    background-color: var(--secondary-bg);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .section-title {
-    font-size: 1.25rem;
+    font-size: var(--text-xl);
     font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-color);
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
+  }
+
+  .user-videos {
+    background-color: var(--secondary-bg);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
   }
 
   .load-more {
     display: flex;
     justify-content: center;
-    margin-top: 2rem;
+    margin-top: var(--spacing-lg);
   }
 
   .loading-container,
@@ -280,18 +322,22 @@
     justify-content: center;
     align-items: center;
     min-height: 200px;
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-light);
   }
 
   @media (max-width: 768px) {
     .user-profile {
-      padding: 1rem;
+      padding: var(--spacing-md);
     }
 
     .profile-header {
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 1rem;
+      gap: var(--spacing-md);
     }
 
     .stats {

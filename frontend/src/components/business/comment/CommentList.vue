@@ -18,10 +18,10 @@
     <!-- 评论输入框 -->
     <div class="comment-input">
       <n-input v-model:value="commentText" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }"
-        placeholder="写下你的评论..." @keydown.enter.ctrl="handlePostComment" />
+        placeholder="写下你的评论..." @keydown.enter.ctrl="handlePostComment" class="comment-textarea" />
       <div class="input-footer">
         <span class="input-tip">Ctrl + Enter 发送</span>
-        <n-button type="primary" :disabled="!commentText.trim()" @click="handlePostComment">
+        <n-button type="primary" :disabled="!commentText.trim()" @click="handlePostComment" class="submit-button">
           发表评论
         </n-button>
       </div>
@@ -32,7 +32,8 @@
       <div v-for="comment in comments" :key="comment.id" class="comment-item">
         <!-- 评论内容 -->
         <div class="comment-content">
-          <n-avatar round :size="40" :src="comment.author.avatar" @click="handleAuthorClick(comment.author.id)" />
+          <n-avatar round :size="40" :src="comment.author.avatar" @click="handleAuthorClick(comment.author.id)"
+            class="user-avatar" />
           <div class="comment-main">
             <div class="comment-header">
               <span class="author-name" @click="handleAuthorClick(comment.author.id)">
@@ -42,7 +43,7 @@
             </div>
             <p class="comment-text">{{ comment.content }}</p>
             <div class="comment-actions">
-              <n-button text @click="handleLike(comment)">
+              <n-button text @click="handleLike(comment)" class="action-button">
                 <template #icon>
                   <n-icon>
                     <ThumbsUp v-if="comment.isLiked" />
@@ -51,7 +52,7 @@
                 </template>
                 {{ formatNumber(comment.likes) }}
               </n-button>
-              <n-button text @click="handleReply(comment)">
+              <n-button text @click="handleReply(comment)" class="action-button">
                 <template #icon>
                   <n-icon>
                     <ChatbubbleOutline />
@@ -64,12 +65,12 @@
             <!-- 回复输入框 -->
             <div v-if="replyingTo?.id === comment.id" class="reply-input">
               <n-input v-model:value="replyText" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }"
-                placeholder="回复评论..." @keydown.enter.ctrl="handlePostReply" />
+                placeholder="回复评论..." @keydown.enter.ctrl="handlePostReply" class="reply-textarea" />
               <div class="input-footer">
                 <span class="input-tip">Ctrl + Enter 发送</span>
                 <div class="button-group">
-                  <n-button @click="cancelReply">取消</n-button>
-                  <n-button type="primary" :disabled="!replyText.trim()" @click="handlePostReply">
+                  <n-button @click="cancelReply" class="cancel-button">取消</n-button>
+                  <n-button type="primary" :disabled="!replyText.trim()" @click="handlePostReply" class="submit-button">
                     回复
                   </n-button>
                 </div>
@@ -79,7 +80,8 @@
             <!-- 回复列表 -->
             <div v-if="comment.replies?.length" class="reply-list">
               <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
-                <n-avatar round :size="32" :src="reply.author.avatar" @click="handleAuthorClick(reply.author.id)" />
+                <n-avatar round :size="32" :src="reply.author.avatar" @click="handleAuthorClick(reply.author.id)"
+                  class="user-avatar-small" />
                 <div class="reply-main">
                   <div class="reply-header">
                     <span class="author-name" @click="handleAuthorClick(reply.author.id)">
@@ -89,7 +91,7 @@
                   </div>
                   <p class="reply-text">{{ reply.content }}</p>
                   <div class="reply-actions">
-                    <n-button text @click="handleLike(reply)">
+                    <n-button text @click="handleLike(reply)" class="action-button">
                       <template #icon>
                         <n-icon>
                           <ThumbsUp v-if="reply.isLiked" />
@@ -98,7 +100,7 @@
                       </template>
                       {{ formatNumber(reply.likes) }}
                     </n-button>
-                    <n-button text @click="handleReply(comment, reply)">
+                    <n-button text @click="handleReply(comment, reply)" class="action-button">
                       <template #icon>
                         <n-icon>
                           <ChatbubbleOutline />
@@ -118,7 +120,7 @@
     <!-- 加载更多 -->
     <div v-if="hasMore" ref="loadMoreRef" class="load-more">
       <n-spin v-if="loading" />
-      <n-button v-else text @click="handleLoadMore">
+      <n-button v-else text @click="handleLoadMore" class="load-more-button">
         加载更多评论
       </n-button>
     </div>
@@ -150,7 +152,7 @@
   import dayjs from 'dayjs';
   import relativeTime from 'dayjs/plugin/relativeTime';
   import 'dayjs/locale/zh-cn';
-  import type { Comment } from '@/types';
+  import type { Comment, Reply } from '@/types';
 
   dayjs.extend(relativeTime);
   dayjs.locale('zh-cn');
@@ -222,7 +224,7 @@
   };
 
   // 处理回复
-  const handleReply = (comment: Comment, replyTo?: Comment) => {
+  const handleReply = (comment: Comment, replyTo?: Comment | Reply) => {
     replyingTo.value = {
       id: comment.id,
       replyTo: replyTo
@@ -251,8 +253,8 @@
   };
 
   // 处理点赞
-  const handleLike = (comment: Comment) => {
-    emit('like', comment.id);
+  const handleLike = (item: Comment | Reply) => {
+    emit('like', item.id);
   };
 
   // 处理加载更多
@@ -270,85 +272,193 @@
 
 <style scoped>
   .comment-section {
-    @apply space-y-6;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
   }
 
   .comment-input {
-    @apply space-y-2;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .comment-textarea,
+  .reply-textarea {
+    width: 100%;
   }
 
   .input-footer {
-    @apply flex items-center justify-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .input-tip {
-    @apply text-sm text-gray-500;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .submit-button {
+    color: var(--text-inverse);
+    background-color: var(--primary-color);
+    border: none;
+    transition: background-color var(--transition-normal);
+  }
+
+  .submit-button:hover:not(:disabled) {
+    background-color: var(--primary-color-dark);
+  }
+
+  .submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .cancel-button {
+    color: var(--text-secondary);
+    background-color: transparent;
+    border: 1px solid var(--border-light);
+    transition: all var(--transition-normal);
+  }
+
+  .cancel-button:hover {
+    color: var(--text-primary);
+    border-color: var(--border-dark);
   }
 
   .comment-list {
-    @apply space-y-6;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
   }
 
   .comment-item {
-    @apply space-y-4;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
   }
 
   .comment-content {
-    @apply flex gap-3;
+    display: flex;
+    gap: var(--spacing-md);
+  }
+
+  .user-avatar,
+  .user-avatar-small {
+    flex-shrink: 0;
+    cursor: pointer;
   }
 
   .comment-main {
-    @apply flex-grow space-y-2;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
-  .comment-header {
-    @apply flex items-center gap-2;
+  .comment-header,
+  .reply-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
   }
 
   .author-name {
-    @apply font-medium hover:text-primary cursor-pointer;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: color var(--transition-normal);
+  }
+
+  .author-name:hover {
+    color: var(--primary-color);
   }
 
   .comment-time,
   .reply-time {
-    @apply text-sm text-gray-500;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
   }
 
   .comment-text,
   .reply-text {
-    @apply text-sm whitespace-pre-wrap;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    line-height: 1.5;
   }
 
   .comment-actions,
   .reply-actions {
-    @apply flex items-center gap-2;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .action-button {
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    transition: color var(--transition-normal);
+  }
+
+  .action-button:hover {
+    color: var(--text-primary);
   }
 
   .reply-input {
-    @apply mt-4 space-y-2;
+    margin-top: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .button-group {
-    @apply flex items-center gap-2;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
   }
 
   .reply-list {
-    @apply mt-4 space-y-4 pl-4 border-l-2 border-gray-100 dark:border-gray-700;
+    margin-top: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding-left: var(--spacing-md);
+    border-left: 2px solid var(--border-light);
   }
 
   .reply-item {
-    @apply flex gap-2;
+    display: flex;
+    gap: var(--spacing-sm);
   }
 
   .reply-main {
-    @apply flex-grow space-y-1;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
   }
 
   .load-more {
-    @apply flex justify-center py-4;
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-md) 0;
+  }
+
+  .load-more-button {
+    color: var(--primary-color);
+    background: none;
+    border: none;
+    transition: color var(--transition-normal);
+  }
+
+  .load-more-button:hover {
+    color: var(--primary-color-dark);
   }
 
   .empty-state {
-    @apply py-8;
+    padding: var(--spacing-xl) 0;
   }
 </style>

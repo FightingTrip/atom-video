@@ -1,0 +1,51 @@
+/**
+ * @file index.css
+ * @description 样式入口文件 - 定义样式引入顺序和优先级
+ * @created 2024-04-06
+ */
+
+/* 1. 设计标记变量 - 首先加载，定义全局变量 */
+@import url('./variables.css');
+
+/* 2. Tailwind CSS - 基础样式和工具类 */
+@import url('./tailwind.css');
+
+/* 3. 组件样式 - 使用设计变量的预定义组件 */
+@import url('./components.css');
+
+/* 4. 全局通用样式 - 可选地保留一些全局样式 */
+@import url('./theme.css');
+
+/* 5. 工具类和覆盖样式 - 最高优先级 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* 强制黑白主题，用于开发和调试 */
+html.force-dark {
+  color-scheme: dark;
+}
+
+html.force-light {
+  color-scheme: light;
+}
+
+/* 打印样式优化 */
+@media print {
+  body {
+    background-color: #fff;
+    color: #000;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+} 

@@ -5,7 +5,11 @@
 /* 自定义样式 */
 @layer base {
   body {
-    @apply bg-gray-100 dark:bg-gray-900;
+    background-color: rgb(243 244 246);
+  }
+
+  .dark body {
+    background-color: rgb(17 24 39);
   }
 }
 
@@ -34,7 +38,8 @@
   }
   
   .vivid-gradient-text {
-    @apply text-transparent bg-clip-text;
+    color: transparent;
+    background-clip: text;
     background-image: linear-gradient(to right, var(--primary-color), var(--accent-color));
   }
 }
@@ -59,9 +64,9 @@
   
   /* 背景 */
   --content-bg: #F8FAFC;
-  --sidebar-bg: #FFFFFF;
-  --header-bg: #FFFFFF;
-  --footer-bg: #FFFFFF;
+  --sidebar-bg: #FFF;
+  --header-bg: #FFF;
+  --footer-bg: #FFF;
   
   /* 文本颜色 */
   --text-color: #0F172A;
@@ -76,11 +81,11 @@
   --tag-bg: #F1F5F9;
   --tag-active-bg: #0F172A;
   --tag-text: #334155;
-  --tag-active-text: #FFFFFF;
+  --tag-active-text: #FFF;
   
   /* 卡片 */
-  --card-bg: #FFFFFF;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --card-bg: #FFF;
+  --card-shadow: 0 1px 3px rgb(0 0 0 / 10%), 0 1px 2px rgb(0 0 0 / 6%);
   --card-border: #E2E8F0;
   
   /* 过渡动画 */
@@ -112,11 +117,11 @@
   --tag-bg: #1E293B;
   --tag-active-bg: #3B82F6;
   --tag-text: #E2E8F0;
-  --tag-active-text: #FFFFFF;
+  --tag-active-text: #FFF;
   
   /* 卡片 */
   --card-bg: #1E293B;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --card-shadow: 0 1px 3px rgb(0 0 0 / 30%), 0 1px 2px rgb(0 0 0 / 20%);
   --card-border: #334155;
 }
 
@@ -182,7 +187,7 @@
 
 .video-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -2px rgb(0 0 0 / 5%);
 }
 
 /* 主题过渡动画 */
@@ -192,12 +197,12 @@
 
 /* 强化搜索框样式 */
 .theme-search-bar input {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
   font-size: 16px;
 }
 
 .theme-search-bar input:focus {
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 20%);
 }
 
 /* 底部组件 */
@@ -210,14 +215,14 @@
 
 /* 视频标题和描述文字样式 */
 .theme-video-title {
-  color: #000000 !important;
+  color: #000 !important;
 }
 
 .theme-video-text {
-  color: #000000 !important;
+  color: #000 !important;
 }
 
 :root.dark .theme-video-title,
 :root.dark .theme-video-text {
-  color: #ffffff !important;
+  color: #fff !important;
 } 

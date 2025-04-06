@@ -1,11 +1,3 @@
-import type { User, AuthResponse, ApiResponse } from '@/types';
-import { faker } from '@faker-js/faker';
-import { zh_CN } from '@faker-js/faker/locale/zh_CN';
-import type { Channel, Playlist } from '@/types';
-
-// 设置中文语言
-faker.setDefaultLocale(zh_CN);
-
 // 用户相关类型
 export interface User {
   id: string;
@@ -90,15 +82,6 @@ export interface Notification {
   relatedVideoId?: string;
 }
 
-// 评论相关类型
-export interface Comment {
-  id: string;
-  content: string;
-  likes: number;
-  createdAt: string;
-  author: Author;
-}
-
 // 标签相关类型
 export interface Tag {
   id: string;
@@ -146,39 +129,6 @@ export interface ApiError {
   status?: number;
 }
 
-// 导出其他类型
-export * from './video';
-export * from './tags';
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
-
-// 视频服务类型
-export interface VideoService {
-  getVideos(
-    page: number,
-    limit: number,
-    tag?: string
-  ): Promise<{
-    videos: Video[];
-    hasMore: boolean;
-  }>;
-  getVideoById(id: string): Promise<Video>;
-  getVideosByUser(
-    userId: string,
-    page?: number,
-    limit?: number
-  ): Promise<{
-    videos: Video[];
-    hasMore: boolean;
-  }>;
-}
-
 // 作者相关类型
 export interface Author {
   id: string;
@@ -207,4 +157,26 @@ export interface Danmaku {
   color: string;
   type: 'top' | 'bottom' | 'scroll';
   userId: string;
+}
+
+// 导出其他类型
+export * from './video';
+export * from './tags';
+export * from './comment';
+
+export interface TrendingItem {
+  id: string;
+  title: string;
+  views: number;
+  likes: number;
+  author: {
+    id: string;
+    nickname: string;
+    avatar: string;
+  };
+}
+
+export interface Category {
+  id: string;
+  name: string;
 }

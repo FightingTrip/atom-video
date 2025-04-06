@@ -13,6 +13,12 @@ const config = {
     ],
     'declaration-block-trailing-semicolon': null,
     'no-descending-specificity': null,
+    'comment-empty-line-before': null,
+    'declaration-empty-line-before': null,
+    'at-rule-no-deprecated': null,
+    'color-hex-length': 'short',
+    'color-function-notation': 'modern',
+    'alpha-value-notation': 'percentage',
     'property-no-unknown': [
       true,
       {

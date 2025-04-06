@@ -47,7 +47,68 @@
 </script>
 
 <style scoped>
-  .n-dropdown-option {
-    padding: 8px 12px !important;
+  .language-selector {
+    position: relative;
+  }
+
+  .selector-trigger {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-normal);
+    color: var(--text-primary);
+  }
+
+  .selector-trigger:hover {
+    background-color: var(--tertiary-bg);
+  }
+
+  .language-icon {
+    font-size: var(--text-xl);
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--spacing-sm);
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    min-width: 150px;
+    z-index: 50;
+  }
+
+  .language-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color var(--transition-normal);
+  }
+
+  .language-option:hover {
+    background-color: var(--tertiary-bg);
+  }
+
+  .language-option.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .language-option.disabled:hover {
+    background-color: transparent;
+  }
+
+  @media (max-width: 768px) {
+    .language-text {
+      display: none;
+    }
   }
 </style>

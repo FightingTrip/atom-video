@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 import { createRouter, createWebHistory } from 'vue-router';
-import Upload from '@/views/video/Upload.vue';
-import VideoDetail from '@/views/video/VideoDetail.vue';
-import VideoList from '@/views/video/VideoList.vue';
+import Upload from '@/pages/video/Upload.vue';
+import VideoDetail from '@/pages/video/VideoDetail.vue';
+import VideoList from '@/pages/video/VideoList.vue';
 import { useVideoStore } from '@/stores/video';
 import { useAuthStore } from '@/stores/auth';
 

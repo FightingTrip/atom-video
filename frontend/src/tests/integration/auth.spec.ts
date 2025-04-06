@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 import { createRouter, createWebHistory } from 'vue-router';
-import Login from '@/views/auth/Login.vue';
-import Register from '@/views/auth/Register.vue';
-import ForgotPassword from '@/views/auth/ForgotPassword.vue';
-import ResetPassword from '@/views/auth/ResetPassword.vue';
+import Login from '@/pages/auth/Login.vue';
+import Register from '@/pages/auth/Register.vue';
+import ForgotPassword from '@/pages/auth/ForgotPassword.vue';
+import ResetPassword from '@/pages/auth/ResetPassword.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const router = createRouter({
