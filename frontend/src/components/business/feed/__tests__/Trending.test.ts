@@ -177,4 +177,6 @@ describe('Trending', () => {
     expect(videoStore.fetchTrendingVideos).toHaveBeenCalledWith({
       page: 1,
       pageSize: 20,
- 
+    });
+  });
+}); 

@@ -12,9 +12,13 @@ import i18n from './plugins/i18n';
 import setupNaiveUI from './plugins/naive-ui';
 
 // 导入样式
+import './style.css';
 import './styles/variables.css';
-import './styles/main.css';
+import './styles/index.css';
 import './styles/tailwind.css';
+import './styles/theme.css';
+import './styles/components.css';
+import '@/styles/index.scss';
 
 const app = createApp(App);
 const pinia = createPinia();

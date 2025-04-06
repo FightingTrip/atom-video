@@ -9,57 +9,57 @@
   <div class="explore-section">
     <!-- 分类标签 -->
     <div class="category-tabs">
-      <n-tabs type="line" animated @update:value="handleCategoryChange">
-        <n-tab-pane v-for="category in categories" :key="category.id" :name="category.id" :tab="category.name">
-          <div class="category-content">
-            <!-- 视频网格 -->
-            <div class="video-grid">
-              <div v-for="video in videos" :key="video.id" class="video-card" @click="handleVideoClick(video)">
-                <div class="video-thumbnail">
-                  <img :src="video.thumbnail" :alt="video.title" class="thumbnail-image" />
-                  <div class="video-duration">{{ formatDuration(video.duration) }}</div>
+      <div class="tabs-container">
+        <button v-for="category in categories" :key="category.id" class="tab-button"
+          :class="{ active: currentCategoryId === category.id }" @click="handleCategoryChange(category.id)">
+          {{ category.name }}
+        </button>
+      </div>
+
+      <div class="category-content">
+        <!-- 视频网格 -->
+        <div class="video-grid">
+          <div v-for="video in videos" :key="video.id" class="video-card" @click="handleVideoClick(video)">
+            <div class="video-thumbnail">
+              <img :src="video.thumbnail" :alt="video.title" class="thumbnail-image" />
+              <div class="video-duration">{{ formatDuration(video.duration) }}</div>
+            </div>
+            <div class="video-info">
+              <h3 class="video-title">{{ video.title }}</h3>
+              <div class="video-meta">
+                <div class="author-info">
+                  <img :src="video.author.avatar" class="author-avatar" />
+                  <span class="author-name">{{ video.author.nickname }}</span>
                 </div>
-                <div class="video-info">
-                  <h3 class="video-title">{{ video.title }}</h3>
-                  <div class="video-meta">
-                    <div class="author-info">
-                      <n-avatar round :size="24" :src="video.author.avatar" class="author-avatar" />
-                      <span class="author-name">{{ video.author.nickname }}</span>
-                    </div>
-                    <div class="video-stats">
-                      <span class="stat-item">
-                        <n-icon>
-                          <EyeOutline />
-                        </n-icon>
-                        {{ formatNumber(video.views) }}
-                      </span>
-                      <span class="stat-item">
-                        <n-icon>
-                          <HeartOutline />
-                        </n-icon>
-                        {{ formatNumber(video.likes) }}
-                      </span>
-                    </div>
-                  </div>
+                <div class="video-stats">
+                  <span class="stat-item">
+                    <span class="icon">👁️</span>
+                    {{ formatNumber(video.views) }}
+                  </span>
+                  <span class="stat-item">
+                    <span class="icon">❤️</span>
+                    {{ formatNumber(video.likes) }}
+                  </span>
                 </div>
               </div>
             </div>
-
-            <!-- 加载更多 -->
-            <div v-if="hasMore" ref="loadMoreRef" class="load-more">
-              <n-spin v-if="loading" />
-              <n-button v-else text @click="handleLoadMore" class="load-more-button">
-                加载更多
-              </n-button>
-            </div>
-
-            <!-- 空状态 -->
-            <div v-else-if="!loading && videos.length === 0" class="empty-state">
-              <n-empty :description="`暂无${currentCategory?.name || ''}视频`" />
-            </div>
           </div>
-        </n-tab-pane>
-      </n-tabs>
+        </div>
+
+        <!-- 加载更多 -->
+        <div v-if="hasMore" class="load-more">
+          <div v-if="loading" class="loading-spinner"></div>
+          <button v-else class="load-more-button" @click="handleLoadMore">
+            加载更多
+          </button>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else-if="!loading && videos.length === 0" class="empty-state">
+          <div class="empty-icon">📺</div>
+          <p class="empty-text">暂无{{ currentCategory?.name || '' }}视频</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -67,10 +67,25 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import { useIntersectionObserver } from '@vueuse/core';
-  import { NTabs, NTabPane, NButton, NAvatar, NIcon, NSpin, NEmpty } from 'naive-ui';
-  import { EyeOutline, HeartOutline } from '@vicons/ionicons5';
-  import type { Video, Category } from '@/types';
+
+  interface Video {
+    id: string;
+    title: string;
+    thumbnail: string;
+    duration: number;
+    views: number;
+    likes: number;
+    author: {
+      id: string;
+      nickname: string;
+      avatar: string;
+    }
+  }
+
+  interface Category {
+    id: string;
+    name: string;
+  }
 
   const router = useRouter();
   const loading = ref(false);
@@ -96,20 +111,6 @@
     return categories.value.find(c => c.id === currentCategoryId.value);
   });
 
-  // 加载更多元素引用
-  const loadMoreRef = ref<HTMLElement | null>(null);
-
-  // 设置交叉观察
-  useIntersectionObserver(
-    loadMoreRef,
-    ([{ isIntersecting }]) => {
-      if (isIntersecting && !loading.value && hasMore.value) {
-        handleLoadMore();
-      }
-    },
-    { threshold: 0.5 }
-  );
-
   // 格式化数字
   const formatNumber = (num: number) => {
     if (num >= 10000) {
@@ -129,11 +130,26 @@
   const fetchVideos = async () => {
     loading.value = true;
     try {
-      // TODO: 实现获取分类视频的API调用
-      const result = await fetch(`/api/videos/category/${currentCategoryId.value}?page=${currentPage.value}`);
-      const data = await result.json();
-      videos.value.push(...data.videos);
-      hasMore.value = data.hasMore;
+      // 模拟API调用
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // 模拟数据
+      const mockVideos: Video[] = Array(8).fill(0).map((_, index) => ({
+        id: `video-${currentCategoryId.value}-${currentPage.value}-${index}`,
+        title: `${currentCategory.value?.name || ''}视频标题 ${currentPage.value}-${index}`,
+        thumbnail: `https://picsum.photos/seed/${currentCategoryId.value}${currentPage.value}${index}/400/225`,
+        duration: Math.floor(Math.random() * 600),
+        views: Math.floor(Math.random() * 100000),
+        likes: Math.floor(Math.random() * 10000),
+        author: {
+          id: `author-${index % 5}`,
+          nickname: `创作者 ${index % 5}`,
+          avatar: `https://i.pravatar.cc/150?u=${currentCategoryId.value}${index % 5}`,
+        }
+      }));
+
+      videos.value = currentPage.value === 1 ? mockVideos : [...videos.value, ...mockVideos];
+      hasMore.value = currentPage.value < 3; // 模拟只有3页数据
     } catch (error) {
       console.error('获取分类视频失败:', error);
     } finally {
@@ -173,35 +189,58 @@
   .explore-section {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-lg);
+    gap: 20px;
+    padding: 20px;
   }
 
   .category-tabs {
-    background-color: var(--secondary-bg);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-md);
+    background-color: var(--color-bg-surface);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .tabs-container {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 8px;
+  }
+
+  .tab-button {
+    padding: 8px 16px;
+    border: none;
+    background-color: var(--color-bg-subtle);
+    color: var(--color-text-secondary);
+    border-radius: 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s, color 0.2s;
+  }
+
+  .tab-button.active {
+    background-color: var(--color-accent-primary);
+    color: white;
   }
 
   .category-content {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-lg) 0;
+    gap: 24px;
   }
 
   .video-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--spacing-lg);
+    gap: 24px;
   }
 
   .video-card {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: 12px;
     cursor: pointer;
-    transition: transform var(--transition-normal);
+    transition: transform 0.2s;
   }
 
   .video-card:hover {
@@ -211,7 +250,7 @@
   .video-thumbnail {
     position: relative;
     aspect-ratio: 16 / 9;
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     overflow: hidden;
   }
 
@@ -223,25 +262,25 @@
 
   .video-duration {
     position: absolute;
-    bottom: var(--spacing-xs);
-    right: var(--spacing-xs);
+    bottom: 8px;
+    right: 8px;
     padding: 2px 4px;
     background-color: rgba(0, 0, 0, 0.8);
-    color: var(--text-inverse);
-    font-size: var(--text-xs);
-    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 12px;
+    border-radius: 4px;
   }
 
   .video-info {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 8px;
   }
 
   .video-title {
-    font-size: var(--text-base);
+    font-size: 16px;
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--color-text-primary);
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -252,305 +291,103 @@
   .video-meta {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 4px;
   }
 
   .author-info {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: 8px;
+  }
+
+  .author-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
   }
 
   .author-name {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+    font-size: 14px;
+    color: var(--color-text-secondary);
   }
 
   .video-stats {
     display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
+    gap: 12px;
   }
 
   .stat-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  .icon {
+    font-size: 14px;
   }
 
   .load-more {
     display: flex;
     justify-content: center;
-    padding: var(--spacing-md) 0;
+    margin-top: 24px;
+  }
+
+  .loading-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--color-accent-primary);
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .load-more-button {
-    color: var(--primary-color);
-    background: none;
-    border: none;
-    transition: color var(--transition-normal);
+    padding: 8px 24px;
+    background-color: transparent;
+    border: 1px solid var(--color-border-primary);
+    color: var(--color-text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
   }
 
   .load-more-button:hover {
-    color: var(--primary-color-dark);
+    background-color: var(--color-bg-subtle);
   }
 
   .empty-state {
-    <div class="explore">< !-- 搜索和筛选区域 --><section class="filter-section"><SearchBar v-model="searchQuery" placeholder="搜索视频、用户或标签"@search="handleSearch" /><FilterPanel :categories="categories" :tags="popularTags"@filter="handleFilter" /></section>< !-- 视频网格 --><section class="video-grid"><VideoCard v-for="video in videos" :key="video.id" :video="video"@click="handleVideoClick(video)" /></section>< !-- 加载更多按钮 --><div v-if="hasMore" class="load-more"><Button :loading="loading"@click="loadMore">加载更多 </Button></div>< !-- 加载状态 --><div v-if="loading && !videos.length" class="loading-container"><LoadingSpinner /></div>< !-- 错误提示 --><div v-if="error" class="error-container"><ErrorMessage :message="error" /></div>< !-- 空状态 --><div v-if="!loading && !error && !videos.length" class="empty-container"><EmptyState message="暂无视频" /></div></div></template><script setup lang="ts">import {
-      ref,
-      onMounted
-    }
-
-    from 'vue';
-
-    import {
-      useRouter
-    }
-
-    from 'vue-router';
-
-    import {
-      useVideo
-    }
-
-    from '@/composables/useVideo';
-
-    import {
-      useCategory
-    }
-
-    from '@/composables/useCategory';
-
-    import {
-      useTag
-    }
-
-    from '@/composables/useTag';
-    import SearchBar from '@/components/common/search/SearchBar.vue';
-    import FilterPanel from '@/components/common/filter/FilterPanel.vue';
-    import VideoCard from '@/components/common/video/VideoCard.vue';
-    import Button from '@/components/common/button/Button.vue';
-    import LoadingSpinner from '@/components/common/loading/LoadingSpinner.vue';
-    import ErrorMessage from '@/components/common/feedback/ErrorMessage.vue';
-    import EmptyState from '@/components/common/feedback/EmptyState.vue';
-
-    import type {
-      Video,
-      Category,
-      Tag
-    }
-
-    from '@/types';
-
-    const router=useRouter();
-
-    // 状态
-    const loading=ref(false);
-    const error=ref<string | null>(null);
-    const videos=ref<Video[]>([]);
-    const categories=ref<Category[]>([]);
-    const popularTags=ref<Tag[]>([]);
-    const searchQuery=ref('');
-    const currentPage=ref(1);
-    const hasMore=ref(true);
-
-    // 组合式函数
-    const {
-      fetchVideos
-    }
-
-    =useVideo();
-
-    const {
-      fetchCategories
-    }
-
-    =useCategory();
-
-    const {
-      fetchPopularTags
-    }
-
-    =useTag();
-
-    // 方法
-    const handleSearch=async ()=> {
-      try {
-        loading.value=true;
-        error.value=null;
-        currentPage.value=1;
-        videos.value=[];
-        hasMore.value=true;
-
-        const result=await fetchVideos({
-          page: 1,
-          pageSize: 12,
-          query: searchQuery.value,
-        });
-
-      videos.value=result;
-      hasMore.value=result.length===12;
-    }
-
-    catch (err) {
-      error.value='搜索失败';
-      console.error('搜索失败:', err);
-    }
-
-    finally {
-      loading.value=false;
-    }
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 0;
+    color: var(--color-text-muted);
   }
 
-  ;
-
-  const handleFilter=async (filters: {
-      categories?: string[];
-      tags?: string[];
-
-    })=> {
-    try {
-      loading.value=true;
-      error.value=null;
-      currentPage.value=1;
-      videos.value=[];
-      hasMore.value=true;
-
-      const result=await fetchVideos({
-        page: 1,
-        pageSize: 12,
-        ...filters,
-      });
-
-    videos.value=result;
-    hasMore.value=result.length===12;
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
   }
 
-  catch (err) {
-    error.value='筛选失败';
-    console.error('筛选失败:', err);
+  .empty-text {
+    font-size: 16px;
   }
 
-  finally {
-    loading.value=false;
-  }
-}
-
-;
-
-const loadMore=async ()=> {
-  if (loading.value || !hasMore.value) return;
-
-  try {
-    loading.value=true;
-    error.value=null;
-    currentPage.value++;
-
-    const result=await fetchVideos({
-      page: currentPage.value,
-      pageSize: 12,
-      query: searchQuery.value,
-    });
-
-  videos.value.push(...result);
-  hasMore.value=result.length===12;
-}
-
-catch (err) {
-  error.value='加载更多失败';
-  console.error('加载更多失败:', err);
-}
-
-finally {
-  loading.value=false;
-}
-}
-
-;
-
-const handleVideoClick=(video: Video)=> {
-  router.push(`/video/$ {
-      video.id
+  @media (max-width: 768px) {
+    .video-grid {
+      grid-template-columns: 1fr;
     }
-
-    `);
-}
-
-;
-
-// 初始化
-onMounted(async ()=> {
-    try {
-      loading.value=true;
-      error.value=null;
-
-      // 并行加载数据
-      const [videosData, categoriesData, tagsData]=await Promise.all([ fetchVideos({
-          page: 1, pageSize: 12
-        }),
-      fetchCategories(),
-      fetchPopularTags(),
-      ]);
-
-    videos.value=videosData;
-    categories.value=categoriesData;
-    popularTags.value=tagsData;
-    hasMore.value=videosData.length===12;
   }
-
-  catch (err) {
-    error.value='加载数据失败';
-    console.error('加载数据失败:', err);
-  }
-
-  finally {
-    loading.value=false;
-  }
-});
-
-</script><style scoped>.explore {
-  padding: 2rem;
-}
-
-.filter-section {
-  margin-bottom: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.load-more {
-  display: flex;
-  justify-content: center;
-  margin-top: 2rem;
-}
-
-.loading-container,
-.error-container,
-.empty-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-@media (max-width: 768px) {
-  .explore {
-    padding: 1rem;
-  }
-
-  .video-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1rem;
-  }
-}
 </style>
