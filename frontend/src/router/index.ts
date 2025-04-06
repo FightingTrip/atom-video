@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth';
 const routes = [
   {
     path: '/',
-    component: () => import('@/components/layout/DefaultLayout.vue'),
+    component: () => import('@/layouts/DefaultLayout.vue'),
     children: [
       {
         path: '',
@@ -150,7 +150,7 @@ const routes = [
   },
   {
     path: '/auth',
-    component: () => import('@/components/layout/BlankLayout.vue'),
+    component: () => import('@/layouts/BlankLayout.vue'),
     children: [
       {
         path: '',
