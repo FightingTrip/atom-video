@@ -53,11 +53,78 @@
 - 采用workspace协议引用内部依赖 (`"@atom/shared-types": "workspace:*"`)
 - 使用`.npmrc`配置确保一致的安装行为
 
+#### pnpm配置详情
+
+项目的`.npmrc`文件配置如下：
+
+```
+engine-strict=true
+auto-install-peers=true
+shamefully-hoist=true
+strict-peer-dependencies=false
+shell-emulator=true
+node-linker=hoisted
+public-hoist-pattern[]=*eslint*
+public-hoist-pattern[]=*prettier*
+link-workspace-packages=true
+
+# 保持pnpm-lock.yaml稳定
+save-prefix=""
+
+# 包管理兼容性
+use-node-version=18.0.0
+prefer-workspace-packages=true
+
+# 安全设置
+audit=false
+
+# 缓存设置
+cache-dir=./.pnpm-store
+store-dir=./.pnpm-store
+```
+
+这些配置确保：
+- `node-linker=hoisted`: 使用提升模式，提高与其他包管理器的兼容性
+- `public-hoist-pattern[]`: 将ESLint和Prettier相关包提升到根目录，避免重复安装
+- `prefer-workspace-packages`: 优先使用工作区内的包版本
+
 ### 包设计原则
 
 - **共享类型**：在`packages/shared-types`中定义跨项目共享的TypeScript类型
 - **共享配置**：在`packages/eslint-config`和`packages/tsconfig`中维护公共配置
 - **工具包**：将通用工具函数或组件抽象为独立包
+
+#### 实现的共享包
+
+目前项目已实现以下共享包：
+
+1. **@atom/shared-types**: 共享TypeScript类型定义
+   ```
+   shared-types/
+   ├── api/               # API相关类型
+   ├── models/            # 数据模型类型
+   ├── utils/             # 工具类型
+   ├── index.d.ts         # 类型导出
+   └── package.json
+   ```
+
+2. **@atom/eslint-config**: 共享ESLint配置
+   ```
+   eslint-config/
+   ├── index.js           # 基础配置
+   ├── vue.js             # Vue项目配置
+   ├── node.js            # Node.js项目配置
+   └── package.json
+   ```
+
+3. **@atom/tsconfig**: 共享TypeScript配置
+   ```
+   tsconfig/
+   ├── base.json          # 基础配置
+   ├── vue-app.json       # Vue应用配置
+   ├── node.json          # Node.js应用配置
+   └── package.json
+   ```
 
 ### 版本管理
 
@@ -65,11 +132,73 @@
 - 内部包采用工作区引用而非版本号
 - 对外部依赖设置版本范围限制
 
+#### 根目录package.json配置
+
+```json
+{
+  "name": "atom-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.4",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:mock": "pnpm --filter frontend dev:mock",
+    "dev:backend": "pnpm --filter backend dev",
+    "build": "pnpm -r --sequential build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "pnpm --filter backend build",
+    "lint": "pnpm -r --parallel lint",
+    "test": "pnpm -r test"
+    // 其他脚本...
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "vue": "3"
+      }
+    },
+    "overrides": {
+      "vue": "^3.4.15"
+    }
+  }
+}
+```
+
 ### 构建和测试
 
 - 使用快捷命令：`pnpm -r build`、`pnpm -r --parallel test`
 - 使用过滤器选择特定包：`pnpm --filter frontend build`
 - 将公共配置集中管理
+
+#### 常用命令示例
+
+```bash
+# 开发所有项目
+pnpm dev
+
+# 仅开发前端
+pnpm dev:frontend
+
+# 构建所有项目
+pnpm build
+
+# 测试所有项目
+pnpm test
+
+# 清理依赖和构建产物
+pnpm clean
+```
 
 ## Git工作流
 
@@ -101,6 +230,41 @@
 - `refactor`: 重构代码
 - `test`: 测试相关
 - `chore`: 构建过程或辅助工具变动
+
+#### Commitlint配置
+
+项目使用`commitlint.config.cjs`文件进行提交信息验证：
+
+```javascript
+module.exports = {
+  extends: ['@commitlint/config-conventional'],
+  rules: {
+    'type-enum': [
+      2,
+      'always',
+      [
+        'feat',     // 新功能
+        'fix',      // 修复bug
+        'docs',     // 文档更新
+        'style',    // 代码格式调整
+        'refactor', // 重构
+        'test',     // 测试相关
+        'chore',    // 构建过程或辅助工具的变动
+        'revert',   // 回滚
+        'perf',     // 性能优化
+        'ci',       // CI配置
+        'build'     // 构建相关
+      ]
+    ],
+    'type-case': [2, 'always', 'lower-case'],
+    'type-empty': [2, 'never'],
+    'scope-case': [2, 'always', 'lower-case'],
+    'subject-empty': [2, 'never'],
+    'subject-case': [2, 'always', 'lower-case'],
+    'header-max-length': [2, 'always', 100]
+  }
+};
+```
 
 ### 代码审查流程
 

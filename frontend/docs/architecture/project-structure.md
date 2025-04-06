@@ -2,7 +2,70 @@
 
 本文档详细描述 Atom 前端项目的目录结构和文件组织方式，为开发团队提供清晰的代码导航指南。
 
-## 1. 项目目录结构
+## 1. Monorepo 结构
+
+Atom Video 项目采用 Monorepo 架构，主要目录结构如下：
+
+```
+atom-video/
+├── frontend/           # 前端项目
+├── backend/            # 后端项目
+├── packages/           # 共享包
+│   ├── eslint-config/  # 共享ESLint配置
+│   ├── shared-types/   # 共享TypeScript类型
+│   └── tsconfig/       # 共享TypeScript配置
+├── .husky/             # Git hooks 配置
+├── .vscode/            # VS Code 编辑器配置
+├── .npmrc              # pnpm 配置
+├── package.json        # 工作区配置
+└── tsconfig.json       # 根 TypeScript 配置
+```
+
+### 1.1 共享包目录
+
+#### 1.1.1 `packages/eslint-config/`
+
+共享的 ESLint 配置，包含：
+
+```
+eslint-config/
+├── index.js           # 基础配置
+├── vue.js             # Vue项目配置
+├── node.js            # Node.js项目配置
+└── package.json       # 包配置
+```
+
+#### 1.1.2 `packages/shared-types/`
+
+共享的 TypeScript 类型定义，包含：
+
+```
+shared-types/
+├── api/               # API相关类型
+│   ├── index.d.ts     # API基础类型
+│   ├── user.d.ts      # 用户API类型
+│   └── video.d.ts     # 视频API类型
+├── models/            # 数据模型类型
+│   └── index.d.ts     # 模型基础类型
+├── utils/             # 工具类型
+│   └── index.d.ts     # 工具函数类型
+├── index.d.ts         # 类型导出
+└── package.json       # 包配置
+```
+
+#### 1.1.3 `packages/tsconfig/`
+
+共享的 TypeScript 配置，包含：
+
+```
+tsconfig/
+├── base.json          # 基础配置
+├── vue-app.json       # Vue应用配置
+├── node.json          # Node.js应用配置
+└── package.json       # 包配置
+```
+
+## 2. 前端项目目录结构
 
 ```
 frontend/
@@ -33,11 +96,10 @@ frontend/
 ├── tests/              # 测试目录
 │   ├── e2e/            # 端到端测试
 │   └── unit/           # 单元测试
-├── .browserslistrc     # 浏览器兼容性配置
 ├── .env                # 环境变量
 ├── .env.development    # 开发环境变量
 ├── .env.production     # 生产环境变量
-├── .eslintrc.js        # ESLint 配置
+├── eslint.config.js    # ESLint 配置
 ├── .gitignore          # Git 忽略文件
 ├── index.html          # HTML 模板
 ├── package.json        # 项目依赖配置
@@ -46,9 +108,9 @@ frontend/
 └── README.md           # 项目说明
 ```
 
-## 2. 关键目录详解
+## 3. 关键目录详解
 
-### 2.1 `src/components/`
+### 3.1 `src/components/`
 
 组件目录采用分层组织，包含以下子目录：
 
@@ -89,7 +151,7 @@ Button/
 └── index.ts            # 导出文件
 ```
 
-### 2.2 `src/composables/`
+### 3.2 `src/composables/`
 
 组合式函数按功能领域组织：
 
@@ -107,7 +169,7 @@ composables/
 └── ...
 ```
 
-### 2.3 `src/pages/`
+### 3.3 `src/pages/`
 
 页面组件按功能模块组织：
 
@@ -125,7 +187,7 @@ pages/
 └── ...
 ```
 
-### 2.4 `src/services/`
+### 3.4 `src/services/`
 
 API 服务按业务领域组织：
 
@@ -141,7 +203,7 @@ services/
 └── ...
 ```
 
-### 2.5 `src/stores/`
+### 3.5 `src/stores/`
 
 状态管理按业务模块组织：
 
@@ -153,7 +215,7 @@ stores/
 └── ...
 ```
 
-### 2.6 `src/styles/`
+### 3.6 `src/styles/`
 
 全局样式文件组织：
 
@@ -166,7 +228,7 @@ styles/
 └── variables.css      # CSS 变量定义
 ```
 
-## 3. 文件命名规范
+## 4. 文件命名规范
 
 项目采用以下命名规范：
 
@@ -178,7 +240,7 @@ styles/
 | 样式文件 | kebab-case | `button-styles.css` |
 | 常量文件 | UPPER_CASE | `API_ENDPOINTS.ts` |
 
-## 4. 模块导入规范
+## 5. 模块导入规范
 
 模块导入顺序：
 
@@ -198,153 +260,41 @@ import { useRoute } from 'vue-router'
 import type { Video } from '@/types/video'
 
 // 项目内部模块导入
-import { videoService } from '@/services/video/videoService'
-import BaseButton from '@/components/base/Button/BaseButton.vue'
+import { videoService } from '@/services/video'
+import BaseButton from '@/components/base/Button'
 
 // 样式导入
-import '@/styles/components/video-player.css'
+import './styles.css'
 ```
 
-## 5. 别名路径配置
+## 6. 共享包依赖引用
 
-项目配置了以下路径别名以简化导入：
+在项目中引用共享包时，使用 workspace 协议：
 
-| 别名 | 路径 |
-|------|------|
-| `@` | `src/` |
-| `@components` | `src/components/` |
-| `@composables` | `src/composables/` |
-| `@services` | `src/services/` |
-| `@styles` | `src/styles/` |
-| `@utils` | `src/utils/` |
-
-使用示例：
-
-```typescript
-import BaseButton from '@components/base/Button/BaseButton.vue'
-import { useAuth } from '@composables/auth/useAuth'
-```
-
-## 6. 组件编写规范
-
-### 6.1 Vue 组件结构
-
-组件采用以下结构顺序：
-
-```vue
-<script setup lang="ts">
-// 1. 导入部分
-// 2. 类型定义
-// 3. Props 和 Emits 定义
-// 4. 变量声明
-// 5. 组合式函数调用
-// 6. 计算属性
-// 7. 监听器
-// 8. 生命周期钩子
-// 9. 方法定义
-</script>
-
-<template>
-  <!-- 模板部分 -->
-</template>
-
-<style scoped>
-/* 样式部分 */
-</style>
-```
-
-### 6.2 Props 定义规范
-
-```typescript
-// 推荐的 Props 定义方式
-const props = defineProps<{
-  title: string
-  count?: number
-  isActive?: boolean
-}>()
-
-// 带默认值的 Props
-withDefaults(defineProps<{
-  title: string
-  count?: number
-  isActive?: boolean
-}>(), {
-  count: 0,
-  isActive: false
-})
-```
-
-### 6.3 组合式函数规范
-
-```typescript
-// useUser.ts
-export function useUser() {
-  // 状态
-  const user = ref<User | null>(null)
-  
-  // 方法
-  const fetchUser = async (id: string) => {
-    // 实现...
-  }
-  
-  // 返回暴露的状态和方法
-  return {
-    user,
-    fetchUser
+```json
+{
+  "dependencies": {
+    "@atom/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@atom/eslint-config": "workspace:*",
+    "@atom/tsconfig": "workspace:*"
   }
 }
 ```
 
-## 7. 测试文件组织
+配置文件引用示例：
 
-### 7.1 单元测试
+```js
+// ESLint配置
+import vueConfig from '@atom/eslint-config/vue';
 
-```
-tests/unit/
-├── components/    # 组件测试
-├── composables/   # 组合式函数测试
-├── services/      # 服务测试
-└── utils/         # 工具函数测试
-```
-
-### 7.2 端到端测试
-
-```
-tests/e2e/
-├── fixtures/      # 测试数据
-├── specs/         # 测试规范
-└── support/       # 测试支持文件
+// tsconfig.json
+{
+  "extends": "@atom/tsconfig/vue-app.json"
+}
 ```
 
-## 8. 环境配置
-
-项目使用 `.env` 文件管理环境变量:
-
-- `.env` - 所有环境共享的变量
-- `.env.development` - 开发环境变量
-- `.env.production` - 生产环境变量
-
-环境变量命名规范：所有环境变量以 `VITE_` 前缀开头，使用大写字母和下划线。
-
-示例：
-
-```
-VITE_API_BASE_URL=https://api.example.com
-VITE_APP_VERSION=1.0.0
-```
-
-## 9. 资源管理
-
-静态资源组织方式：
-
-```
-assets/
-├── icons/         # 图标资源
-├── images/        # 图片资源
-├── fonts/         # 字体资源
-└── videos/        # 视频资源
-```
-
-## 10. 总结
+## 7. 总结
 
 Atom 前端项目采用清晰的目录结构和命名规范，确保代码组织的一致性和可维护性。开发人员应遵循本文档中的规范，确保项目结构的统一性。如需添加新的目录或变更组织方式，应先更新本文档并获得团队共识。 
