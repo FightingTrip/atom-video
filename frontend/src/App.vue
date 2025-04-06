@@ -1,146 +1,146 @@
 <!-- 
-  @file App.vue
-  @description 应用程序根组件
-  @created 2024-04-05
+  App.vue 
+  这是Vue应用的根组件，确保整个应用只有一个视图区域。
+  简化结构，移除任何可能导致双重头部和重复滚动条的嵌套布局。
 -->
 
+<template>
+  <n-config-provider :theme="theme" :theme-overrides="themeOverrides" :locale="locale" :date-locale="dateLocale">
+    <n-dialog-provider>
+      <n-notification-provider>
+        <n-message-provider>
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </n-message-provider>
+      </n-notification-provider>
+    </n-dialog-provider>
+  </n-config-provider>
+</template>
+
 <script setup lang="ts">
-  // 导入路由视图
-  import { RouterView, useRoute } from 'vue-router'
-  import { useI18n } from 'vue-i18n'
-
-  // 导入布局组件
-  import DefaultLayout from '@/layouts/DefaultLayout.vue'
-  import BlankLayout from '@/layouts/BlankLayout.vue'
-
-  // 导入功能组件
-  import Toast from '@/components/common/Toast.vue'
-  import ThemeToggle from '@/components/common/ThemeToggle.vue'
-
-  // 导入状态管理
+  import { computed, onMounted, ref } from 'vue'
   import { useThemeStore } from '@/stores/theme'
-  import { useI18nStore } from '@/stores/i18n'
-  import { useVideoStore } from '@/stores/video'
   import { useUserStore } from '@/stores/user'
+  import {
+    NConfigProvider,
+    NMessageProvider,
+    NNotificationProvider,
+    NDialogProvider,
+    darkTheme,
+    zhCN,
+    dateZhCN
+  } from 'naive-ui'
 
-  // 导入工具函数
-  import { computed, ref, onMounted, markRaw } from 'vue'
-  import { darkTheme, lightTheme } from 'naive-ui'
-
-  // 声明使用的组件
-  const components = {
-    RouterView,
-    Toast,
-    ThemeToggle
-  }
-
-  // 状态管理
-  const { t, locale } = useI18n()
-  const route = useRoute()
+  // 全局状态
   const themeStore = useThemeStore()
-  const i18nStore = useI18nStore()
-  const videoStore = useVideoStore()
   const userStore = useUserStore()
 
-  // 计算属性
-  const theme = computed(() => {
-    return themeStore.isDark ? darkTheme : lightTheme
-  })
+  // 主题计算
+  const theme = computed(() => themeStore.isDark ? darkTheme : null)
+  const themeOverrides = computed(() => themeStore.themeOverrides)
 
-  const sidebarCollapsed = ref(false)
-  const selectedTag = ref('all')
+  // 设置区域化
+  const locale = ref(zhCN)
+  const dateLocale = ref(dateZhCN)
 
-  const currentLanguageLabel = computed(() =>
-    i18nStore.currentLocale === 'zh-CN' ? '简体中文' : 'English'
-  )
+  onMounted(async () => {
+    try {
+      // 初始化主题
+      themeStore.initTheme()
 
-  // 语言选项
-  const languageOptions = [
-    {
-      label: '简体中文',
-      key: 'zh-CN',
-    },
-    {
-      label: 'English',
-      key: 'en-US',
-    }
-  ]
-
-  // 标签数据
-  const tags = [
-    { id: 'all', name: 'all' },
-    { id: 'javascript', name: 'javascript' },
-    { id: 'typescript', name: 'typescript' },
-    { id: 'vue', name: 'vue' },
-    { id: 'react', name: 'react' },
-    { id: 'nodejs', name: 'nodejs' },
-    { id: 'python', name: 'python' },
-  ]
-
-  // 方法
-  const handleLanguageChange = (key: string) => {
-    i18nStore.setLocale(key)
-  }
-
-  const toggleTheme = () => {
-    themeStore.toggleTheme()
-  }
-
-  const selectTag = (tagId: string) => {
-    selectedTag.value = tagId
-    videoStore.setCategory(tagId)
-  }
-
-  // 根据路由元数据选择布局
-  const layout = computed(() => {
-    const layoutName = route.meta.layout || 'default'
-    return markRaw(layoutName === 'blank' ? BlankLayout : DefaultLayout)
-  })
-
-  // 生命周期钩子
-  onMounted(() => {
-    i18nStore.initLocale()
-    themeStore.initTheme()
-    userStore.initUser()
-
-    // 设置初始语言
-    const savedLanguage = localStorage.getItem('language')
-    if (savedLanguage) {
-      i18nStore.setLocale(savedLanguage)
-      locale.value = savedLanguage
+      // 初始化用户
+      await userStore.initUser()
+    } catch (error) {
+      console.error('应用初始化失败', error)
     }
   })
 </script>
 
-<template>
-  <n-config-provider :theme="themeStore.theme" :theme-overrides="themeStore.themeOverrides">
-    <n-message-provider>
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
-        </transition>
-      </router-view>
-    </n-message-provider>
-  </n-config-provider>
-</template>
-
 <style>
-  @import '@fortawesome/fontawesome-free/css/all.min.css';
 
-  /* 滚动条样式 */
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  /* 全局CSS变量 */
+  :root {
+    /* 主题色 */
+    --primary-color: #3b82f6;
+    --primary-color-hover: #60a5fa;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --error-color: #ef4444;
+    --info-color: #6366f1;
+
+    /* 全局颜色 */
+    --bg-color: #ffffff;
+    --bg-color-secondary: #f9fafb;
+    --text-color: #18181b;
+    --text-color-secondary: #71717a;
+    --text-color-placeholder: #a1a1aa;
+    --border-color: #e5e7eb;
+    --hover-color: #f3f4f6;
+
+    /* 间距 */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+
+    /* 尺寸 */
+    --header-height: 56px;
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 72px;
+    --footer-height: 40px;
+
+    /* 动画 */
+    --transition-fast: 0.2s;
+    --transition-normal: 0.3s;
+    --transition-slow: 0.5s;
+
+    /* 字体 */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
+      'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  /* 深色主题 */
+  [data-theme="dark"] {
+    --bg-color: #18181b;
+    --bg-color-secondary: #27272a;
+    --text-color: #f4f4f5;
+    --text-color-secondary: #a1a1aa;
+    --text-color-placeholder: #71717a;
+    --border-color: #3f3f46;
+    --hover-color: #27272a;
+  }
+
+  /* 基础样式 */
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: var(--font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  #app {
+    height: 100%;
+    width: 100%;
   }
 
   /* 过渡动画 */
   .fade-enter-active,
   .fade-leave-active {
-    transition: opacity 0.2s ease;
+    transition: opacity var(--transition-fast) ease;
   }
 
   .fade-enter-from,
@@ -148,45 +148,7 @@
     opacity: 0;
   }
 
-  /* 自定义滚动条 */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--text-color-secondary);
-    border-radius: 3px;
-  }
-
-  /* 主题相关样式 */
-  .theme-title {
-    color: var(--text-color);
-    background: v-bind('themeStore.isDark ? "var(--primary-color)" : "var(--text-color)"');
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .theme-search-bar {
-    background-color: var(--bg-color);
-    border-color: var(--border-color);
-    transition: background-color var(--transition-duration),
-      border-color var(--transition-duration);
-  }
-
-  /* 全局基础样式 */
-  body {
-    font-family: var(--font-family);
-    color: var(--text-color);
-    background-color: var(--bg-color-secondary);
-    line-height: 1.5;
-    font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  .n-config-provider {
+    height: 100%;
   }
 </style>

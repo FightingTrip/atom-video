@@ -7,16 +7,21 @@
 
 <template>
   <div class="history-page">
-    <History />
+    <h1>历史记录页</h1>
+    <p>此页面正在开发中...</p>
   </div>
 </template>
 
 <script setup lang="ts">
-  import History from '@/components/business/library/History.vue'
+  import { onMounted } from 'vue';
+
+  onMounted(() => {
+    console.log('[HistoryPage] 组件已挂载');
+  });
 </script>
 
 <style scoped>
   .history-page {
-    min-height: 100vh;
+    padding: 20px;
   }
 </style>

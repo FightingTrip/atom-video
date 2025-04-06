@@ -7,16 +7,21 @@
 
 <template>
   <div class="library-page">
-    <Library />
+    <h1>收藏库页</h1>
+    <p>此页面正在开发中...</p>
   </div>
 </template>
 
 <script setup lang="ts">
-  import Library from '@/components/business/library/Library.vue'
+  import { onMounted } from 'vue';
+
+  onMounted(() => {
+    console.log('[LibraryPage] 组件已挂载');
+  });
 </script>
 
 <style scoped>
   .library-page {
-    min-height: 100vh;
+    padding: 20px;
   }
 </style>

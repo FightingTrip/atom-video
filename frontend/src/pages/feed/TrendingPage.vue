@@ -7,16 +7,21 @@
 
 <template>
   <div class="trending-page">
-    <Trending />
+    <h1>热门页</h1>
+    <p>此页面正在开发中...</p>
   </div>
 </template>
 
 <script setup lang="ts">
-  import Trending from '@/components/business/feed/Trending.vue'
+  import { onMounted } from 'vue';
+
+  onMounted(() => {
+    console.log('[TrendingPage] 组件已挂载');
+  });
 </script>
 
 <style scoped>
   .trending-page {
-    min-height: 100vh;
+    padding: 20px;
   }
 </style>

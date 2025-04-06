@@ -87,7 +87,87 @@ import {
   NLayoutContent,
   NLayoutFooter,
   NLayoutSider,
+  GlobalThemeOverrides,
+  NNotificationProvider,
 } from 'naive-ui';
+
+// 全局主题覆盖
+export const themeOverrides: GlobalThemeOverrides = {
+  common: {
+    primaryColor: '#3b82f6',
+    primaryColorHover: '#60a5fa',
+    primaryColorPressed: '#2563eb',
+    primaryColorSuppl: '#3b82f6',
+    borderRadius: '6px',
+  },
+  Button: {
+    textColor: '#374151',
+    textColorPrimary: '#ffffff',
+    textColorHoverPrimary: '#ffffff',
+    textColorPressedPrimary: '#ffffff',
+    textColorFocus: '#374151',
+    textColorHoverInfo: '#ffffff',
+    textColorHover: '#1f2937',
+    border: '1px solid #e5e7eb',
+    borderHover: '1px solid #d1d5db',
+    borderPrimary: '1px solid #3b82f6',
+    borderPrimaryHover: '1px solid #60a5fa',
+    borderPrimaryPressed: '1px solid #2563eb',
+    rippleColor: 'rgba(0, 0, 0, .06)',
+    borderInfo: '1px solid #8b5cf6',
+    borderInfoHover: '1px solid #a78bfa',
+    borderInfoPressed: '1px solid #7c3aed',
+    colorOpacitySecondary: '0.16',
+    colorOpacitySecondaryHover: '0.2',
+    colorOpacitySecondaryPressed: '0.12',
+  },
+  Card: {
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+    colorTarget: 'rgba(0, 0, 0, .06)',
+    titleFontWeight: '600',
+  },
+  Input: {
+    borderRadius: '6px',
+    heightLarge: '44px',
+    boxShadowFocus: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+    borderHover: '1px solid #3b82f6',
+    border: '1px solid #d1d5db',
+  },
+  Select: {
+    peers: {
+      InternalSelection: {
+        borderRadius: '6px',
+        heightLarge: '44px',
+        boxShadowFocus: '0 0 0 2px rgba(59, 130, 246, 0.2)',
+        borderHover: '1px solid #3b82f6',
+        border: '1px solid #d1d5db',
+      },
+    },
+  },
+  List: {
+    borderRadius: '10px',
+  },
+  Tabs: {
+    tabTextColorActiveLine: '#3b82f6',
+    barColor: '#3b82f6',
+  },
+  Menu: {
+    borderRadius: '6px',
+  },
+  Popover: {
+    color: '#ffffff',
+  },
+  Switch: {
+    railColorActive: '#3b82f6',
+  },
+  Avatar: {
+    borderRadius: '6px',
+  },
+  Tag: {
+    borderRadius: '4px',
+  },
+};
 
 const naive = create({
   components: [
@@ -178,6 +258,7 @@ export const setupNaiveUI = (app: App) => {
   app.component('NDialogProvider', NDialogProvider);
   app.component('NLoadingBarProvider', NLoadingBarProvider);
   app.component('NConfigProvider', NConfigProvider);
+  app.component('NNotificationProvider', NNotificationProvider);
 };
 
 export default setupNaiveUI;
