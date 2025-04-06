@@ -1,23 +1,19 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import userRoutes from './routes/user';
-import videoRoutes from './routes/video';
-import authRoutes from './routes/auth';
-import favoriteRoutes from './routes/favorite';
-import logger from './utils/logger';
-import passport from 'passport';
-import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import compression from 'compression';
-import { errorHandler } from './middleware/errorHandler';
-import { cacheMiddleware, clearCacheMiddleware } from './middleware/cache';
-import { cacheWarmupService } from './services/cacheWarmupService';
-import searchRoutes from './routes/search';
-import tagRoutes from './routes/tag';
+import rateLimit from 'express-rate-limit';
+import passport from 'passport';
+import routes from './routes';
+import { errorHandler } from './middleware/error.middleware';
+import { getPrismaClient } from './utils/db-helpers';
 
 // 加载环境变量
 dotenv.config();
+
+// 初始化Prisma客户端
+const prisma = getPrismaClient();
 
 const app = express();
 
@@ -40,10 +36,6 @@ app.use(limiter);
 // 认证中间件
 app.use(passport.initialize());
 
-// 缓存中间件
-app.use(cacheMiddleware());
-app.use(clearCacheMiddleware());
-
 // 健康检查
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
@@ -58,34 +50,30 @@ app.get('/', (req, res) => {
   });
 });
 
-// API 路由
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/videos', videoRoutes);
-app.use('/api', favoriteRoutes);
-app.use('/api/search', searchRoutes);
-app.use('/api/tags', tagRoutes);
+// 注册API路由
+app.use(routes);
 
 // 404处理
 app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
+  res.status(404).json({
+    code: 404,
+    message: 'Not Found',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // 错误处理中间件
 app.use(errorHandler);
 
-// 启动服务器
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
-  logger.info(`服务器启动在端口 ${PORT}`);
+// 进程关闭时断开数据库连接
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
 
-  // 执行缓存预热
-  try {
-    await cacheWarmupService.warmupAll();
-    logger.info('缓存预热完成');
-  } catch (error) {
-    logger.error('缓存预热失败:', error);
-  }
+process.on('SIGTERM', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
 });
 
 export default app;
