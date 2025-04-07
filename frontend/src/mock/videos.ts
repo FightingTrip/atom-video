@@ -14,17 +14,111 @@ export const videoCategories = [
   { id: 'java', name: 'Java', icon: 'fa-java' },
 ];
 
+// 技术视频标题和描述
+const techVideoTitles = [
+  {
+    category: 'javascript',
+    title: 'JavaScript高级编程技巧',
+    desc: '学习JavaScript高级特性和函数式编程模式，提升代码质量',
+  },
+  {
+    category: 'javascript',
+    title: 'ES6+新特性详解',
+    desc: '深入探讨ES6+带来的箭头函数、Promise、async/await等新特性',
+  },
+  {
+    category: 'typescript',
+    title: 'TypeScript高级类型系统',
+    desc: '掌握TypeScript的高级类型和类型操作，增强类型安全',
+  },
+  {
+    category: 'typescript',
+    title: '从零开始搭建TypeScript项目',
+    desc: '完整教程：配置、工具链和最佳实践',
+  },
+  {
+    category: 'vue',
+    title: 'Vue3组合式API指南',
+    desc: '深入学习Vue3组合式API的使用方法和实践技巧',
+  },
+  {
+    category: 'vue',
+    title: 'Pinia状态管理完全指南',
+    desc: '从基础到高级，全面掌握Vue生态系统的新一代状态管理',
+  },
+  {
+    category: 'react',
+    title: 'React Hooks深度剖析',
+    desc: '掌握React Hooks的工作原理和高级使用技巧',
+  },
+  {
+    category: 'react',
+    title: 'Next.js服务端渲染实战',
+    desc: '使用Next.js构建高性能React应用的完整指南',
+  },
+  {
+    category: 'angular',
+    title: 'Angular信号机制详解',
+    desc: '学习Angular的新一代状态管理和变更检测机制',
+  },
+  {
+    category: 'angular',
+    title: 'Angular模块化架构实践',
+    desc: '大型Angular应用的模块化设计和架构策略',
+  },
+  { category: 'nodejs', title: 'Node.js微服务架构', desc: '使用Node.js构建可扩展的微服务系统' },
+  {
+    category: 'nodejs',
+    title: 'Express与NestJS框架对比',
+    desc: '两大Node.js后端框架的深度对比与实践',
+  },
+  {
+    category: 'python',
+    title: 'FastAPI高性能后端开发',
+    desc: '使用Python FastAPI构建现代、高性能的后端服务',
+  },
+  {
+    category: 'python',
+    title: 'Python数据分析与可视化',
+    desc: '使用Pandas、NumPy和Matplotlib进行数据分析与可视化',
+  },
+  {
+    category: 'java',
+    title: 'Spring Boot微服务开发',
+    desc: '使用Spring Boot构建微服务架构的完整指南',
+  },
+  { category: 'java', title: 'Java 17新特性解析', desc: '深入了解Java最新版本的新特性和改进' },
+];
+
 // 生成模拟视频数据
-const generateMockVideos = (): Video[] => {
+export const generateMockVideos = (): Video[] => {
   const videos: Video[] = [];
 
   for (let i = 1; i <= 50; i++) {
-    const category = videoCategories[Math.floor(Math.random() * videoCategories.length)].id;
+    const randomTechVideo = techVideoTitles[Math.floor(Math.random() * techVideoTitles.length)];
+    const category = randomTechVideo.category;
+    const tags = [category];
+
+    // 添加更多相关标签
+    if (category === 'javascript') {
+      tags.push('前端开发', 'Web开发');
+    } else if (category === 'typescript') {
+      tags.push('静态类型', '前端开发');
+    } else if (category === 'vue' || category === 'react' || category === 'angular') {
+      tags.push('前端框架', 'UI开发');
+    } else if (category === 'nodejs') {
+      tags.push('后端开发', 'API开发');
+    } else if (category === 'python') {
+      tags.push('数据分析', '后端开发');
+    } else if (category === 'java') {
+      tags.push('企业级开发', '后端开发');
+    }
+
     videos.push({
       id: i.toString(),
-      title: `${category} 实战教程 ${i} - 专业技能提升课程`,
-      description: `这是一个关于 ${category} 的实战教程，帮助你提升开发技能`,
-      coverUrl: `https://picsum.photos/seed/video${i}/640/360`,
+      title: randomTechVideo.title,
+      description: randomTechVideo.desc,
+      coverUrl: `https://picsum.photos/seed/tech${i}/640/360`,
       duration: Math.floor(Math.random() * 3600), // 直接使用数字
       views: Math.floor(Math.random() * 100000), // 直接使用数字
       likes: Math.floor(Math.random() * 10000),
@@ -36,7 +130,7 @@ const generateMockVideos = (): Video[] => {
         avatar: `https://i.pravatar.cc/150?img=${i}`,
         verified: Math.random() > 0.5,
       },
-      tags: [category, '编程教程', '实战'],
+      tags: tags,
       category: category,
       isLiked: Math.random() > 0.5,
       isFavorited: Math.random() > 0.5,

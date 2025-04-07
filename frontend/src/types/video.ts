@@ -216,3 +216,28 @@ export interface VideoService {
     hasMore: boolean;
   }>;
 }
+
+// 视频相关类型
+export interface Video {
+  id: string;
+  title: string;
+  description?: string;
+  coverUrl?: string;
+  thumbnailUrl: string;
+  videoUrl?: string;
+  duration: number;
+  views: number;
+  likes?: number;
+  favorites?: number;
+  comments?: number;
+  createdAt?: string;
+  publishedAt: string;
+  author: {
+    id: string;
+    name: string;
+    nickname?: string;
+    avatar: string;
+    verified?: boolean;
+  };
+  tags?: string[];
+}

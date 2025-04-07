@@ -1,25 +1,30 @@
-import type { User, AuthResponse, ApiResponse } from '@/types';
+import type {
+  User as IUser,
+  AuthResponse as IAuthResponse,
+  ApiResponse as IApiResponse,
+} from '@/types';
 import { generateId } from '@/utils/format';
 import { faker } from '@faker-js/faker';
-import type { Channel, Playlist } from '@/types';
+import type { Channel as IChannel, Playlist as IPlaylist } from '@/types';
 
 // // 设置中文语言
 // faker.setLocale('zh_CN');
 
-// 定义类型
+// 本地使用的User接口，确保与types/index.ts中的定义兼容
 export interface User {
   id: string;
   username: string;
   email: string;
-  nickname: string;
+  nickname?: string;
   avatar: string;
-  bio: string;
-  verified: boolean;
-  subscribers: number;
-  subscribing: number;
-  totalViews: number;
-  joinedAt: string;
-  social: {
+  bio?: string;
+  verified?: boolean;
+  isVerified?: boolean; // 兼容现有代码
+  subscribers?: number;
+  subscribing?: number;
+  totalViews?: number;
+  joinedAt?: string;
+  social?: {
     website?: string;
     twitter?: string;
     github?: string;
@@ -27,6 +32,7 @@ export interface User {
   };
 }
 
+// 本地使用的Channel接口
 export interface Channel {
   id: string;
   userId: string;
@@ -36,6 +42,7 @@ export interface Channel {
   playlists: Playlist[];
 }
 
+// 本地使用的Playlist接口
 export interface Playlist {
   id: string;
   name: string;
@@ -76,6 +83,9 @@ const userPasswords = {
   'admin@example.com': 'admin123',
   'demo@example.com': 'demo123',
   'test@example.com': 'test123',
+  'admin@atomvideo.com': 'Admin@123',
+  'user@atomvideo.com': 'Password123',
+  'creator@atomvideo.com': 'Password123',
 };
 
 // 模拟token存储
@@ -86,11 +96,12 @@ export function generateId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-// API 响应类型
-export interface ApiResponse<T> {
+// API 响应类型 - 确保与types/index.ts兼容
+export interface ApiResponse<T = any> {
   success: boolean;
   data: T | null;
   error?: string;
+  message?: string;
 }
 
 // 认证响应类型
@@ -106,6 +117,30 @@ export async function login(data: {
 }): Promise<ApiResponse<AuthResponse>> {
   // 模拟网络延迟
   await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 添加测试账号支持
+  if (data.username.includes('@atomvideo.com') && userPasswords[data.username] === data.password) {
+    const username = data.username.split('@')[0];
+    const user: User = {
+      id: `test-user-${username}`,
+      username: username,
+      email: data.username,
+      avatar: `https://i.pravatar.cc/150?img=${username === 'admin' ? 1 : username === 'creator' ? 2 : 3}`,
+      isVerified: true,
+      nickname: username.charAt(0).toUpperCase() + username.slice(1),
+    };
+
+    const token = generateId();
+    tokens.set(user.id, token);
+
+    return {
+      success: true,
+      data: {
+        token,
+        user,
+      },
+    };
+  }
 
   // 检查是否是邮箱登录
   const isEmail = data.username.includes('@');

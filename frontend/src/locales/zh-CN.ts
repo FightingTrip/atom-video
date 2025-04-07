@@ -114,7 +114,7 @@ export default {
     username: '用户名',
     usernamePlaceholder: '请输入用户名',
     email: '邮箱',
-    emailPlaceholder: 'your.email@example.com',
+    emailPlaceholder: '请输入邮箱地址',
     password: '密码',
     passwordPlaceholder: '请输入密码',
     confirmPassword: '确认密码',

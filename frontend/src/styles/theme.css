@@ -14,6 +14,65 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 定义深色模式变量 */
+:root {
+  /* 轻量模式变量 */
+  --primary-bg: #ffffff;
+  --secondary-bg: #f8f9fa;
+  --tertiary-bg: #f1f3f5;
+  
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-tertiary: #868e96;
+  
+  --border-light: #e9ecef;
+  --border-medium: #dee2e6;
+  --border-dark: #ced4da;
+  
+  --accent-primary: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-active: #1d4ed8;
+  
+  --scrollbar-track: #f1f3f5;
+  --scrollbar-thumb: #adb5bd;
+  --scrollbar-thumb-hover: #868e96;
+  
+  /* 卡片特定变量 */
+  --card-bg: #ffffff;
+  --card-info-bg: #ffffff;
+  --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --card-border: #e9ecef;
+}
+
+/* 深色模式变量 */
+.dark-mode, :root.dark {
+  --primary-bg: #121212;
+  --secondary-bg: #1f1f23;
+  --tertiary-bg: #292930;
+  
+  --text-primary: #f8f9fa;
+  --text-secondary: #ced4da;
+  --text-tertiary: #adb5bd;
+  
+  --border-light: #292930;
+  --border-medium: #343a40;
+  --border-dark: #495057;
+  
+  --accent-primary: #4263eb;
+  --accent-hover: #4c6ef5;
+  --accent-active: #5c7cfa;
+  
+  --scrollbar-track: #292930;
+  --scrollbar-thumb: #495057;
+  --scrollbar-thumb-hover: #868e96;
+  
+  /* 卡片特定变量 */
+  --card-bg: #1f1f23;
+  --card-info-bg: #1f1f23;
+  --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --card-border: #292930;
+}
+
 /* 滚动条样式 */
 ::-webkit-scrollbar {
   width: 8px;
@@ -175,7 +234,7 @@ body {
 
 /* 视频卡片 */
 .video-card-bg {
-  background-color: var(--secondary-bg);
+  background-color: var(--card-bg);
 }
 
 .video-card-hover {

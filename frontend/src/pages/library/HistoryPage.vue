@@ -1,27 +1,24 @@
 /**
 * @file HistoryPage.vue
-* @description 观看历史页面，使用 History 组件
-* @author Atom Video Team
-* @date 2025-04-06
+* @description 用户观看历史页面，展示和管理历史记录
+* @created 2024-04-06
+* @last-modified 2024-04-07
 */
 
 <template>
   <div class="history-page">
-    <h1>历史记录页</h1>
-    <p>此页面正在开发中...</p>
+    <History />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { onMounted } from 'vue';
-
-  onMounted(() => {
-    console.log('[HistoryPage] 组件已挂载');
-  });
+  import History from '@/components/business/library/History.vue';
 </script>
 
 <style scoped>
   .history-page {
-    padding: 20px;
+    min-height: 100vh;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 </style>

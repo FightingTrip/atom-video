@@ -22,221 +22,196 @@
 */
 <template>
   <div class="history-container">
-    <!-- 页面标题 -->
-    <div class="px-4 py-6">
-      <div class="flex justify-between items-center">
-        <div>
-          <h1 class="text-2xl font-bold">{{ t('nav.history') }}</h1>
-          <p class="text-gray-600 dark:text-gray-400 mt-2">
-            {{ t('history.description') }}
-          </p>
-        </div>
-        <n-button v-if="videos.length > 0" type="error" ghost @click="handleClearHistory">
-          {{ t('history.clearAll') }}
-        </n-button>
+    <div class="history-header">
+      <h2>观看历史</h2>
+      <div class="history-actions">
+        <n-button text @click="clearHistory">清空历史记录</n-button>
+        <n-button text @click="pauseHistory">{{ isHistoryPaused ? '恢复记录历史' : '暂停记录历史' }}</n-button>
       </div>
     </div>
 
-    <!-- 未登录提示 -->
-    <div v-if="!isAuthenticated" class="flex flex-col items-center justify-center py-16">
-      <n-empty :description="t('auth.loginRequired')">
-        <template #extra>
-          <n-button type="primary" @click="router.push('/auth/login')">
-            {{ t('user.login') }}
-          </n-button>
-        </template>
-      </n-empty>
-    </div>
-
-    <!-- 主要内容区域 -->
-    <main v-else class="max-w-screen-2xl mx-auto">
-      <!-- 错误提示 -->
-      <n-alert v-if="error" type="error" class="mx-4 my-4" closable @close="error = null">
-        {{ error }}
-      </n-alert>
-
-      <!-- 加载状态 -->
-      <div v-if="loading" class="flex justify-center items-center py-8">
-        <n-spin size="large" />
-      </div>
-
-      <!-- 历史记录列表 -->
-      <template v-else>
-        <div v-if="videos.length === 0" class="flex flex-col items-center justify-center py-16">
-          <n-empty :description="t('history.noHistory')">
-            <template #extra>
-              <n-button @click="router.push('/explore')">
-                {{ t('history.exploreVideos') }}
-              </n-button>
-            </template>
-          </n-empty>
-        </div>
-
-        <div v-else class="px-4">
-          <div v-for="(group, date) in groupedVideos" :key="date" class="mb-8">
-            <h2 class="text-lg font-semibold mb-4">{{ date }}</h2>
-            <n-virtual-list :items="group" :item-size="300" :container-style="{ height: 'auto' }"
-              :grid="{ cols: gridCols, itemSize: 300 }">
-              <template #default="{ item }">
-                <div class="relative">
-                  <VideoCard :video="item" class="video-card-hover" @like="handleLike" @error="handleError" />
-                  <n-button circle type="error" ghost class="absolute top-2 right-2 z-10"
-                    @click.stop="handleRemoveFromHistory(item.id)">
-                    <template #icon>
-                      <n-icon>
-                        <Close />
-                      </n-icon>
-                    </template>
-                  </n-button>
-                </div>
-              </template>
-            </n-virtual-list>
+    <div class="history-content">
+      <n-tabs v-model:value="activeTab" type="line" animated>
+        <n-tab-pane name="all" tab="全部">
+          <div class="video-list">
+            <div v-for="video in filteredVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="filteredVideos.length === 0" description="暂无观看历史" />
           </div>
-        </div>
-      </template>
-    </main>
+        </n-tab-pane>
+        <n-tab-pane name="today" tab="今天">
+          <div class="video-list">
+            <div v-for="video in todayVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="todayVideos.length === 0" description="今天暂无观看记录" />
+          </div>
+        </n-tab-pane>
+        <n-tab-pane name="week" tab="本周">
+          <div class="video-list">
+            <div v-for="video in weekVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="weekVideos.length === 0" description="本周暂无观看记录" />
+          </div>
+        </n-tab-pane>
+        <n-tab-pane name="earlier" tab="更早">
+          <div class="video-list">
+            <div v-for="video in earlierVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="earlierVideos.length === 0" description="暂无更早观看记录" />
+          </div>
+        </n-tab-pane>
+      </n-tabs>
+    </div>
+
+    <div class="history-pagination">
+      <n-pagination v-model:page="currentPage" v-model:page-size="pageSize" :item-count="total"
+        :page-sizes="[12, 24, 36, 48]" show-size-picker @update:page="handlePageChange"
+        @update:page-size="handleSizeChange" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted } from 'vue';
+  import { ref, computed } from 'vue';
   import { useRouter } from 'vue-router';
-  import { useI18n } from 'vue-i18n';
-  import {
-    NButton,
-    NEmpty,
-    NAlert,
-    NSpin,
-    NVirtualList,
-    NIcon
-  } from 'naive-ui';
-  import { Close } from '@vicons/ionicons5';
-  import { useAuthStore } from '@/stores/auth';
-  import { useVideoStore } from '@/stores/video';
-  import { useBreakpoint } from '@/composables/useBreakpoint';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import { NButton, NTabs, NTabPane, NPagination, NEmpty } from 'naive-ui';
   import type { Video } from '@/types';
-  import { formatDate } from '@/utils/format';
-  import { useHistoryStore } from '@/stores/history';
+  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import { generateVideoList } from '@/mock/videos';
 
   const router = useRouter();
-  const { t } = useI18n();
-  const authStore = useAuthStore();
-  const videoStore = useVideoStore();
-  const historyStore = useHistoryStore();
-  const { breakpoint } = useBreakpoint();
 
   // 状态
-  const videos = ref<Video[]>([]);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+  const activeTab = ref('all');
+  const currentPage = ref(1);
+  const pageSize = ref(12);
+  const total = ref(100);
+  const isHistoryPaused = ref(false);
+  const mockVideos = generateVideoList(50);
 
   // 计算属性
-  const isAuthenticated = computed(() => authStore.isAuthenticated);
+  const filteredVideos = computed(() => {
+    return mockVideos.slice(0, pageSize.value);
+  });
 
-  // 按日期分组的视频
-  const groupedVideos = computed(() => {
-    const groups: Record<string, Video[]> = {};
-    videos.value.forEach(video => {
-      const date = formatDate(video.watchedAt || video.createdAt);
-      if (!groups[date]) {
-        groups[date] = [];
-      }
-      groups[date].push(video);
+  const todayVideos = computed(() => {
+    return mockVideos.filter(video => {
+      const today = new Date();
+      const videoDate = new Date(video.createdAt);
+      return videoDate.toDateString() === today.toDateString();
     });
-    return groups;
   });
 
-  // 响应式网格列数
-  const gridCols = computed(() => {
-    switch (breakpoint.value) {
-      case 'xs': return 1;
-      case 'sm': return 2;
-      case 'md': return 3;
-      case 'lg': return 4;
-      default: return 4;
-    }
+  const weekVideos = computed(() => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return mockVideos.filter(video => {
+      const videoDate = new Date(video.createdAt);
+      return videoDate >= weekAgo;
+    });
   });
 
-  // 获取历史记录
-  const fetchHistory = async () => {
-    if (loading.value || !isAuthenticated.value) return;
-
-    try {
-      loading.value = true;
-      error.value = null;
-      await historyStore.getWatchHistory();
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : t('errors.fetchFailed');
-      console.error('获取历史记录失败:', err);
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 清除历史记录
-  const handleClearHistory = async () => {
-    try {
-      await historyStore.clearWatchHistory();
-      videos.value = [];
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : t('errors.clearFailed');
-      console.error('清除历史记录失败:', err);
-    }
-  };
-
-  // 从历史记录中移除视频
-  const handleRemoveFromHistory = async (videoId: string) => {
-    try {
-      await historyStore.removeFromWatchHistory(videoId);
-      videos.value = videos.value.filter(v => v.id !== videoId);
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : t('errors.removeFailed');
-      console.error('移除视频失败:', err);
-    }
-  };
-
-  // 处理点赞
-  const handleLike = (videoId: string) => {
-    const video = videos.value.find(v => v.id === videoId);
-    if (video) {
-      video.isLiked = !video.isLiked;
-      video.likes += video.isLiked ? 1 : -1;
-    }
-  };
-
-  // 处理错误
-  const handleError = (err: Error) => {
-    error.value = err.message;
-  };
-
-  // 生命周期钩子
-  onMounted(() => {
-    if (isAuthenticated.value) {
-      fetchHistory();
-    }
+  const earlierVideos = computed(() => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return mockVideos.filter(video => {
+      const videoDate = new Date(video.createdAt);
+      return videoDate < weekAgo;
+    });
   });
 
-  onUnmounted(() => {
-    // 清理工作
-    videos.value = [];
-  });
+  // 方法
+  const handleVideoClick = (video: Video) => {
+    router.push(`/video/${video.id}`);
+  };
+
+  const clearHistory = () => {
+    // 清空历史记录
+    console.log('清空历史记录');
+  };
+
+  const pauseHistory = () => {
+    isHistoryPaused.value = !isHistoryPaused.value;
+    console.log('历史记录状态:', isHistoryPaused.value ? '已暂停' : '已恢复');
+  };
+
+  const handleSizeChange = (val: number) => {
+    pageSize.value = val;
+    // 重新加载数据
+    loadHistory();
+  };
+
+  const handlePageChange = (val: number) => {
+    currentPage.value = val;
+    // 重新加载数据
+    loadHistory();
+  };
+
+  const loadHistory = () => {
+    // 加载历史记录数据
+    console.log('加载历史记录:', {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      tab: activeTab.value
+    });
+  };
 </script>
 
 <style scoped>
   .history-container {
-    min-height: 100vh;
-    background-color: var(--primary-bg);
-    color: var(--text-primary);
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
-  /* 视频卡片悬停效果 */
-  .video-card-hover {
-    transition: all var(--transition-normal);
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
   }
 
-  .video-card-hover:hover {
-    transform: scale(1.05);
-    box-shadow: var(--shadow-lg);
+  .history-header h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  .history-actions {
+    display: flex;
+    gap: 16px;
+  }
+
+  .history-content {
+    margin-bottom: 24px;
+  }
+
+  .video-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 16px;
+  }
+
+  .history-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .history-container {
+      padding: 16px;
+    }
+
+    .video-list {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
   }
 </style>

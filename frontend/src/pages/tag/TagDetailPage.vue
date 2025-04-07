@@ -18,5 +18,7 @@
 <style scoped>
   .tag-detail-page {
     min-height: 100vh;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 </style>

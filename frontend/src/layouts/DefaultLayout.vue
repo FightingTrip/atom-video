@@ -16,7 +16,7 @@
       <TheSidebar :collapsed="sidebarCollapsed" />
 
       <!-- 主内容区域 -->
-      <main class="content-area">
+      <main class="content-area" :data-theme="isDarkMode ? 'dark' : 'light'">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
@@ -31,10 +31,15 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+  import { ref, onMounted, watch, onBeforeUnmount, computed } from 'vue'
   import TheSidebar from '@/layouts/components/TheSidebar.vue'
   import TheHeader from '@/layouts/components/TheHeader.vue'
   import TheFooter from '@/layouts/components/TheFooter.vue'
+  import { useThemeStore } from '@/stores/theme'
+
+  // 获取主题状态
+  const themeStore = useThemeStore()
+  const isDarkMode = computed(() => themeStore.isDark)
 
   // 布局状态持久化
   const LAYOUT_STORAGE_KEY = 'atom-video-layout-state'
@@ -126,7 +131,13 @@
     margin-left: 240px;
     /* 与侧边栏宽度匹配 */
     width: calc(100% - 240px);
-    transition: margin-left 0.3s, width 0.3s;
+    transition: margin-left 0.3s, width 0.3s, background-color 0.3s;
+    background-color: var(--content-bg);
+    color: var(--text-color);
+  }
+
+  .content-area[data-theme="dark"] {
+    background-color: var(--content-bg);
   }
 
   .sidebar-collapsed .content-area {

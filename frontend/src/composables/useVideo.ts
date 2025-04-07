@@ -92,6 +92,106 @@ export function useVideo() {
     }
   };
 
+  // 获取推荐视频
+  const fetchRecommendedVideos = async () => {
+    try {
+      loading.value = true;
+      error.value = null;
+
+      // 模拟API调用，生成假数据
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      return Array(8)
+        .fill(0)
+        .map((_, index) => ({
+          id: `rec-${index}`,
+          title: `推荐视频 ${index + 1}`,
+          thumbnailUrl: `https://picsum.photos/seed/rec${index}/400/225`,
+          duration: Math.floor(Math.random() * 600),
+          views: Math.floor(Math.random() * 100000),
+          publishedAt: new Date(
+            Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          author: {
+            id: `author-${index % 5}`,
+            name: `创作者 ${index % 5}`,
+            avatar: `https://i.pravatar.cc/150?u=author${index % 5}`,
+          },
+        }));
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '获取推荐视频失败';
+      return [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取热门视频
+  const fetchTrendingVideos = async () => {
+    try {
+      loading.value = true;
+      error.value = null;
+
+      // 模拟API调用，生成假数据
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      return Array(8)
+        .fill(0)
+        .map((_, index) => ({
+          id: `trend-${index}`,
+          title: `热门视频 ${index + 1}`,
+          thumbnailUrl: `https://picsum.photos/seed/trend${index}/400/225`,
+          duration: Math.floor(Math.random() * 600),
+          views: Math.floor(Math.random() * 1000000),
+          publishedAt: new Date(
+            Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          author: {
+            id: `author-${index % 5}`,
+            name: `创作者 ${index % 5}`,
+            avatar: `https://i.pravatar.cc/150?u=creator${index % 5}`,
+          },
+        }));
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '获取热门视频失败';
+      return [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取最新视频
+  const fetchLatestVideos = async () => {
+    try {
+      loading.value = true;
+      error.value = null;
+
+      // 模拟API调用，生成假数据
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      return Array(8)
+        .fill(0)
+        .map((_, index) => ({
+          id: `latest-${index}`,
+          title: `最新视频 ${index + 1}`,
+          thumbnailUrl: `https://picsum.photos/seed/latest${index}/400/225`,
+          duration: Math.floor(Math.random() * 600),
+          views: Math.floor(Math.random() * 50000),
+          publishedAt: new Date(Date.now() - Math.random() * 5 * 24 * 60 * 60 * 1000).toISOString(),
+          author: {
+            id: `author-${index % 5}`,
+            name: `创作者 ${index % 5}`,
+            avatar: `https://i.pravatar.cc/150?u=new${index % 5}`,
+          },
+        }));
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '获取最新视频失败';
+      return [];
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // 计算属性
   const videos = computed(() => videoStore.videos);
   const currentVideo = computed(() => videoStore.currentVideo);
@@ -109,5 +209,8 @@ export function useVideo() {
     deleteVideo,
     likeVideo,
     favoriteVideo,
+    fetchRecommendedVideos,
+    fetchTrendingVideos,
+    fetchLatestVideos,
   };
 }
