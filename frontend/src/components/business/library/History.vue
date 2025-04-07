@@ -25,32 +25,52 @@
     <div class="history-header">
       <h2>观看历史</h2>
       <div class="history-actions">
-        <el-button type="text" @click="clearHistory">清空历史记录</el-button>
-        <el-button type="text" @click="pauseHistory">暂停记录历史</el-button>
+        <n-button text @click="clearHistory">清空历史记录</n-button>
+        <n-button text @click="pauseHistory">{{ isHistoryPaused ? '恢复记录历史' : '暂停记录历史' }}</n-button>
       </div>
     </div>
 
     <div class="history-content">
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="全部" name="all">
-          <VideoList :videos="filteredVideos" @video-click="handleVideoClick" />
-        </el-tab-pane>
-        <el-tab-pane label="今天" name="today">
-          <VideoList :videos="todayVideos" @video-click="handleVideoClick" />
-        </el-tab-pane>
-        <el-tab-pane label="本周" name="week">
-          <VideoList :videos="weekVideos" @video-click="handleVideoClick" />
-        </el-tab-pane>
-        <el-tab-pane label="更早" name="earlier">
-          <VideoList :videos="earlierVideos" @video-click="handleVideoClick" />
-        </el-tab-pane>
-      </el-tabs>
+      <n-tabs v-model:value="activeTab" type="line" animated>
+        <n-tab-pane name="all" tab="全部">
+          <div class="video-list">
+            <div v-for="video in filteredVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="filteredVideos.length === 0" description="暂无观看历史" />
+          </div>
+        </n-tab-pane>
+        <n-tab-pane name="today" tab="今天">
+          <div class="video-list">
+            <div v-for="video in todayVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="todayVideos.length === 0" description="今天暂无观看记录" />
+          </div>
+        </n-tab-pane>
+        <n-tab-pane name="week" tab="本周">
+          <div class="video-list">
+            <div v-for="video in weekVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="weekVideos.length === 0" description="本周暂无观看记录" />
+          </div>
+        </n-tab-pane>
+        <n-tab-pane name="earlier" tab="更早">
+          <div class="video-list">
+            <div v-for="video in earlierVideos" :key="video.id" class="video-card-wrapper">
+              <VideoCard :video="video" @click="handleVideoClick(video)" />
+            </div>
+            <n-empty v-if="earlierVideos.length === 0" description="暂无更早观看记录" />
+          </div>
+        </n-tab-pane>
+      </n-tabs>
     </div>
 
     <div class="history-pagination">
-      <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :total="total"
-        :page-sizes="[12, 24, 36, 48]" layout="total, sizes, prev, pager, next" @size-change="handleSizeChange"
-        @current-change="handleCurrentChange" />
+      <n-pagination v-model:page="currentPage" v-model:page-size="pageSize" :item-count="total"
+        :page-sizes="[12, 24, 36, 48]" show-size-picker @update:page="handlePageChange"
+        @update:page-size="handleSizeChange" />
     </div>
   </div>
 </template>
@@ -58,9 +78,10 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue';
   import { useRouter } from 'vue-router';
-  import type { IVideo } from '@atom-video/shared-types';
-  import VideoList from '@/components/business/video/VideoList.vue';
-  import { mockVideos } from '@/mock/video';
+  import { NButton, NTabs, NTabPane, NPagination, NEmpty } from 'naive-ui';
+  import type { Video } from '@/types';
+  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import { generateVideoList } from '@/mocks/videoData';
 
   const router = useRouter();
 
@@ -70,6 +91,7 @@
   const pageSize = ref(12);
   const total = ref(100);
   const isHistoryPaused = ref(false);
+  const mockVideos = generateVideoList(50);
 
   // 计算属性
   const filteredVideos = computed(() => {
@@ -103,7 +125,7 @@
   });
 
   // 方法
-  const handleVideoClick = (video: IVideo) => {
+  const handleVideoClick = (video: Video) => {
     router.push(`/video/${video.id}`);
   };
 
@@ -123,7 +145,7 @@
     loadHistory();
   };
 
-  const handleCurrentChange = (val: number) => {
+  const handlePageChange = (val: number) => {
     currentPage.value = val;
     // 重新加载数据
     loadHistory();
@@ -141,20 +163,23 @@
 
 <style scoped>
   .history-container {
-    padding: 20px;
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
   .history-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   .history-header h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 600;
+    color: var(--text-color);
   }
 
   .history-actions {
@@ -163,12 +188,30 @@
   }
 
   .history-content {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+  }
+
+  .video-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 16px;
   }
 
   .history-pagination {
     display: flex;
     justify-content: center;
-    margin-top: 20px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .history-container {
+      padding: 16px;
+    }
+
+    .video-list {
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
   }
 </style>

@@ -3,7 +3,7 @@
     <div class="profile-header">
       <div class="profile-cover" :style="{ backgroundImage: `url(${userProfile.coverImage})` }">
         <div class="profile-avatar-container">
-          <img :src="userProfile.avatar" alt="用户头像" class="profile-avatar" />
+          <n-avatar :src="userProfile.avatar" size="large" round class="profile-avatar" />
         </div>
       </div>
       <div class="profile-info">
@@ -25,108 +25,114 @@
           </div>
         </div>
         <div class="profile-actions">
-          <button v-if="isCurrentUser" class="edit-profile-btn" @click="handleEditProfile">
+          <n-button v-if="isCurrentUser" type="primary" ghost @click="handleEditProfile">
             编辑资料
-          </button>
-          <button v-else class="follow-btn" :class="{ 'is-following': isFollowing }" @click="handleToggleFollow">
+          </n-button>
+          <n-button v-else type="primary" :quaternary="isFollowing" @click="handleToggleFollow">
             {{ isFollowing ? '已关注' : '关注' }}
-          </button>
+          </n-button>
         </div>
       </div>
     </div>
 
     <div class="profile-tabs">
-      <div class="tabs-header">
-        <button v-for="tab in tabs" :key="tab.id" class="tab-button" :class="{ active: activeTab === tab.id }"
-          @click="activeTab = tab.id">
-          {{ tab.name }}
-        </button>
-      </div>
-
-      <div class="tab-content">
-        <!-- 视频列表 -->
-        <div v-if="activeTab === 'videos'" class="videos-tab">
-          <div v-if="loading" class="loading-container">
-            <div class="loading-spinner"></div>
-          </div>
-          <div v-else-if="userVideos.length === 0" class="empty-container">
-            <div class="empty-icon">📺</div>
-            <p class="empty-text">{{ isCurrentUser ? '你还没有上传任何视频' : '该用户还没有上传任何视频' }}</p>
-            <button v-if="isCurrentUser" class="upload-btn" @click="handleUploadVideo">上传视频</button>
-          </div>
-          <div v-else class="video-grid">
-            <div v-for="video in userVideos" :key="video.id" class="video-card" @click="handleVideoClick(video)">
-              <div class="video-thumbnail">
-                <img :src="video.thumbnail" :alt="video.title" />
-                <span class="video-duration">{{ formatDuration(video.duration) }}</span>
-              </div>
-              <div class="video-info">
-                <h3 class="video-title">{{ video.title }}</h3>
-                <div class="video-meta">
-                  <span>{{ formatNumber(video.views) }}次观看</span>
-                  <span>•</span>
-                  <span>{{ formatDate(video.createdAt) }}</span>
+      <n-tabs v-model:value="activeTab" type="line" animated>
+        <n-tab-pane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab="tab.name">
+          <!-- 视频列表 -->
+          <div v-if="tab.id === 'videos'" class="videos-tab">
+            <n-spin :show="loading" description="加载中..." size="large">
+              <n-empty v-if="userVideos.length === 0" description="">
+                <template #icon>
+                  <div class="empty-icon">📺</div>
+                </template>
+                <template #description>
+                  <p class="empty-text">{{ isCurrentUser ? '你还没有上传任何视频' : '该用户还没有上传任何视频' }}</p>
+                </template>
+                <template #extra>
+                  <n-button v-if="isCurrentUser" type="primary" @click="handleUploadVideo">上传视频</n-button>
+                </template>
+              </n-empty>
+              <div v-else class="video-grid">
+                <div v-for="video in userVideos" :key="video.id" class="video-card" @click="handleVideoClick(video)">
+                  <div class="video-thumbnail">
+                    <img :src="video.thumbnail" :alt="video.title" />
+                    <span class="video-duration">{{ formatDuration(video.duration) }}</span>
+                  </div>
+                  <div class="video-info">
+                    <h3 class="video-title">{{ video.title }}</h3>
+                    <div class="video-meta">
+                      <span>{{ formatNumber(video.views) }}次观看</span>
+                      <span>•</span>
+                      <span>{{ formatDate(video.createdAt) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-          <div v-if="hasMoreVideos" class="load-more">
-            <button class="load-more-btn" @click="loadMoreVideos">加载更多</button>
-          </div>
-        </div>
-
-        <!-- 收藏列表 -->
-        <div v-if="activeTab === 'favorites'" class="favorites-tab">
-          <div v-if="loading" class="loading-container">
-            <div class="loading-spinner"></div>
-          </div>
-          <div v-else-if="favoriteVideos.length === 0" class="empty-container">
-            <div class="empty-icon">❤️</div>
-            <p class="empty-text">{{ isCurrentUser ? '你还没有收藏任何视频' : '该用户还没有收藏任何视频' }}</p>
-          </div>
-          <div v-else class="video-grid">
-            <div v-for="video in favoriteVideos" :key="video.id" class="video-card" @click="handleVideoClick(video)">
-              <div class="video-thumbnail">
-                <img :src="video.thumbnail" :alt="video.title" />
-                <span class="video-duration">{{ formatDuration(video.duration) }}</span>
+              <div v-if="hasMoreVideos" class="load-more">
+                <n-button text @click="loadMoreVideos">加载更多</n-button>
               </div>
-              <div class="video-info">
-                <h3 class="video-title">{{ video.title }}</h3>
-                <div class="video-meta">
-                  <span>{{ formatNumber(video.views) }}次观看</span>
-                  <span>•</span>
-                  <span>{{ formatDate(video.createdAt) }}</span>
+            </n-spin>
+          </div>
+
+          <!-- 收藏列表 -->
+          <div v-if="tab.id === 'favorites'" class="favorites-tab">
+            <n-spin :show="loading" description="加载中..." size="large">
+              <n-empty v-if="favoriteVideos.length === 0" description="">
+                <template #icon>
+                  <div class="empty-icon">❤️</div>
+                </template>
+                <template #description>
+                  <p class="empty-text">{{ isCurrentUser ? '你还没有收藏任何视频' : '该用户还没有收藏任何视频' }}</p>
+                </template>
+              </n-empty>
+              <div v-else class="video-grid">
+                <div v-for="video in favoriteVideos" :key="video.id" class="video-card"
+                  @click="handleVideoClick(video)">
+                  <div class="video-thumbnail">
+                    <img :src="video.thumbnail" :alt="video.title" />
+                    <span class="video-duration">{{ formatDuration(video.duration) }}</span>
+                  </div>
+                  <div class="video-info">
+                    <h3 class="video-title">{{ video.title }}</h3>
+                    <div class="video-meta">
+                      <span>{{ formatNumber(video.views) }}次观看</span>
+                      <span>•</span>
+                      <span>{{ formatDate(video.createdAt) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+              <div v-if="hasMoreFavorites" class="load-more">
+                <n-button text @click="loadMoreFavorites">加载更多</n-button>
+              </div>
+            </n-spin>
           </div>
-          <div v-if="hasMoreFavorites" class="load-more">
-            <button class="load-more-btn" @click="loadMoreFavorites">加载更多</button>
-          </div>
-        </div>
 
-        <!-- 关于页面 -->
-        <div v-if="activeTab === 'about'" class="about-tab">
-          <div class="about-section">
-            <h3 class="section-title">个人简介</h3>
-            <p class="section-content">{{ userProfile.bio || '这个用户很懒，还没有填写个人简介' }}</p>
-          </div>
-          <div class="about-section">
-            <h3 class="section-title">加入时间</h3>
-            <p class="section-content">{{ formatJoinDate(userProfile.createdAt) }}</p>
-          </div>
-          <div class="about-section">
-            <h3 class="section-title">社交链接</h3>
-            <div v-if="userProfile.socialLinks && userProfile.socialLinks.length > 0" class="social-links">
-              <a v-for="(link, index) in userProfile.socialLinks" :key="index" :href="link.url" target="_blank"
-                class="social-link">
-                {{ link.platform }}
-              </a>
+          <!-- 关于页面 -->
+          <div v-if="tab.id === 'about'" class="about-tab">
+            <div class="about-section">
+              <h3 class="section-title">个人简介</h3>
+              <p class="section-content">{{ userProfile.bio || '这个用户很懒，还没有填写个人简介' }}</p>
             </div>
-            <p v-else class="section-content">暂无社交链接</p>
+            <div class="about-section">
+              <h3 class="section-title">加入时间</h3>
+              <p class="section-content">{{ formatJoinDate(userProfile.createdAt) }}</p>
+            </div>
+            <div class="about-section">
+              <h3 class="section-title">社交链接</h3>
+              <div v-if="userProfile.socialLinks && userProfile.socialLinks.length > 0" class="social-links">
+                <n-tag v-for="(link, index) in userProfile.socialLinks" :key="index" class="social-link"
+                  :bordered="false" type="primary">
+                  <a :href="link.url" target="_blank" class="social-link-text">
+                    {{ link.platform }}
+                  </a>
+                </n-tag>
+              </div>
+              <p v-else class="section-content">暂无社交链接</p>
+            </div>
           </div>
-        </div>
-      </div>
+        </n-tab-pane>
+      </n-tabs>
     </div>
   </div>
 </template>
@@ -134,6 +140,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
+  import { NButton, NTabs, NTabPane, NEmpty, NSpin, NAvatar, NTag } from 'naive-ui';
 
   // 模拟数据类型
   interface UserProfile {
@@ -357,13 +364,16 @@
 
 <style scoped>
   .profile-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 16px;
+    width: 100%;
+    background-color: var(--card-bg);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
   }
 
   .profile-header {
-    margin-bottom: 24px;
+    position: relative;
+    margin-bottom: var(--spacing-lg);
   }
 
   .profile-cover {
@@ -371,146 +381,89 @@
     background-size: cover;
     background-position: center;
     position: relative;
-    border-radius: 8px;
-    margin-bottom: 60px;
   }
 
   .profile-avatar-container {
     position: absolute;
-    bottom: -50px;
-    left: 24px;
+    bottom: -40px;
+    left: var(--spacing-lg);
   }
 
   .profile-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 4px solid var(--color-bg-surface);
+    width: 80px;
+    height: 80px;
+    border: 4px solid var(--card-bg);
     object-fit: cover;
   }
 
   .profile-info {
-    padding: 0 24px;
+    padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg);
+    margin-top: 20px;
   }
 
   .profile-name {
-    font-size: 24px;
-    font-weight: 600;
-    margin: 0 0 4px;
-    color: var(--color-text-primary);
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs) 0;
   }
 
   .profile-username {
-    font-size: 16px;
-    color: var(--color-text-secondary);
-    margin: 0 0 16px;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin: 0 0 var(--spacing-md) 0;
   }
 
   .profile-bio {
-    font-size: 16px;
-    line-height: 1.5;
-    margin: 0 0 16px;
-    color: var(--color-text-primary);
+    font-size: var(--text-md);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-lg) 0;
+    line-height: 1.6;
   }
 
   .profile-stats {
     display: flex;
-    gap: 24px;
-    margin-bottom: 16px;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
   }
 
   .stat-item {
     display: flex;
     flex-direction: column;
+    align-items: center;
   }
 
   .stat-value {
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: var(--text-primary);
   }
 
   .stat-label {
-    font-size: 14px;
-    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
   }
 
   .profile-actions {
-    margin-bottom: 32px;
-  }
-
-  .edit-profile-btn,
-  .follow-btn {
-    padding: 8px 24px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .edit-profile-btn {
-    background-color: transparent;
-    border: 1px solid var(--color-border-primary);
-    color: var(--color-text-primary);
-  }
-
-  .edit-profile-btn:hover {
-    background-color: var(--color-bg-subtle);
-  }
-
-  .follow-btn {
-    background-color: var(--color-accent-primary);
-    border: none;
-    color: white;
-  }
-
-  .follow-btn:hover {
-    opacity: 0.9;
-  }
-
-  .follow-btn.is-following {
-    background-color: var(--color-bg-subtle);
-    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-lg);
   }
 
   .profile-tabs {
-    margin-bottom: 48px;
-  }
-
-  .tabs-header {
-    display: flex;
-    border-bottom: 1px solid var(--color-border-muted);
-    margin-bottom: 24px;
-  }
-
-  .tab-button {
-    padding: 12px 24px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .tab-button.active {
-    color: var(--color-accent-primary);
-    border-bottom-color: var(--color-accent-primary);
+    padding: 0 var(--spacing-lg) var(--spacing-lg);
   }
 
   .video-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
   }
 
   .video-card {
+    border-radius: var(--radius-md);
+    overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform var(--transition-normal);
   }
 
   .video-card:hover {
@@ -519,13 +472,16 @@
 
   .video-thumbnail {
     position: relative;
-    aspect-ratio: 16 / 9;
-    border-radius: 8px;
+    width: 100%;
+    padding-top: 56.25%;
+    /* 16:9 Aspect Ratio */
     overflow: hidden;
-    margin-bottom: 12px;
   }
 
   .video-thumbnail img {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -533,160 +489,124 @@
 
   .video-duration {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background-color: rgba(0, 0, 0, 0.8);
+    bottom: var(--spacing-xs);
+    right: var(--spacing-xs);
+    background-color: rgba(0, 0, 0, 0.7);
     color: white;
     padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+  }
+
+  .video-info {
+    padding: var(--spacing-sm) 0;
   }
 
   .video-title {
-    font-size: 16px;
-    font-weight: 500;
-    margin: 0 0 8px;
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs) 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
   .video-meta {
     display: flex;
-    gap: 8px;
-    color: var(--color-text-secondary);
-    font-size: 14px;
+    gap: var(--spacing-xs);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
   }
 
-  .loading-container {
+  .about-tab {
+    padding: var(--spacing-lg) 0;
+  }
+
+  .about-section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .section-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .section-content {
+    font-size: var(--text-md);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  .social-links {
     display: flex;
-    justify-content: center;
-    padding: 48px 0;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
   }
 
-  .loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    border-top-color: var(--color-accent-primary);
-    animation: spin 1s linear infinite;
+  .social-link {
+    margin-right: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
   }
 
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  .empty-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 48px 0;
-    text-align: center;
+  .social-link-text {
+    color: inherit;
+    text-decoration: none;
   }
 
   .empty-icon {
     font-size: 48px;
-    margin-bottom: 16px;
+    margin-bottom: var(--spacing-md);
   }
 
   .empty-text {
-    font-size: 16px;
-    color: var(--color-text-secondary);
-    margin-bottom: 24px;
-  }
-
-  .upload-btn {
-    padding: 8px 24px;
-    background-color: var(--color-accent-primary);
-    color: white;
-    border: none;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: var(--text-md);
   }
 
   .load-more {
     display: flex;
     justify-content: center;
-    margin-top: 32px;
-  }
-
-  .load-more-btn {
-    padding: 8px 24px;
-    background-color: transparent;
-    border: 1px solid var(--color-border-primary);
-    color: var(--color-text-primary);
-    border-radius: 20px;
-    font-size: 14px;
-    cursor: pointer;
-  }
-
-  .load-more-btn:hover {
-    background-color: var(--color-bg-subtle);
-  }
-
-  .about-tab {
-    max-width: 800px;
-  }
-
-  .about-section {
-    margin-bottom: 32px;
-  }
-
-  .section-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    margin: 0 0 12px;
-  }
-
-  .section-content {
-    font-size: 16px;
-    line-height: 1.6;
-    color: var(--color-text-secondary);
-  }
-
-  .social-links {
-    display: flex;
-    gap: 16px;
-  }
-
-  .social-link {
-    color: var(--color-text-link);
-    text-decoration: none;
-  }
-
-  .social-link:hover {
-    text-decoration: underline;
+    margin-top: var(--spacing-lg);
   }
 
   @media (max-width: 768px) {
+    .profile-header {
+      margin-bottom: var(--spacing-md);
+    }
+
     .profile-cover {
       height: 150px;
-      margin-bottom: 50px;
+    }
+
+    .profile-avatar-container {
+      bottom: -30px;
+      left: var(--spacing-md);
     }
 
     .profile-avatar {
-      width: 80px;
-      height: 80px;
+      width: 60px;
+      height: 60px;
+    }
+
+    .profile-info {
+      padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+    }
+
+    .profile-name {
+      font-size: var(--text-xl);
     }
 
     .profile-stats {
-      gap: 16px;
+      gap: var(--spacing-lg);
     }
 
     .video-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     }
   }
 </style>
