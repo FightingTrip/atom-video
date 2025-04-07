@@ -1,4 +1,11 @@
 /**
+ * @file index.ts
+ * @description 组件导出索引文件，集中导出所有组件，方便按需引入
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
+/**
  * 组件导出索引文件
  * 集中导出所有组件，方便按需引入
  */
@@ -15,4 +22,4 @@ export * from './business/comment';
 export * from './business/auth';
 
 // 通用组件导出
-export * from './common'; 
+export * from './common';

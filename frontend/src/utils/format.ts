@@ -1,3 +1,10 @@
+/**
+ * @file format.ts
+ * @description 数据格式化工具函数，提供各种数据格式化方法
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';

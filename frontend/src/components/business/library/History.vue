@@ -76,30 +76,36 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
+  import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import { NButton, NTabs, NTabPane, NPagination, NEmpty } from 'naive-ui';
+  import { NButton, NTabs, NTabPane, NPagination, NEmpty, useMessage } from 'naive-ui';
   import type { Video } from '@/types';
   import VideoCard from '@/components/business/video/VideoCard.vue';
-  import { generateVideoList } from '@/mock/videos';
+  import { historyApi } from '@/mock/videos';
+  import { useUserStore } from '@/stores/user';
 
   const router = useRouter();
+  const message = useMessage();
+  const userStore = useUserStore();
 
   // 状态
   const activeTab = ref('all');
   const currentPage = ref(1);
   const pageSize = ref(12);
-  const total = ref(100);
+  const total = ref(0);
   const isHistoryPaused = ref(false);
-  const mockVideos = generateVideoList(50);
+  const loading = ref(false);
+  const historyVideos = ref<Video[]>([]);
 
   // 计算属性
   const filteredVideos = computed(() => {
-    return mockVideos.slice(0, pageSize.value);
+    const start = (currentPage.value - 1) * pageSize.value;
+    const end = start + pageSize.value;
+    return historyVideos.value.slice(start, end);
   });
 
   const todayVideos = computed(() => {
-    return mockVideos.filter(video => {
+    return historyVideos.value.filter(video => {
       const today = new Date();
       const videoDate = new Date(video.createdAt);
       return videoDate.toDateString() === today.toDateString();
@@ -109,7 +115,7 @@
   const weekVideos = computed(() => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    return mockVideos.filter(video => {
+    return historyVideos.value.filter(video => {
       const videoDate = new Date(video.createdAt);
       return videoDate >= weekAgo;
     });
@@ -118,7 +124,7 @@
   const earlierVideos = computed(() => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    return mockVideos.filter(video => {
+    return historyVideos.value.filter(video => {
       const videoDate = new Date(video.createdAt);
       return videoDate < weekAgo;
     });
@@ -129,36 +135,54 @@
     router.push(`/video/${video.id}`);
   };
 
-  const clearHistory = () => {
-    // 清空历史记录
-    console.log('清空历史记录');
+  const clearHistory = async () => {
+    try {
+      await historyApi.clearHistory(userStore.userId);
+      historyVideos.value = [];
+      total.value = 0;
+      message.success('历史记录已清空');
+    } catch (error) {
+      message.error('清空历史记录失败');
+      console.error('清空历史记录失败:', error);
+    }
   };
 
   const pauseHistory = () => {
     isHistoryPaused.value = !isHistoryPaused.value;
-    console.log('历史记录状态:', isHistoryPaused.value ? '已暂停' : '已恢复');
+    message.success(isHistoryPaused.value ? '已暂停记录历史' : '已恢复记录历史');
   };
 
   const handleSizeChange = (val: number) => {
     pageSize.value = val;
-    // 重新加载数据
+    currentPage.value = 1;
     loadHistory();
   };
 
   const handlePageChange = (val: number) => {
     currentPage.value = val;
-    // 重新加载数据
     loadHistory();
   };
 
-  const loadHistory = () => {
-    // 加载历史记录数据
-    console.log('加载历史记录:', {
-      page: currentPage.value,
-      pageSize: pageSize.value,
-      tab: activeTab.value
-    });
+  const loadHistory = async () => {
+    if (loading.value) return;
+
+    loading.value = true;
+    try {
+      const videos = await historyApi.getHistory(userStore.userId);
+      historyVideos.value = videos;
+      total.value = videos.length;
+    } catch (error) {
+      message.error('加载历史记录失败');
+      console.error('加载历史记录失败:', error);
+    } finally {
+      loading.value = false;
+    }
   };
+
+  // 生命周期钩子
+  onMounted(() => {
+    loadHistory();
+  });
 </script>
 
 <style scoped>

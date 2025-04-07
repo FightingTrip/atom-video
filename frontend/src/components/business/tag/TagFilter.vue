@@ -1,21 +1,8 @@
 /**
 * @file TagFilter.vue
-* @description 标签筛选组件，用于筛选和搜索标签
+* @description 标签筛选业务组件，提供内容标签过滤功能
 * @author Atom Video Team
 * @date 2025-04-06
-*
-* @features
-* - 标签搜索：支持按名称搜索标签
-* - 标签筛选：支持按使用频率、创建时间等条件筛选
-* - 标签排序：支持多种排序方式
-* - 多选功能：支持多标签选择
-* - 响应式设计：适配不同屏幕尺寸
-* - 主题适配：支持明暗主题
-*
-* @dependencies
-* - useTagStore: 标签状态管理
-* - naive-ui: UI组件库
-* - vue-i18n: 国际化支持
 */
 
 <template>

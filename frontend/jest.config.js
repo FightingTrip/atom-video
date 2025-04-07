@@ -1,3 +1,9 @@
+/**
+ * @file jest.config.js
+ * @description Jest测试框架配置文件，定义测试环境和测试覆盖率设置
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
 export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
@@ -45,4 +51,4 @@ export default {
       useESM: true,
     },
   },
-}; 
+};

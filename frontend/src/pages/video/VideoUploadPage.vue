@@ -1,8 +1,8 @@
 <!--
 * @file VideoUploadPage.vue
-* @description 视频上传页面，允许用户上传和发布新视频
+* @description 视频上传页面，提供视频文件上传和信息填写功能
 * @author Atom Video Team
-* @date 2024-04-07
+* @date 2025-04-06
 -->
 
 <template>

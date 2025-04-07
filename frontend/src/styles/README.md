@@ -13,9 +13,13 @@ Atom使用混合的CSS策略，结合了设计标记（Design Tokens）、组件
 
 ## 核心文件说明
 
+- **index.css**: 样式系统入口文件，按依赖顺序导入各模块
+- **reset.css**: 基础样式重置，确保跨浏览器一致性
 - **variables.css**: 设计标记变量，设计系统的基础
+- **theme.css**: 主题相关变量和样式，处理主题切换
 - **components.css**: 预定义组件样式，基于设计标记构建
 - **tailwind.css**: Tailwind CSS配置和自定义扩展
+- **utilities.css**: 实用工具类，提供常用的辅助样式
 - **tailwind.config.js**: Tailwind配置，集成了设计标记变量
 
 ## 何时使用各种样式方法
@@ -52,6 +56,17 @@ Atom使用混合的CSS策略，结合了设计标记（Design Tokens）、组件
 <div class="flex items-center justify-between p-4 bg-bg-surface rounded-lg">
   <h2 class="text-lg font-semibold text-text-primary">标题</h2>
   <span class="text-sm text-text-secondary">描述</span>
+</div>
+```
+
+### 使用工具类
+
+对于常见的样式需求，可以使用我们的工具类：
+
+```html
+<div class="d-flex justify-content-between align-items-center p-3">
+  <h2 class="text-truncate">标题可能很长会被截断</h2>
+  <span class="position-relative">描述</span>
 </div>
 ```
 
@@ -109,9 +124,10 @@ document.documentElement.classList.remove('light');
 1. **优先使用设计标记变量**：保证样式一致性
 2. **组件优先**：尽量使用预定义组件而非自定义样式
 3. **Tailwind用于快速开发**：用于简单布局和风格
-4. **避免硬编码值**：不要使用硬编码的颜色、大小、间距等
-5. **保持响应式**：使用相对单位和响应式设计
-6. **主题兼容**：确保所有样式在深色和浅色主题下都能正常显示
+4. **工具类用于常见样式**：使用utilities.css中的工具类处理常见样式需求
+5. **避免硬编码值**：不要使用硬编码的颜色、大小、间距等
+6. **保持响应式**：使用相对单位和响应式设计
+7. **主题兼容**：确保所有样式在深色和浅色主题下都能正常显示
 
 ## 组件库概览
 
@@ -157,13 +173,13 @@ document.documentElement.classList.remove('light');
 
 ## 向后兼容性
 
-为了确保平滑过渡，我们提供了旧样式变量到新样式变量的映射：
+这允许在不破坏现有组件的情况下渐进式更新样式。
 
-```css
---primary-bg: var(--color-bg-canvas);
---secondary-bg: var(--color-bg-surface);
---text-primary: var(--color-text-primary);
-/* 更多映射... */
-```
+## 文件结构调整说明
 
-这允许在不破坏现有组件的情况下渐进式更新样式。 
+为了统一样式系统，我们进行了以下调整：
+
+1. 将 `utils.css` 重命名为 `utilities.css`，符合样式系统描述
+2. 合并了 `utils/index.css` 中的实用工具类
+3. 创建 `index.css` 作为统一入口点
+4. 此文件结构调整不会影响现有组件，只会增强样式系统的一致性

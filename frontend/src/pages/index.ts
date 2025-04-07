@@ -1,4 +1,11 @@
 /**
+ * @file index.ts
+ * @description 页面组件导出索引文件，集中导出所有主要页面组件，方便在路由中引用
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
+/**
  * 页面组件导出索引文件
  * 集中导出所有主要页面组件，方便在路由中引用
  */
@@ -25,4 +32,4 @@ export * from './error';
 export * from './static';
 
 // 导出视频库相关页面
-export * from './library'; 
+export * from './library';

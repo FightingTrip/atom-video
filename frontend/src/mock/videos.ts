@@ -241,3 +241,45 @@ export const mockVideosApi = {
 export const testVideoData = {
   videos: mockVideos.slice(0, 5),
 };
+
+// 生成视频列表
+export const generateVideoList = (count: number = 50): Video[] => {
+  return generateMockVideos().slice(0, count);
+};
+
+// 历史记录管理
+const historyVideos = new Map<string, Video[]>();
+
+export const historyApi = {
+  // 获取历史记录
+  getHistory: async (userId: string): Promise<Video[]> => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return historyVideos.get(userId) || [];
+  },
+
+  // 添加历史记录
+  addHistory: async (userId: string, video: Video): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const history = historyVideos.get(userId) || [];
+    // 移除已存在的相同视频
+    const filteredHistory = history.filter(v => v.id !== video.id);
+    // 添加到开头
+    historyVideos.set(userId, [video, ...filteredHistory]);
+  },
+
+  // 清空历史记录
+  clearHistory: async (userId: string): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    historyVideos.set(userId, []);
+  },
+
+  // 删除单个历史记录
+  removeHistory: async (userId: string, videoId: string): Promise<void> => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const history = historyVideos.get(userId) || [];
+    historyVideos.set(
+      userId,
+      history.filter(v => v.id !== videoId)
+    );
+  },
+};
