@@ -81,7 +81,7 @@
   import { NButton, NTabs, NTabPane, NPagination, NEmpty } from 'naive-ui';
   import type { Video } from '@/types';
   import VideoCard from '@/components/business/video/VideoCard.vue';
-  import { generateVideoList } from '@/mocks/videoData';
+  import { generateVideoList } from '@/mock/videos';
 
   const router = useRouter();
 

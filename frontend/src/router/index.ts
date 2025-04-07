@@ -1,8 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { RouteRecordRaw } from 'vue-router';
-import Login from '@/components/business/auth/Login.vue';
-import TestComponent from '@/components/test/TestComponent.vue';
 
 // 路由配置
 const routes: RouteRecordRaw[] = [

@@ -40,7 +40,7 @@
   import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import type { IVideo, VideoType, DifficultyLevel } from '@atom-video/shared-types';
-  import { generateVideoList } from '@/mocks/videoData';
+  import { generateVideoList } from '@/mock/videos';
   import VideoList from '@/components/business/video/VideoList.vue';
 
   const router = useRouter();

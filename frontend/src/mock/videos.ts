@@ -91,7 +91,7 @@ const techVideoTitles = [
 ];
 
 // 生成模拟视频数据
-const generateMockVideos = (): Video[] => {
+export const generateMockVideos = (): Video[] => {
   const videos: Video[] = [];
 
   for (let i = 1; i <= 50; i++) {
