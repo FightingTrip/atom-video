@@ -7,21 +7,25 @@
 
 <template>
   <div class="home-page">
-    <Feed />
+    <Home />
   </div>
 </template>
 
 <script setup lang="ts">
-  import Feed from '@/components/business/feed/Feed.vue';
-  import { onMounted } from 'vue';
-
-  onMounted(() => {
-    console.log('[HomePage] 组件已挂载');
-  });
+  import Home from '@/components/business/feed/Home.vue';
 </script>
 
 <style scoped>
   .home-page {
     min-height: 100vh;
+    width: 100%;
+    background-color: #000;
+  }
+
+  /* 深色模式特定样式 */
+  :root.dark .home-page,
+  .dark-mode .home-page {
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 </style>

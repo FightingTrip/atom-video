@@ -1,7 +1,13 @@
 import { apiClient, apiRequest } from '@/services/api/client';
 import { Video } from '@/models/Video';
-import { PaginatedData } from '@/services/api/types';
-import { VideoUploadRequest, VideoUpdateRequest, VideoQueryParams } from './types';
+import { PaginatedData, ApiResponse } from '@/services/api/types';
+import {
+  VideoUploadRequest,
+  VideoUpdateRequest,
+  VideoQueryParams,
+  VideoComment,
+  VideoInteraction,
+} from './types';
 
 // 缓存生成的视频数据
 let cachedVideos: Video[] | null = null;
@@ -14,6 +20,9 @@ export interface Video {
   thumbnail: string;
   duration: number;
   views: number;
+  likes: number;
+  favorites: number;
+  comments: number;
   createdAt: string;
   tags: string[];
   user: {
@@ -21,6 +30,8 @@ export interface Video {
     nickname: string;
     avatar: string;
     verified: boolean;
+    followersCount?: number;
+    followingCount?: number;
   };
 }
 
@@ -70,17 +81,17 @@ const generateMockVideos = (count: number): Video[] => {
 // 创建视频服务
 export const videoService = {
   // 获取视频列表
-  async getVideos(params?: VideoQueryParams): Promise<PaginatedData<Video>> {
+  async getVideos(params?: VideoQueryParams): Promise<ApiResponse<PaginatedData<Video>>> {
     return apiRequest(apiClient.get<PaginatedData<Video>>('/videos', { params }));
   },
 
   // 获取单个视频详情
-  async getVideoById(id: string): Promise<Video> {
+  async getVideoById(id: string): Promise<ApiResponse<Video>> {
     return apiRequest(apiClient.get<Video>(`/videos/${id}`));
   },
 
   // 上传视频
-  async uploadVideo(data: VideoUploadRequest): Promise<Video> {
+  async uploadVideo(data: VideoUploadRequest): Promise<ApiResponse<Video>> {
     const formData = new FormData();
 
     // 添加视频元数据
@@ -115,62 +126,18 @@ export const videoService = {
     );
   },
 
-  // 更新视频
-  async updateVideo(id: string, data: VideoUpdateRequest): Promise<Video> {
-    // 使用FormData处理包含文件的更新
-    if (data.thumbnailFile) {
-      const formData = new FormData();
-
-      // 添加文本字段
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'thumbnailFile' && key !== 'tags' && value !== undefined) {
-          formData.append(key, String(value));
-        }
-      });
-
-      // 添加标签
-      if (data.tags) {
-        data.tags.forEach((tag, index) => {
-          formData.append(`tags[${index}]`, tag);
-        });
-      }
-
-      // 添加缩略图文件
-      formData.append('thumbnailFile', data.thumbnailFile);
-
-      return apiRequest(
-        apiClient.put<Video>(`/videos/${id}`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-      );
-    }
-    // 不包含文件的更新使用JSON
-    else {
-      return apiRequest(apiClient.put<Video>(`/videos/${id}`, data));
-    }
+  // 更新视频信息
+  async updateVideo(id: string, data: VideoUpdateRequest): Promise<ApiResponse<Video>> {
+    return apiRequest(apiClient.put<Video>(`/videos/${id}`, data));
   },
 
   // 删除视频
-  async deleteVideo(id: string): Promise<void> {
+  async deleteVideo(id: string): Promise<ApiResponse<void>> {
     return apiRequest(apiClient.delete(`/videos/${id}`));
   },
 
-  // 点赞/取消点赞视频
-  async toggleLike(id: string): Promise<{ liked: boolean; likesCount: number }> {
-    return apiRequest(apiClient.post<{ liked: boolean; likesCount: number }>(`/videos/${id}/like`));
-  },
-
-  // 收藏/取消收藏视频
-  async toggleFavorite(id: string): Promise<{ favorited: boolean; favoritesCount: number }> {
-    return apiRequest(
-      apiClient.post<{ favorited: boolean; favoritesCount: number }>(`/videos/${id}/favorite`)
-    );
-  },
-
   // 获取相关视频
-  async getRelatedVideos(id: string, limit: number = 10): Promise<Video[]> {
+  async getRelatedVideos(id: string, limit: number = 10): Promise<ApiResponse<Video[]>> {
     return apiRequest(
       apiClient.get<Video[]>(`/videos/${id}/related`, {
         params: { limit },
@@ -179,12 +146,15 @@ export const videoService = {
   },
 
   // 增加视频观看次数
-  async incrementViews(id: string): Promise<{ views: number }> {
+  async incrementViews(id: string): Promise<ApiResponse<{ views: number }>> {
     return apiRequest(apiClient.post<{ views: number }>(`/videos/${id}/view`));
   },
 
   // 获取用户上传的视频
-  async getUserVideos(userId: string, params?: VideoQueryParams): Promise<PaginatedData<Video>> {
+  async getUserVideos(
+    userId: string,
+    params?: VideoQueryParams
+  ): Promise<ApiResponse<PaginatedData<Video>>> {
     return apiRequest(
       apiClient.get<PaginatedData<Video>>(`/users/${userId}/videos`, {
         params,
@@ -192,14 +162,132 @@ export const videoService = {
     );
   },
 
-  // 获取用户喜欢的视频
-  async getUserLikedVideos(
-    userId: string,
-    params?: VideoQueryParams
-  ): Promise<PaginatedData<Video>> {
+  // 获取视频评论
+  async getVideoComments(
+    videoId: string,
+    params?: { page: number; pageSize: number }
+  ): Promise<
+    ApiResponse<{
+      comments: VideoComment[];
+      total: number;
+      totalPages: number;
+    }>
+  > {
     return apiRequest(
-      apiClient.get<PaginatedData<Video>>(`/users/${userId}/liked-videos`, {
+      apiClient.get(`/videos/${videoId}/comments`, {
         params,
+      })
+    );
+  },
+
+  // 添加评论
+  async addComment(videoId: string, content: string): Promise<ApiResponse<VideoComment>> {
+    return apiRequest(
+      apiClient.post(`/videos/${videoId}/comments`, {
+        content,
+      })
+    );
+  },
+
+  // 回复评论
+  async replyToComment(
+    videoId: string,
+    commentId: string,
+    content: string
+  ): Promise<ApiResponse<VideoComment>> {
+    return apiRequest(
+      apiClient.post(`/videos/${videoId}/comments/${commentId}/replies`, {
+        content,
+      })
+    );
+  },
+
+  // 视频点赞/取消点赞
+  async likeVideo(
+    videoId: string,
+    action: 'like' | 'unlike'
+  ): Promise<ApiResponse<{ likes: number }>> {
+    return apiRequest(apiClient.post(`/videos/${videoId}/${action}`));
+  },
+
+  // 视频收藏/取消收藏
+  async favoriteVideo(
+    videoId: string,
+    action: 'favorite' | 'unfavorite'
+  ): Promise<ApiResponse<{ favorites: number }>> {
+    return apiRequest(apiClient.post(`/videos/${videoId}/${action}`));
+  },
+
+  // 关注/取消关注作者
+  async subscribeAuthor(
+    authorId: string,
+    action: 'subscribe' | 'unsubscribe'
+  ): Promise<ApiResponse<{ followers: number }>> {
+    return apiRequest(apiClient.post(`/users/${authorId}/${action}`));
+  },
+
+  // 获取视频互动状态
+  async getVideoInteraction(videoId: string): Promise<ApiResponse<VideoInteraction>> {
+    return apiRequest(apiClient.get(`/videos/${videoId}/interaction`));
+  },
+
+  // 点赞评论
+  async likeComment(videoId: string, commentId: string): Promise<ApiResponse<{ likes: number }>> {
+    return apiRequest(apiClient.post(`/videos/${videoId}/comments/${commentId}/like`));
+  },
+
+  // 举报视频
+  async reportVideo(
+    videoId: string,
+    reason: string,
+    description?: string
+  ): Promise<ApiResponse<void>> {
+    return apiRequest(
+      apiClient.post(`/videos/${videoId}/report`, {
+        reason,
+        description,
+      })
+    );
+  },
+
+  // 搜索视频
+  async searchVideos(
+    query: string,
+    params?: VideoQueryParams
+  ): Promise<ApiResponse<PaginatedData<Video>>> {
+    return apiRequest(
+      apiClient.get('/videos/search', {
+        params: {
+          ...params,
+          q: query,
+        },
+      })
+    );
+  },
+
+  // 获取推荐视频
+  async getRecommendedVideos(limit: number = 20): Promise<ApiResponse<Video[]>> {
+    return apiRequest(
+      apiClient.get('/videos/recommended', {
+        params: { limit },
+      })
+    );
+  },
+
+  // 获取热门视频
+  async getTrendingVideos(limit: number = 20): Promise<ApiResponse<Video[]>> {
+    return apiRequest(
+      apiClient.get('/videos/trending', {
+        params: { limit },
+      })
+    );
+  },
+
+  // 获取最新视频
+  async getNewVideos(limit: number = 20): Promise<ApiResponse<Video[]>> {
+    return apiRequest(
+      apiClient.get('/videos/new', {
+        params: { limit },
       })
     );
   },

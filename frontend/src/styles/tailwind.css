@@ -127,7 +127,7 @@
 }
 
 /* 浅色主题 */
-:root {
+:root, [data-theme="light"] {
   /* 基础颜色 */
   --primary-color: #0F172A;
   --accent-color: #3B82F6;
@@ -163,36 +163,36 @@
 }
 
 /* 深色主题 */
-:root.dark {
+[data-theme="dark"] {
   /* 基础颜色 */
   --primary-color: #3B82F6;
   --accent-color: #60A5FA;
   
-  /* 背景 */
-  --content-bg: #0F172A;
-  --sidebar-bg: #1E293B;
-  --header-bg: #1E293B;
-  --footer-bg: #1E293B;
+  /* 背景 - 使用更深的黑色 */
+  --content-bg: #0A0A0A; /* 更深的黑色背景 */
+  --sidebar-bg: #121212; /* 稍微亮一点的黑色 */
+  --header-bg: #121212;
+  --footer-bg: #121212;
   
-  /* 文本颜色 */
-  --text-color: #F8FAFC;
-  --text-secondary: #E2E8F0;
-  --text-muted: #94A3B8;
-  --sidebar-text: #F8FAFC;
+  /* 文本颜色 - 保持良好对比度 */
+  --text-color: #F9FAFB; /* 更亮的白色 */
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+  --sidebar-text: #F9FAFB;
   
   /* 边框 */
-  --border-color: #334155;
+  --border-color: #1F1F1F; /* 稍微亮一点的黑色边框 */
   
   /* 标签 */
-  --tag-bg: #1E293B;
+  --tag-bg: #1F1F1F;
   --tag-active-bg: #3B82F6;
-  --tag-text: #E2E8F0;
+  --tag-text: #E5E7EB;
   --tag-active-text: #FFF;
   
   /* 卡片 */
-  --card-bg: #1E293B;
-  --card-shadow: 0 1px 3px rgb(0 0 0 / 30%), 0 1px 2px rgb(0 0 0 / 20%);
-  --card-border: #334155;
+  --card-bg: #121212; /* 比背景稍微亮一点的黑色 */
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --card-border: #1F1F1F;
 }
 
 /* 应用主题变量 */
@@ -285,14 +285,9 @@
 
 /* 视频标题和描述文字样式 */
 .theme-video-title {
-  color: #000 !important;
+  color: var(--text-color) !important;
 }
 
 .theme-video-text {
-  color: #000 !important;
-}
-
-:root.dark .theme-video-title,
-:root.dark .theme-video-text {
-  color: #fff !important;
+  color: var(--text-secondary) !important;
 } 

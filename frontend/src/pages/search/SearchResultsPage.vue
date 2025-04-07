@@ -1,20 +1,18 @@
+<!-- 搜索结果页面 -->
 <template>
   <div class="search-results-page">
-    <h1>搜索结果页</h1>
-    <p>此页面正在开发中...</p>
+    <SearchResults />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { onMounted } from 'vue';
-
-  onMounted(() => {
-    console.log('[SearchResultsPage] 组件已挂载');
-  });
+  import SearchResults from '@/components/business/search/SearchResults.vue';
 </script>
 
 <style scoped>
   .search-results-page {
-    padding: 20px;
+    min-height: 100vh;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
   }
 </style>

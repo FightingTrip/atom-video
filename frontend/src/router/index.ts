@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { RouteRecordRaw } from 'vue-router';
 import Login from '@/components/business/auth/Login.vue';
+import TestComponent from '@/components/test/TestComponent.vue';
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -37,21 +38,22 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: '/video/:id',
-        name: 'video-detail',
-        component: () => import('@/pages/video/VideoDetailPage.vue'),
-        meta: {
-          title: '视频详情 - Atom Video',
-          requiresAuth: false,
-        },
-      },
-      {
         path: '/video/upload',
         name: 'video-upload',
         component: () => import('@/pages/video/VideoUploadPage.vue'),
         meta: {
           title: '上传视频 - Atom Video',
           requiresAuth: true,
+        },
+      },
+      {
+        path: '/video/:id',
+        name: 'video-detail',
+        component: () => import('@/pages/video/VideoDetailPage.vue'),
+        props: true,
+        meta: {
+          title: '视频详情 - Atom Video',
+          requiresAuth: false,
         },
       },
       {
@@ -91,21 +93,21 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: '/user/:id',
-        name: 'user-profile',
-        component: () => import('@/pages/user/UserProfilePage.vue'),
-        meta: {
-          title: '用户资料 - Atom Video',
-          requiresAuth: false,
-        },
-      },
-      {
         path: '/user/settings',
         name: 'user-settings',
-        component: () => import('@/pages/user/UserSettingsPage.vue'),
+        component: () => import('@/pages/user/SettingsPage.vue'),
         meta: {
           title: '用户设置 - Atom Video',
           requiresAuth: true,
+        },
+      },
+      {
+        path: '/user/:id',
+        name: 'user-profile',
+        component: () => import('@/pages/user/ProfilePage.vue'),
+        meta: {
+          title: '用户资料 - Atom Video',
+          requiresAuth: false,
         },
       },
       // 各种explore路径
@@ -141,15 +143,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/auth/LoginPage.vue'),
         meta: {
           title: '登录 - Atom Video',
-          requiresAuth: false,
-        },
-      },
-      {
-        path: 'direct-login',
-        name: 'direct-login',
-        component: Login,
-        meta: {
-          title: '直接登录测试 - Atom Video',
           requiresAuth: false,
         },
       },

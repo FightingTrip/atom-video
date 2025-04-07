@@ -10,33 +10,34 @@
 */
 
 <template>
-  <div class="blank-layout">
-    <!-- 调试信息 -->
+  <div class="blank-layout" :data-theme="isDarkMode ? 'dark' : 'light'">
+    <!-- 调试信息
     <div
       style="position: fixed; top: 0; left: 0; color: white; z-index: 9999; padding: 10px; background: rgba(0,0,0,0.5);">
       BlankLayout Loaded - {{ new Date().toLocaleTimeString() }}
-    </div>
+    </div> -->
 
-    <!-- 调试插槽内容 -->
-    <div
-      style="position: fixed; top: 30px; left: 0; color: white; z-index: 9999; padding: 10px; background: rgba(0,0,255,0.5);">
-      BlankLayout Slot Content: {{ hasSlotContent ? '有内容' : '无内容' }}
-    </div>
-
-    <slot />
+    <!-- 显式包含RouterView组件 -->
+    <router-view v-slot="{ Component }">
+      <transition name="fade" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, onBeforeMount, onUpdated, useSlots, computed } from 'vue'
+  import { onMounted, onBeforeMount, onUpdated, useSlots, computed } from 'vue'
+  import { useThemeStore } from '@/stores/theme'
+
+  // 获取主题状态
+  const themeStore = useThemeStore()
+  const isDarkMode = computed(() => themeStore.isDark)
 
   // 调试信息
   console.log('[BlankLayout] 组件定义阶段')
 
   const slots = useSlots()
-  const hasSlotContent = computed(() => {
-    return !!slots.default
-  })
 
   onBeforeMount(() => {
     console.log('[BlankLayout] onBeforeMount 触发')
@@ -48,14 +49,11 @@
       hasDefaultSlot: !!slots.default,
       slotContent: slots.default && slots.default()
     })
+
+    // 确保整个页面背景也是黑色
+    document.body.style.backgroundColor = '#000';
   })
 
-  onUpdated(() => {
-    console.log('[BlankLayout] onUpdated 触发', {
-      hasDefaultSlot: !!slots.default,
-      slotContent: slots.default && slots.default()
-    })
-  })
 </script>
 
 <style scoped>
@@ -63,10 +61,30 @@
     min-height: 100vh;
     width: 100%;
     background-color: #000;
-    color: #fff;
+    color: var(--text-color);
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20px;
+    overflow: auto;
+  }
+
+  .blank-layout[data-theme="light"] {
+    background-color: #000;
+  }
+
+  .blank-layout[data-theme="dark"] {
+    background-color: #000;
+  }
+
+  /* 淡入淡出过渡效果 */
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.2s ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
   }
 </style>

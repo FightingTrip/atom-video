@@ -7,6 +7,7 @@
  * - 快捷键：支持键盘快捷键控制
  * - 全屏控制：支持全屏和画中画模式
  * - 字幕支持：支持多语言字幕切换
+ * - 播放历史记录：自动保存播放进度
  * @dependencies
  * - naive-ui: UI组件库
  * - @vueuse/core: 实用工具集
@@ -75,6 +76,24 @@
               </template>
               发送
             </n-button>
+
+            <!-- 新增：画质选择 -->
+            <n-tooltip>
+              <template #trigger>
+                <n-button quaternary>
+                  <template #icon>
+                    <n-icon>
+                      <SettingsOutline />
+                    </n-icon>
+                  </template>
+                  画质
+                </n-button>
+              </template>
+              <div class="quality-selector">
+                <n-select v-model:value="currentQuality" :options="availableQualities"
+                  @update:value="handleQualityChange" size="small" :style="{ width: '80px' }" />
+              </div>
+            </n-tooltip>
           </n-button-group>
         </div>
 
@@ -102,16 +121,19 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import VuePlyr from 'vue-plyr'
   import 'vue-plyr/dist/vue-plyr.css'
-  import { NButton, NButtonGroup, NIcon, NInput, NSpin } from 'naive-ui'
+  import { NButton, NButtonGroup, NIcon, NInput, NSpin, NSelect, NTooltip } from 'naive-ui'
   import {
     AlertCircleIcon,
     ChatBubbleIcon,
-    SendIcon
+    SendIcon,
+    SettingsOutline
   } from '@vicons/ionicons5'
   import type { Video } from '@/types'
+  import { useHistoryStore } from '@/stores/history'
+  import { debounce } from '@/utils/helpers'
 
   const props = defineProps<{
     video: Video
@@ -123,6 +145,7 @@
     (e: 'play'): void
     (e: 'pause'): void
     (e: 'ended'): void
+    (e: 'quality-change', quality: string): void
   }>()
 
   // 状态
@@ -142,6 +165,19 @@
     offset: number
     color: string
   }>>([])
+
+  // 新增：画质选择
+  const currentQuality = ref(props.video.sources?.[0]?.label || '720p')
+  const availableQualities = computed(() => {
+    if (!props.video.sources) return []
+    return props.video.sources.map(source => ({
+      label: source.label,
+      value: source.label
+    }))
+  })
+
+  // 新增：使用历史记录
+  const historyStore = useHistoryStore()
 
   // 播放器配置
   const playerOptions = {
@@ -175,8 +211,12 @@
   // 方法
   const handleReady = () => {
     loading.value = false
-    if (props.currentTime) {
-      videoRef.value!.currentTime = props.currentTime
+    // 从历史记录或props中恢复播放进度
+    const savedProgress = historyStore.getVideoProgress(props.video.id)
+    if (savedProgress && videoRef.value) {
+      videoRef.value.currentTime = savedProgress
+    } else if (props.currentTime && videoRef.value) {
+      videoRef.value.currentTime = props.currentTime
     }
   }
 
@@ -185,9 +225,22 @@
     console.error('Video error:', err)
   }
 
+  // 防抖更新播放历史
+  const updateHistory = debounce((currentTime: number) => {
+    if (props.video && props.video.id) {
+      historyStore.saveVideoProgress(props.video.id, currentTime)
+    }
+  }, 1000)
+
   const handleTimeUpdate = () => {
     if (videoRef.value) {
-      emit('time-update', videoRef.value.currentTime)
+      const currentTime = videoRef.value.currentTime
+      emit('time-update', currentTime)
+
+      // 保存播放进度到历史
+      if (currentTime > 0 && props.video.duration && currentTime < props.video.duration - 10) {
+        updateHistory(currentTime)
+      }
     }
   }
 
@@ -201,6 +254,10 @@
 
   const handleEnded = () => {
     emit('ended')
+    // 播放结束，清除进度
+    if (props.video && props.video.id) {
+      historyStore.saveVideoProgress(props.video.id, 0)
+    }
   }
 
   const retry = () => {
@@ -232,6 +289,32 @@
     danmakuList.value.push(danmaku)
     danmakuText.value = ''
     isDanmakuInputVisible.value = false
+  }
+
+  // 新增：画质切换
+  const handleQualityChange = (value: string) => {
+    currentQuality.value = value
+    emit('quality-change', value)
+
+    // 保存当前播放进度
+    const currentTime = videoRef.value?.currentTime || 0
+
+    // 切换对应清晰度的视频源
+    if (videoRef.value && props.video.sources) {
+      const source = props.video.sources.find(s => s.label === value)
+      if (source) {
+        videoRef.value.src = source.url
+        videoRef.value.load()
+
+        // 重新加载后恢复播放进度和状态
+        videoRef.value.addEventListener('loadedmetadata', () => {
+          videoRef.value!.currentTime = currentTime
+          if (!videoRef.value!.paused) {
+            videoRef.value!.play()
+          }
+        }, { once: true })
+      }
+    }
   }
 
   // 键盘快捷键
@@ -266,9 +349,23 @@
     }
   }
 
+  // 监听视频ID变化，加载新视频
+  watch(() => props.video.id, () => {
+    if (videoRef.value) {
+      loading.value = true
+      error.value = null
+      videoRef.value.load()
+    }
+  })
+
   // 生命周期钩子
   onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
+
+    // 将视频添加到播放历史
+    if (props.video && props.video.id) {
+      historyStore.addToHistory(props.video)
+    }
   })
 
   onUnmounted(() => {
@@ -461,5 +558,10 @@
     .danmaku-item {
       font-size: var(--text-base);
     }
+  }
+
+  .quality-selector {
+    width: 90px;
+    padding: var(--spacing-xs);
   }
 </style>

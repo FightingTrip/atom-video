@@ -60,22 +60,38 @@ export const useAuthStore = defineStore('auth', () => {
         return true;
       }
 
-      const response = await mockLogin({ username: email, password });
+      // 调用mockLogin处理登录，包括测试账号的处理
+      try {
+        const response = await mockLogin({ username: email, password });
 
-      if (response.success && response.data) {
-        setToken(response.data.token);
-        setUser(response.data.user);
-        demoMode.value = false;
-        toast.success('登录成功');
-        return true;
-      } else {
-        error.value = response.error || '登录失败';
+        if (response && response.success && response.data) {
+          setToken(response.data.token);
+          setUser(response.data.user);
+          demoMode.value = false;
+          toast.success('登录成功');
+          return true;
+        } else {
+          // 确保错误信息不为undefined
+          const errorMsg =
+            response && response.error ? response.error : '登录失败，请检查用户名和密码';
+          error.value = errorMsg;
+          toast.error(errorMsg);
+          return false;
+        }
+      } catch (loginError: any) {
+        console.error('登录过程中发生错误:', loginError);
+        error.value = '登录服务暂时不可用，请稍后再试';
         toast.error(error.value);
         return false;
       }
     } catch (err: any) {
-      error.value = err.message || '登录过程中发生错误';
-      toast.error(error.value);
+      // 处理其他错误
+      const errorMsg =
+        err && typeof err === 'object' && 'message' in err
+          ? err.message || '登录过程中发生错误'
+          : '登录过程中发生未知错误';
+      error.value = errorMsg;
+      toast.error(errorMsg);
       return false;
     } finally {
       loading.value = false;
@@ -87,19 +103,33 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await mockRegister({ username, password, nickname });
-      if (response.success && response.data) {
-        // 注册成功但不立即登录
-        toast.success('注册成功，请登录');
-        return true;
-      } else {
-        error.value = response.error || '注册失败';
+      try {
+        const response = await mockRegister({ username, password, nickname });
+        if (response && response.success && response.data) {
+          // 注册成功但不立即登录
+          toast.success('注册成功，请登录');
+          return true;
+        } else {
+          // 确保错误信息不为undefined
+          const errorMsg = response && response.error ? response.error : '注册失败，请稍后重试';
+          error.value = errorMsg;
+          toast.error(errorMsg);
+          return false;
+        }
+      } catch (registerError: any) {
+        console.error('注册过程中发生错误:', registerError);
+        error.value = '注册服务暂时不可用，请稍后再试';
         toast.error(error.value);
         return false;
       }
     } catch (err: any) {
-      error.value = err.message || '注册过程中发生错误';
-      toast.error(error.value);
+      // 处理其他错误
+      const errorMsg =
+        err && typeof err === 'object' && 'message' in err
+          ? err.message || '注册过程中发生错误'
+          : '注册过程中发生未知错误';
+      error.value = errorMsg;
+      toast.error(errorMsg);
       return false;
     } finally {
       loading.value = false;
@@ -112,7 +142,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await getUserByToken(token.value);
-      if (response.success && response.data) {
+      if (response && response.success && response.data) {
         setUser(response.data);
         return true;
       } else {
