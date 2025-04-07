@@ -5,7 +5,7 @@
  * @module tag/controllers/tag
  */
 
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { TagService } from '../services/tag.service';
 import { ApiResponse } from '../../common/utils/api-response';
 import { CreateTagDto, UpdateTagDto, TagQueryParams } from '../models/tag.model';
@@ -25,172 +25,132 @@ export class TagController {
   /**
    * 创建新标签
    */
-  async createTag(req: AuthenticatedRequest, res: Response): Promise<Response> {
+  async createTag(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const dto = req.body as CreateTagDto;
-      
+
       if (!dto.name || dto.name.trim() === '') {
         throw new ValidationError('标签名不能为空');
       }
-      
+
       const tag = await this.tagService.createTag(dto);
-      return ApiResponse.success(res, tag, '标签创建成功');
+      ApiResponse.success(res, tag, '标签创建成功');
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
 
   /**
    * 获取标签列表
    */
-  async getTags(req: Request, res: Response): Promise<Response> {
+  async getTags(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const params: TagQueryParams = {
         search: req.query.search as string,
         sort: req.query.sort as 'name' | 'createdAt' | 'count',
         order: req.query.order as 'asc' | 'desc',
         limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
-        offset: req.query.offset ? parseInt(req.query.offset as string) : 0
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0,
       };
-      
+
       const { tags, total } = await this.tagService.getTags(params);
-      
-      return ApiResponse.success(
+
+      ApiResponse.success(
         res,
         { tags, total, page: Math.floor(params.offset / params.limit) + 1, pageSize: params.limit },
         '标签查询成功'
       );
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
 
   /**
    * 获取热门标签
    */
-  async getPopularTags(req: Request, res: Response): Promise<Response> {
+  async getPopularTags(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const tags = await this.tagService.getPopularTags(limit);
-      
-      return ApiResponse.success(res, tags, '热门标签查询成功');
+
+      ApiResponse.success(res, tags, '热门标签查询成功');
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
 
   /**
    * 根据ID获取标签
    */
-  async getTagById(req: Request, res: Response): Promise<Response> {
+  async getTagById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id;
       const tag = await this.tagService.getTagById(id);
-      
-      return ApiResponse.success(res, tag, '标签查询成功');
+
+      ApiResponse.success(res, tag, '标签查询成功');
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
 
   /**
    * 根据slug获取标签
    */
-  async getTagBySlug(req: Request, res: Response): Promise<Response> {
+  async getTagBySlug(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const slug = req.params.slug;
       const tag = await this.tagService.getTagBySlug(slug);
-      
-      return ApiResponse.success(res, tag, '标签查询成功');
+
+      ApiResponse.success(res, tag, '标签查询成功');
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
 
   /**
    * 更新标签
    */
-  async updateTag(req: AuthenticatedRequest, res: Response): Promise<Response> {
+  async updateTag(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id;
       const dto = req.body as UpdateTagDto;
-      
+
       if (Object.keys(dto).length === 0) {
         throw new ValidationError('更新数据不能为空');
       }
-      
+
       const tag = await this.tagService.updateTag(id, dto);
-      return ApiResponse.success(res, tag, '标签更新成功');
+      ApiResponse.success(res, tag, '标签更新成功');
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
 
   /**
    * 删除标签
    */
-  async deleteTag(req: AuthenticatedRequest, res: Response): Promise<Response> {
+  async deleteTag(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.params.id;
       const tag = await this.tagService.deleteTag(id);
-      
-      return ApiResponse.success(res, tag, '标签删除成功');
+
+      ApiResponse.success(res, tag, '标签删除成功');
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
 
   /**
    * 获取视频的标签
    */
-  async getTagsByVideoId(req: Request, res: Response): Promise<Response> {
+  async getTagsByVideoId(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const videoId = req.params.videoId;
       const tags = await this.tagService.getTagsByVideoId(videoId);
-      
-      return ApiResponse.success(res, tags, '视频标签查询成功');
+
+      ApiResponse.success(res, tags, '视频标签查询成功');
     } catch (error) {
-      return ApiResponse.error(
-        res,
-        error.message,
-        error.statusCode,
-        error.details
-      );
+      next(error);
     }
   }
-} 
+}

@@ -1,6 +1,8 @@
 /**
 * @file VideoGrid.vue
-* @description 视频网格组件，用于展示视频列表
+* @description 视频网格组件，用于以网格形式展示多个视频卡片
+* @author Atom Video Team
+* @date 2025-04-06
 */
 
 <template>

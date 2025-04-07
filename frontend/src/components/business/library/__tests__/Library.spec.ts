@@ -1,3 +1,10 @@
+/**
+ * @file Library.spec.ts
+ * @description Library组件的单元测试用例
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import Library from '../Library.vue';

@@ -1,4 +1,11 @@
 /**
+ * @file utils/index.css
+ * @description 工具类样式集合，提供常用的布局和间距工具类
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
+/**
  * 工具类样式定义
  * 提供全局可用的实用工具类
  */
@@ -278,4 +285,4 @@
 
 .shadow-xl {
   box-shadow: var(--shadow-xl) !important;
-} 
+}

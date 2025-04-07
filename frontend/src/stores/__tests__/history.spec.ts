@@ -1,3 +1,10 @@
+/**
+ * @file history.spec.ts
+ * @description 历史记录状态管理模块的单元测试
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useHistoryStore } from '../history';

@@ -36,7 +36,7 @@
     <!-- 错误遮罩 -->
     <div v-else-if="error" class="error-overlay">
       <n-icon size="48" class="error-icon">
-        <AlertCircleIcon />
+        <AlertCircleOutline />
       </n-icon>
       <p class="error-text">{{ error }}</p>
       <n-button @click="retry">
@@ -126,7 +126,7 @@
   import 'vue-plyr/dist/vue-plyr.css'
   import { NButton, NButtonGroup, NIcon, NInput, NSpin, NSelect, NTooltip } from 'naive-ui'
   import {
-    AlertCircleIcon,
+    AlertCircleOutline,
     ChatBubbleIcon,
     SendIcon,
     SettingsOutline

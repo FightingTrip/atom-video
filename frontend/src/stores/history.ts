@@ -3,12 +3,19 @@ import { ref } from 'vue';
 import type { Video } from '@/types';
 import api from '@/utils/api';
 
+interface VideoProgress {
+  videoId: string;
+  progress: number;
+  timestamp: number;
+}
+
 export const useHistoryStore = defineStore('history', () => {
   // 状态
   const watchHistory = ref<Video[]>([]);
   const searchHistory = ref<string[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const videoProgressHistory = ref<VideoProgress[]>([]);
 
   // 获取观看历史
   const getWatchHistory = async (): Promise<Video[]> => {
@@ -130,11 +137,41 @@ export const useHistoryStore = defineStore('history', () => {
     }
   };
 
+  // 添加视频进度到历史记录
+  const addVideoProgress = (videoId: string, progress: number): void => {
+    const existingIndex = videoProgressHistory.value.findIndex(item => item.videoId === videoId);
+    if (existingIndex >= 0) {
+      videoProgressHistory.value[existingIndex] = {
+        videoId,
+        progress,
+        timestamp: Date.now(),
+      };
+    } else {
+      videoProgressHistory.value.push({
+        videoId,
+        progress,
+        timestamp: Date.now(),
+      });
+    }
+  };
+
+  // 获取视频进度
+  const getVideoProgress = (videoId: string): number => {
+    const video = videoProgressHistory.value.find(item => item.videoId === videoId);
+    return video?.progress || 0;
+  };
+
+  // 清除视频进度历史
+  const clearVideoProgressHistory = (): void => {
+    videoProgressHistory.value = [];
+  };
+
   return {
     watchHistory,
     searchHistory,
     loading,
     error,
+    videoProgressHistory,
     getWatchHistory,
     clearWatchHistory,
     removeFromWatchHistory,
@@ -143,5 +180,8 @@ export const useHistoryStore = defineStore('history', () => {
     clearSearchHistory,
     removeFromSearchHistory,
     addToSearchHistory,
+    addVideoProgress,
+    getVideoProgress,
+    clearVideoProgressHistory,
   };
 });

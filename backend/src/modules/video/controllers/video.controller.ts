@@ -5,12 +5,14 @@
  * @module video/controllers/video
  */
 
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { VideoService } from '../services/video.service';
 import { ApiResponse } from '../../common/utils/api-response';
 import { VideoSearchDto, CreateVideoDto, UpdateVideoDto } from '../models/video.model';
 import { AppError } from '../../common/utils/app-error';
 import { removeNullUndefined } from '../../common/utils/helpers';
+import { ValidationError } from '../../common/utils/validation-error';
+import { AuthenticatedRequest } from '../../common/types/authenticated-request';
 
 /**
  * 视频控制器
@@ -192,20 +194,29 @@ export class VideoController {
    * 更新视频观看进度
    * @param req Express请求对象
    * @param res Express响应对象
+   * @param next Express下一步函数
    */
-  updateVideoProgress = async (req: Request, res: Response) => {
+  updateVideoProgress = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const { videoId } = req.params;
-      const userId = req.user?.id;
+      if (!req.user) {
+        throw new AppError('用户未认证', 401);
+      }
 
-      if (!userId) {
-        return ApiResponse.unauthorized(res, '需要登录才能更新视频进度');
+      const userId = req.user.id;
+      const videoId = req.params.videoId;
+
+      if (!videoId) {
+        throw new ValidationError('视频ID不能为空');
       }
 
       const { currentTime, isCompleted } = req.body;
 
       if (typeof currentTime !== 'number') {
-        return ApiResponse.badRequest(res, '当前播放时间必须是数字');
+        throw new ValidationError('当前播放时间必须是数字');
       }
 
       const progress = await this.videoService.updateVideoProgress(
@@ -215,12 +226,9 @@ export class VideoController {
         isCompleted
       );
 
-      return ApiResponse.success(res, progress, '视频进度更新成功');
+      ApiResponse.success(res, progress, '视频进度更新成功');
     } catch (error) {
-      if (error instanceof AppError) {
-        return ApiResponse.error(res, error.message, error.statusCode, error.details);
-      }
-      return ApiResponse.error(res, '更新视频进度失败');
+      next(error);
     }
   };
 }

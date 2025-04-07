@@ -1,3 +1,9 @@
+/**
+* @file BaseCard.vue
+* @description 基础卡片组件，用于展示内容的容器组件
+* @author Atom Video Team
+* @date 2025-04-06
+*/
 <template>
   <div class="base-card" :class="cardClasses">
     <div v-if="$slots.header || title" class="base-card__header">

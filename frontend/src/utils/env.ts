@@ -1,3 +1,9 @@
+/**
+ * @file env.ts
+ * @description 环境变量工具模块，封装项目环境配置访问
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
 // 环境变量类型定义
 interface ImportMetaEnv {
   VITE_API_URL: string;

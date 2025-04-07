@@ -1,3 +1,10 @@
+/**
+ * @file a11y.ts
+ * @description 无障碍访问相关的Vue指令集，提供辅助功能支持
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
 import type { Directive } from 'vue';
 
 // 焦点管理指令

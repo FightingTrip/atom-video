@@ -144,6 +144,12 @@
   </div>
 </template>
 
+/**
+* @file VideoUpload.vue
+* @description 视频上传业务组件，处理视频文件上传相关逻辑
+* @author Atom Video Team
+* @date 2025-04-06
+*/
 <script setup lang="ts">
   import { ref, computed, onUnmounted } from 'vue';
   import { useAuthStore } from '@/stores/auth';

@@ -1,24 +1,8 @@
 /**
 * @file Library.vue
-* @description 视频库页面组件，用于展示用户收藏的视频
+* @description 视频库业务组件，管理用户的视频集合
 * @author Atom Video Team
 * @date 2025-04-06
-*
-* @features
-* - 视频列表：展示用户收藏的视频
-* - 视频分类：支持按分类筛选视频
-* - 视频排序：支持按时间、热度等排序
-* - 视频搜索：支持搜索视频标题和描述
-* - 分页加载：支持分页加载更多视频
-* - 响应式设计：适配不同屏幕尺寸
-* - 主题适配：支持明暗主题
-*
-* @dependencies
-* - useVideoStore: 视频状态管理
-* - useUserStore: 用户状态管理
-* - naive-ui: UI组件库
-* - vue-i18n: 国际化支持
-* - vue-router: 路由管理
 */
 <template>
   <div class="library-container">

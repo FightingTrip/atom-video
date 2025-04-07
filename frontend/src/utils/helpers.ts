@@ -1,5 +1,8 @@
 /**
- * 工具函数集合
+ * @file helpers.ts
+ * @description 通用辅助工具函数，提供各种实用的辅助方法
+ * @author Atom Video Team
+ * @date 2025-04-06
  */
 
 /**

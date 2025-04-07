@@ -1,3 +1,9 @@
+/**
+ * @file vite.config.ts
+ * @description Vite构建工具配置文件，定义项目构建、开发服务器和插件配置
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';

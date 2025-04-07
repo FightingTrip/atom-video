@@ -1,6 +1,6 @@
 /**
  * @file VideoList.test.ts
- * @description 视频列表组件测试
+ * @description VideoList组件的单元测试用例
  * @author Atom Video Team
  * @date 2025-04-06
  */

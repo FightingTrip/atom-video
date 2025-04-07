@@ -1,3 +1,9 @@
+/**
+ * @file tailwind.config.js
+ * @description Tailwind CSS配置文件，定义主题、颜色、间距和插件配置
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
 /** @type {import('tailwindcss').Config} */
 import scrollbar from 'tailwind-scrollbar';
 
@@ -137,4 +143,4 @@ export default {
   plugins: [
     scrollbar,
   ],
-} 
+}

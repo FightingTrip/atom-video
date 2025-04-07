@@ -1,6 +1,6 @@
 /**
 * @file Trending.vue
-* @description 热门视频业务组件
+* @description 热门视频业务组件，展示平台热门内容
 * @author Atom Video Team
 * @date 2025-04-06
 */

@@ -1,3 +1,9 @@
+/**
+* @file BaseButton.vue
+* @description 基础按钮组件，提供各种样式和状态的按钮实现
+* @author Atom Video Team
+* @date 2025-04-06
+*/
 <template>
   <button :class="buttonClasses" @click="handleClick" :disabled="disabled">
     <slot name="icon-left"></slot>

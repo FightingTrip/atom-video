@@ -1,6 +1,6 @@
 /**
 * @file LibraryPage.vue
-* @description 媒体库页面，展示用户收藏的视频内容
+* @description 媒体库页面，展示和管理用户的视频集合
 * @author Atom Video Team
 * @date 2025-04-06
 */

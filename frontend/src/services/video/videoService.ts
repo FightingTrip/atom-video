@@ -1,3 +1,10 @@
+/**
+ * @file videoService.ts
+ * @description 视频服务模块，提供视频相关的API请求封装
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
+
 import { apiClient, apiRequest } from '@/services/api/client';
 import { Video } from '@/models/Video';
 import { PaginatedData, ApiResponse } from '@/services/api/types';

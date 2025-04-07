@@ -1,6 +1,8 @@
 /**
 * @file VideoCard.vue
-* @description 视频卡片组件，用于在列表中展示视频
+* @description 视频卡片组件，用于展示视频缩略信息
+* @author Atom Video Team
+* @date 2025-04-06
 */
 
 <template>

@@ -1,3 +1,9 @@
+/**
+ * @file main.js
+ * @description Storybook配置文件，定义组件文档系统的设置
+ * @author Atom Video Team
+ * @date 2025-04-06
+ */
 /** @type { import('@storybook/vue3-vite').StorybookConfig } */
 const config = {
   stories: [
@@ -18,4 +24,4 @@ const config = {
   }
 };
 
-export default config; 
+export default config;

@@ -1,6 +1,8 @@
 /**
- * CSS变量定义文件
- * 定义全局使用的CSS变量
+ * @file variables.css
+ * @description 全局CSS变量定义，为项目提供统一的设计标记
+ * @author Atom Video Team
+ * @date 2025-04-06
  */
 
 :root {
@@ -93,4 +95,4 @@
   --z-index-modal: 1050;
   --z-index-popover: 1060;
   --z-index-tooltip: 1070;
-} 
+}
