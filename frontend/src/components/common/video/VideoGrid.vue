@@ -35,7 +35,6 @@
 </template>
 
 <script setup lang="ts">
-  import { defineProps, defineEmits } from 'vue';
   import VideoCard from './VideoCard.vue';
 
   interface VideoAuthor {

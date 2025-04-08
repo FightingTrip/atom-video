@@ -685,7 +685,6 @@ module.exports = {
 </template>
 
 <script setup lang="ts">
-import { defineProps } from 'vue'
 import type { Video } from '@/types/video'
 
 const props = defineProps<{
