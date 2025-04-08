@@ -1,4 +1,4 @@
-// This is your Prisma schema file,
+// This is Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
@@ -13,200 +13,764 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// =========================================
+// User related models
+// =========================================
 enum UserRole {
-  GUEST
-  MEMBER
   ADMIN
+  MODERATOR
+  CREATOR
+  VIEWER
 }
 
-enum Visibility {
-  PUBLIC
-  PRIVATE
-}
-
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  BANNED
-}
-
-enum VideoStatus {
-  DRAFT
-  PUBLISHED
-  PRIVATE
-  DELETED
-}
-
-enum TechTag {
-  // 编程语言
-  JAVASCRIPT
-  TYPESCRIPT
-  PYTHON
-  JAVA
-  C_SHARP
-  C_PLUS_PLUS
-  GO
-  RUST
-  SWIFT
-  KOTLIN
-  PHP
-  RUBY
-
-  // 前端技术
-  REACT
-  VUE
-  ANGULAR
-  SVELTE
-  HTML
-  CSS
-  SASS
-  WEBPACK
-  VITE
-
-  // 后端技术
-  NODEJS
-  EXPRESS
-  NESTJS
-  SPRING
-  DJANGO
-  FLASK
-  LARAVEL
-  GRAPHQL
-  REST
-
-  // 数据库
-  POSTGRESQL
-  MYSQL
-  MONGODB
-  REDIS
-  SQLITE
-
-  // 云服务
-  AWS
-  AZURE
-  GCP
-  DOCKER
-  KUBERNETES
-
-  // 开发工具
-  GIT
-  VSCODE
-  JETBRAINS
-  POSTMAN
-
-  // 计算机科学
-  ALGORITHMS
-  DATA_STRUCTURES
-  DESIGN_PATTERNS
-  SYSTEM_DESIGN
-  COMPILER
-  OPERATING_SYSTEM
-
-  // 其他
-  TUTORIAL
-  BEST_PRACTICES
-  PERFORMANCE
-  SECURITY
-  TESTING
-  DEVOPS
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
 }
 
 model User {
-  id                   String         @id @default(uuid())
-  username             String         @unique
-  email                String         @unique
-  password             String
-  nickname             String?
-  avatar               String?
-  bio                  String?
-  role                 UserRole       @default(MEMBER)
-  status               UserStatus     @default(ACTIVE)
-  isEmailVerified      Boolean        @default(false)
-  verificationToken    String?
-  resetPasswordToken   String?
-  resetPasswordExpires DateTime?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  videos               Video[]
-  comments             Comment[]
-  likes                Like[]
-  favorites            Favorite[]
-  subscriptions        Subscription[] @relation("Subscriber")
-  subscribers          Subscription[] @relation("SubscribedTo")
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  name         String?
+  bio          String?  @db.Text
+  avatarUrl    String?
+  role         UserRole @default(VIEWER)
+  isVerified   Boolean  @default(false)
+
+  // 开发者特有属性
+  githubProfile        String?
+  stackOverflowProfile String?
+  personalWebsite      String?
+  company              String?
+  position             String?
+  experienceLevel      ExperienceLevel?
+
+  // 内容创作相关
+  isCreator          Boolean @default(false)
+  channelDescription String? @db.Text
+  channelBannerUrl   String?
+
+  // 关联
+  videos                   Video[]
+  playlists                Playlist[]
+  watchHistory             WatchHistory[]
+  videoProgress            VideoProgress[]
+  comments                 Comment[]
+  commentLikes             CommentLike[]
+  videoLikes               Like[]
+  subscriptionsTo          Subscription[]            @relation("UserSubscribers")
+  subscribersFrom          Subscription[]            @relation("CreatorSubscribers")
+  savedVideos              SavedVideo[]
+  notifications            Notification[]
+  userActivities           UserActivity[]
+  userProgrammingLanguages UserProgrammingLanguage[]
+  userTechnologies         UserTechnology[]
+  reports                  Report[]                  @relation("ReportSubmitter")
+  reportsModerator         Report[]                  @relation("ReportModerator")
+  searchHistory            SearchHistory[]
+  recommendations          Recommendation[]
+  certificates             Certificate[]
+  questions                Question[]
+  answers                  Answer[]
+  answerVotes              AnswerVote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Series    Series[]
+}
+
+// =========================================
+// Content related models
+// =========================================
+enum VideoVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+  MEMBERS_ONLY
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum VideoType {
+  TUTORIAL
+  CODE_REVIEW
+  LIVE_CODING
+  TECH_TALK
+  INTERVIEW
+  COURSE_MATERIAL
+  CONFERENCE_TALK
+  PRODUCT_DEMO
 }
 
 model Video {
-  id          String      @id @default(uuid())
-  title       String
-  description String?
-  url         String
-  thumbnail   String?
-  duration    Int?
-  views       Int         @default(0)
-  status      VideoStatus @default(DRAFT)
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
-  tags        TechTag[]
-  visibility  Visibility  @default(PUBLIC)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  comments    Comment[]
-  likes       Like[]
-  favorites   Favorite[]
+  id           String          @id @default(uuid())
+  title        String
+  description  String?         @db.Text
+  thumbnailUrl String
+  videoUrl     String
+  duration     Int // 秒数
+  visibility   VideoVisibility @default(PUBLIC)
 
-  @@index([userId])
-  @@index([visibility, createdAt])
+  // 开发者特有属性
+  difficultyLevel DifficultyLevel
+  sourceCodeUrl   String? // GitHub仓库链接等
+  liveDemo        String? // 演示地址
+
+  // 视频类型
+  videoType VideoType @default(TUTORIAL)
+
+  // 内容元数据
+  prerequisites    String? @db.Text
+  learningOutcomes String? @db.Text
+
+  // 统计数据
+  viewCount    Int @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+
+  // 关联
+  creator     User    @relation(fields: [creatorId], references: [id])
+  creatorId   String
+  series      Series? @relation(fields: [seriesId], references: [id])
+  seriesId    String?
+  seriesOrder Int? // 在系列中的顺序
+
+  programmingLanguage ProgrammingLanguage? @relation(fields: [languageId], references: [id])
+  languageId          String?
+
+  chapters          Chapter[]
+  videoTechnologies VideoTechnology[]
+  codeSnippets      CodeSnippet[]
+  comments          Comment[]
+  likes             Like[]
+  watchHistory      WatchHistory[]
+  progress          VideoProgress[]
+  savedBy           SavedVideo[]
+  playlists         PlaylistVideo[]
+  videoTags         VideoTag[]
+  videoCategories   VideoCategory[]
+  questions         Question[]
+  resources         Resource[]
+  contentAccuracy   ContentAccuracy?
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  publishedAt    DateTime?
+  Recommendation Recommendation[]
+
+  @@index([creatorId])
+  @@index([publishedAt])
+  @@index([visibility, publishedAt])
 }
 
-model Comment {
-  id        String   @id @default(uuid())
-  content   String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  videoId   String
-  video     Video    @relation(fields: [videoId], references: [id])
+model Chapter {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  startTime   Int // 秒数
+  endTime     Int? // 秒数
+
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
+  order Int
+
+  @@unique([videoId, order])
+}
+
+model Series {
+  id              String          @id @default(uuid())
+  title           String
+  description     String?         @db.Text
+  thumbnailUrl    String?
+  difficultyLevel DifficultyLevel
+  isComplete      Boolean         @default(false)
+
+  // 关联
+  creator      User          @relation(fields: [creatorId], references: [id])
+  creatorId    String
+  videos       Video[]
+  seriesTags   SeriesTag[]
+  certificates Certificate[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([userId])
+  @@index([creatorId])
+}
+
+model Certificate {
+  id       String @id @default(uuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+  series   Series @relation(fields: [seriesId], references: [id])
+  seriesId String
+
+  issueDate      DateTime @default(now())
+  certificateUrl String
+
+  @@unique([userId, seriesId])
+}
+
+// =========================================
+// Programming Language and Technology models
+// =========================================
+model ProgrammingLanguage {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  iconUrl     String?
+
+  // 关联
+  videos        Video[]
+  userLanguages UserProgrammingLanguage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Technology {
+  id          String             @id @default(uuid())
+  name        String             @unique
+  slug        String             @unique
+  description String?
+  iconUrl     String?
+  category    TechnologyCategory
+
+  // 关联
+  videoTechnologies VideoTechnology[]
+  userTechnologies  UserTechnology[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TechnologyCategory {
+  FRAMEWORK
+  LIBRARY
+  TOOL
+  DATABASE
+  CLOUD_SERVICE
+  DEVOPS
+  TESTING
+  MOBILE
+  WEB
+  GAME_DEV
+  AI_ML
+  BLOCKCHAIN
+  IOT
+}
+
+model UserProgrammingLanguage {
+  id               String              @id @default(uuid())
+  user             User                @relation(fields: [userId], references: [id])
+  userId           String
+  language         ProgrammingLanguage @relation(fields: [languageId], references: [id])
+  languageId       String
+  proficiencyLevel Int                 @default(1) // 1-5 scale
+
+  @@unique([userId, languageId])
+}
+
+model UserTechnology {
+  id               String     @id @default(uuid())
+  user             User       @relation(fields: [userId], references: [id])
+  userId           String
+  technology       Technology @relation(fields: [technologyId], references: [id])
+  technologyId     String
+  proficiencyLevel Int        @default(1) // 1-5 scale
+
+  @@unique([userId, technologyId])
+}
+
+model VideoTechnology {
+  id           String     @id @default(uuid())
+  video        Video      @relation(fields: [videoId], references: [id])
+  videoId      String
+  technology   Technology @relation(fields: [technologyId], references: [id])
+  technologyId String
+
+  @@unique([videoId, technologyId])
+}
+
+// =========================================
+// Playlist models
+// =========================================
+model Playlist {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  isPublic    Boolean @default(true)
+
+  // 关联
+  owner   User            @relation(fields: [ownerId], references: [id])
+  ownerId String
+  videos  PlaylistVideo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model PlaylistVideo {
+  id         String   @id @default(uuid())
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  playlistId String
+  video      Video    @relation(fields: [videoId], references: [id])
+  videoId    String
+  order      Int
+
+  @@unique([playlistId, videoId])
+  @@unique([playlistId, order])
+}
+
+// =========================================
+// Tag and Category models
+// =========================================
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
+
+  // 关联
+  videoTags  VideoTag[]
+  seriesTags SeriesTag[]
+
+  createdAt DateTime @default(now())
+}
+
+model VideoTag {
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+  tag     Tag    @relation(fields: [tagId], references: [id])
+  tagId   String
+
+  @@id([videoId, tagId])
+}
+
+model SeriesTag {
+  series   Series @relation(fields: [seriesId], references: [id])
+  seriesId String
+  tag      Tag    @relation(fields: [tagId], references: [id])
+  tagId    String
+
+  @@id([seriesId, tagId])
+}
+
+model Category {
+  id             String     @id @default(uuid())
+  name           String     @unique
+  slug           String     @unique
+  description    String?
+  parentCategory Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  parentId       String?
+  subCategories  Category[] @relation("CategoryHierarchy")
+
+  // 关联
+  videoCategories VideoCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VideoCategory {
+  video      Video    @relation(fields: [videoId], references: [id])
+  videoId    String
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+
+  @@id([videoId, categoryId])
+}
+
+// =========================================
+// Interaction models
+// =========================================
+model Comment {
+  id       String  @id @default(uuid())
+  content  String  @db.Text
+  isEdited Boolean @default(false)
+
+  // 关联
+  author        User          @relation(fields: [authorId], references: [id])
+  authorId      String
+  video         Video         @relation(fields: [videoId], references: [id])
+  videoId       String
+  parentComment Comment?      @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId      String?
+  replies       Comment[]     @relation("CommentReplies")
+  likes         CommentLike[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
   @@index([videoId])
+  @@index([parentId])
+}
+
+model CommentLike {
+  id        String  @id @default(uuid())
+  comment   Comment @relation(fields: [commentId], references: [id])
+  commentId String
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
 }
 
 model Like {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  videoId   String
-  video     Video    @relation(fields: [videoId], references: [id])
+  id      String @id @default(uuid())
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+
   createdAt DateTime @default(now())
 
-  @@unique([userId, videoId])
+  @@unique([videoId, userId])
   @@index([userId])
   @@index([videoId])
 }
 
 model Subscription {
-  id             String   @id @default(uuid())
-  subscriberId   String
-  subscriber     User     @relation("Subscriber", fields: [subscriberId], references: [id])
-  subscribedToId String
-  subscribedTo   User     @relation("SubscribedTo", fields: [subscribedToId], references: [id])
-  createdAt      DateTime @default(now())
+  id           String @id @default(uuid())
+  subscriber   User   @relation("UserSubscribers", fields: [subscriberId], references: [id])
+  subscriberId String
+  creator      User   @relation("CreatorSubscribers", fields: [creatorId], references: [id])
+  creatorId    String
 
-  @@unique([subscriberId, subscribedToId])
+  notificationsEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@unique([subscriberId, creatorId])
   @@index([subscriberId])
-  @@index([subscribedToId])
+  @@index([creatorId])
 }
 
-model Favorite {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  videoId   String
-  video     Video    @relation(fields: [videoId], references: [id])
+model SavedVideo {
+  id      String @id @default(uuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
   createdAt DateTime @default(now())
 
   @@unique([userId, videoId])
   @@index([userId])
+}
+
+// =========================================
+// Learning progress models
+// =========================================
+model WatchHistory {
+  id      String @id @default(uuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
+  lastWatchedAt DateTime @default(now())
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([lastWatchedAt])
+}
+
+model VideoProgress {
+  id      String @id @default(uuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
+  currentTime Int // 当前播放位置（秒）
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+
+  lastUpdated DateTime @default(now())
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([isCompleted])
+}
+
+// =========================================
+// Notification and activity models
+// =========================================
+enum NotificationType {
+  NEW_VIDEO
+  NEW_SERIES
+  COMMENT_REPLY
+  SUBSCRIPTION
+  CREATOR_ANNOUNCEMENT
+  ACHIEVEMENT
+  MENTION
+}
+
+model Notification {
+  id      String           @id @default(uuid())
+  user    User             @relation(fields: [userId], references: [id])
+  userId  String
+  type    NotificationType
+  message String
+  isRead  Boolean          @default(false)
+
+  // 相关内容引用
+  relatedVideoId  String?
+  relatedUserId   String?
+  relatedSeriesId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum ActivityType {
+  VIDEO_WATCH
+  VIDEO_COMPLETE
+  SERIES_COMPLETE
+  COMMENT
+  LIKE
+  SUBSCRIBE
+  CERTIFICATE_EARNED
+}
+
+model UserActivity {
+  id           String       @id @default(uuid())
+  user         User         @relation(fields: [userId], references: [id])
+  userId       String
+  activityType ActivityType
+  metadata     Json
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([activityType])
+  @@index([createdAt])
+}
+
+// =========================================
+// Search and recommendation models
+// =========================================
+model SearchHistory {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  query  String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum RecommendationReason {
+  WATCH_HISTORY
+  TECHNOLOGY_INTEREST
+  POPULAR_IN_CATEGORY
+  CONTINUATION_OF_SERIES
+  SIMILAR_USERS
+  TRENDING
+}
+
+model Recommendation {
+  id      String @id @default(uuid())
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
+  score     Float // 推荐强度分数
+  reason    RecommendationReason
+  isClicked Boolean              @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, videoId])
+  @@index([userId])
+  @@index([isClicked])
+}
+
+// =========================================
+// Content quality and moderation models
+// =========================================
+enum ReportReason {
+  INCORRECT_INFORMATION
+  OUTDATED_CONTENT
+  COPYRIGHT_VIOLATION
+  INAPPROPRIATE_CONTENT
+  SPAM
+  HARASSMENT
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model Report {
+  id          String       @id @default(uuid())
+  reporter    User         @relation("ReportSubmitter", fields: [reporterId], references: [id])
+  reporterId  String
+  reason      ReportReason
+  description String?      @db.Text
+  status      ReportStatus @default(PENDING)
+
+  // 被举报内容
+  videoId   String?
+  commentId String?
+  userId    String? // 被举报的用户
+
+  // 处理信息
+  moderator   User?   @relation("ReportModerator", fields: [moderatorId], references: [id])
+  moderatorId String?
+  resolution  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reporterId])
+  @@index([status])
+  @@index([videoId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+model ContentAccuracy {
+  id      String @id @default(uuid())
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String @unique
+
+  isUpToDate     Boolean  @default(true)
+  lastVerifiedAt DateTime @default(now())
+  versionInfo    String? // 例如："React 18.2.0"
+
+  // 过期/过时标记
+  isDeprecated    Boolean @default(false)
+  deprecationNote String?
+
+  updatedAt DateTime @updatedAt
+}
+
+// =========================================
+// Developer Q&A and resources models
+// =========================================
+model Question {
+  id      String @id @default(uuid())
+  title   String
+  content String @db.Text
+
+  video    Video  @relation(fields: [videoId], references: [id])
+  videoId  String
+  author   User   @relation(fields: [authorId], references: [id])
+  authorId String
+
+  isSolved Boolean  @default(false)
+  answers  Answer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([videoId])
+  @@index([isSolved])
+}
+
+model Answer {
+  id      String @id @default(uuid())
+  content String @db.Text
+
+  question   Question @relation(fields: [questionId], references: [id])
+  questionId String
+  author     User     @relation(fields: [authorId], references: [id])
+  authorId   String
+
+  isAccepted Boolean      @default(false)
+  votes      AnswerVote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([questionId])
+  @@index([authorId])
+  @@index([isAccepted])
+}
+
+model AnswerVote {
+  id       String  @id @default(uuid())
+  answer   Answer  @relation(fields: [answerId], references: [id])
+  answerId String
+  user     User    @relation(fields: [userId], references: [id])
+  userId   String
+  isUpvote Boolean // true = 赞，false = 踩
+
+  createdAt DateTime @default(now())
+
+  @@unique([answerId, userId])
+}
+
+enum ResourceType {
+  DOCUMENTATION
+  GITHUB_REPO
+  ARTICLE
+  TOOL
+  LIBRARY
+  SAMPLE_PROJECT
+  BOOK
+  CHEAT_SHEET
+}
+
+model Resource {
+  id           String       @id @default(uuid())
+  title        String
+  description  String?      @db.Text
+  resourceType ResourceType
+  url          String
+
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([videoId])
+  @@index([resourceType])
+}
+
+model CodeSnippet {
+  id          String  @id @default(uuid())
+  title       String
+  code        String  @db.Text
+  language    String // 编程语言标识符
+  description String?
+  startTime   Int? // 视频中的开始时间（秒）
+  endTime     Int? // 视频中的结束时间（秒）
+
+  // 关联
+  video   Video  @relation(fields: [videoId], references: [id])
+  videoId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([videoId])
 }

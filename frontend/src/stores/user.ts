@@ -1,198 +1,125 @@
+/**
+ * 用户状态管理
+ */
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  avatar?: string;
-}
+import { ref, computed } from 'vue';
+import type { User, Video } from '@/types';
+import api from '@/utils/api';
+import { useAuthStore } from './auth';
 
 interface LoginPayload {
   email: string;
   password: string;
-  remember?: boolean;
 }
 
-interface RegisterPayload {
+interface RegisterPayload extends LoginPayload {
   username: string;
-  email: string;
-  password: string;
-  code: string;
+  nickname: string;
+}
+
+interface UpdateProfilePayload {
+  nickname?: string;
+  bio?: string;
+  avatar?: string;
+  social?: {
+    website?: string;
+    github?: string;
+    twitter?: string;
+  };
+}
+
+interface UserState {
+  user: User | null;
+  isLoading: boolean;
+  error: Error | null;
 }
 
 export const useUserStore = defineStore('user', () => {
-  const user = ref<User | null>(null);
-  const token = ref<string | null>(null);
+  // 状态
+  const currentUser = ref<User | null>(null);
   const loading = ref(false);
+  const error = ref<string | null>(null);
+
+  // 计算属性
+  const isLoggedIn = computed(() => !!currentUser.value);
+  const userName = computed(() => currentUser.value?.name || '游客');
 
   // 初始化用户状态
-  const initUser = async () => {
-    const savedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-    if (savedToken) {
-      token.value = savedToken;
-      try {
-        // 这里应该调用API验证token并获取用户信息
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500));
-        user.value = {
-          id: '1',
-          username: 'demouser',
-          email: 'demo@example.com',
-          avatar: 'https://i.pravatar.cc/150?img=1',
-        };
-      } catch (error) {
-        console.error('Failed to initialize user:', error);
-        logout();
-      }
-    }
-  };
+  async function initUser() {
+    // 在实际应用中，这里应该从localStorage或cookie检查是否有保存的会话
+    // 然后从API获取用户信息
 
-  // 邮箱登录
-  const login = async (payload: LoginPayload) => {
+    // 模拟用户初始化过程
     loading.value = true;
+
     try {
-      // 这里应该调用实际的登录API
       // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // 模拟验证 (实际应由后端处理)
-      if (payload.email !== 'demo@example.com' || payload.password !== 'password123') {
-        throw new Error('邮箱或密码不正确');
+      // 从本地存储中获取用户信息（如果有的话）
+      const savedUserJSON = localStorage.getItem('user');
+      if (savedUserJSON) {
+        try {
+          currentUser.value = JSON.parse(savedUserJSON);
+          console.log('用户数据已从本地存储恢复');
+        } catch (e) {
+          console.error('解析保存的用户数据时出错:', e);
+          localStorage.removeItem('user');
+        }
       }
-
-      // 模拟成功响应
-      const response = {
-        user: {
-          id: '1',
-          username: 'demouser',
-          email: payload.email,
-          avatar: 'https://i.pravatar.cc/150?img=1',
-        },
-        token: 'fake-jwt-token',
-      };
-
-      user.value = response.user;
-      token.value = response.token;
-
-      if (payload.remember) {
-        localStorage.setItem('token', response.token);
-      } else {
-        sessionStorage.setItem('token', response.token);
-      }
-
-      return response;
+    } catch (err: any) {
+      console.error('初始化用户状态时出错:', err);
+      error.value = '无法加载用户信息';
     } finally {
       loading.value = false;
     }
-  };
+  }
 
-  // 发送验证码
-  const sendVerificationCode = async (email: string) => {
-    // 这里应该调用实际的发送验证码API
-    // 模拟API调用 (在实际应用中，这会向用户邮箱发送验证码)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  // 设置用户
+  function setUser(user: User | null) {
+    currentUser.value = user;
 
-    console.log(`模拟发送验证码到邮箱: ${email}，验证码: 123456`);
+    // 保存到本地存储
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }
 
-    // 模拟成功
-    return { success: true, message: '验证码已发送到您的邮箱' };
-  };
-
-  // 邮箱注册
-  const register = async (payload: RegisterPayload) => {
-    loading.value = true;
-    try {
-      // 这里应该调用实际的注册API
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 模拟验证 (实际应由后端处理)
-      if (payload.code !== '123456') {
-        throw new Error('验证码不正确');
-      }
-
-      // 检查邮箱是否已注册 (模拟)
-      if (payload.email === 'demo@example.com') {
-        throw new Error('该邮箱已被注册');
-      }
-
-      // 模拟成功响应
-      const response = {
-        success: true,
-        message: '注册成功',
+  // 更新用户偏好
+  function updatePreferences(preferences: Partial<UserPreferences>) {
+    if (currentUser.value) {
+      currentUser.value.preferences = {
+        ...currentUser.value.preferences,
+        ...preferences,
       };
 
-      return response;
-    } finally {
-      loading.value = false;
+      // 更新本地存储
+      localStorage.setItem('user', JSON.stringify(currentUser.value));
     }
-  };
+  }
 
-  // 社交登录 (Google, GitHub)
-  const socialLogin = async (provider: string) => {
-    loading.value = true;
-    try {
-      // 在实际应用中，这里应使用OAuth流程:
-      // 1. 重定向用户到OAuth提供商的登录页面
-      // 2. 用户授权后，提供商会重定向回应用，带上授权码
-      // 3. 后端用授权码换取用户信息和访问令牌
-
-      // 模拟OAuth流程
-      console.log(`模拟${provider}登录流程开始`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // 模拟成功登录
-      const response = {
-        user: {
-          id: provider === 'google' ? 'g-123' : 'gh-456',
-          username: `${provider}user`,
-          email: `user@${provider}.com`,
-          avatar: `https://i.pravatar.cc/150?img=${provider === 'google' ? 3 : 4}`,
-        },
-        token: `${provider}-token-xyz`,
-      };
-
-      user.value = response.user;
-      token.value = response.token;
-      localStorage.setItem('token', response.token);
-
-      return response;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 忘记密码
-  const forgotPassword = async (email: string) => {
-    // 这里应该调用实际的重置密码API
-    // 模拟API调用 (在实际应用中，这会向用户邮箱发送重置链接)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    console.log(`模拟发送密码重置链接到: ${email}`);
-
-    // 模拟成功
-    return { success: true, message: '重置链接已发送到您的邮箱' };
-  };
-
-  // 登出
-  const logout = () => {
-    user.value = null;
-    token.value = null;
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
-  };
+  // 清除用户状态
+  function clearUser() {
+    currentUser.value = null;
+    localStorage.removeItem('user');
+  }
 
   return {
-    user,
-    token,
+    // 状态
+    currentUser,
     loading,
+    error,
+
+    // 计算属性
+    isLoggedIn,
+    userName,
+
+    // 操作
     initUser,
-    login,
-    register,
-    socialLogin,
-    sendVerificationCode,
-    forgotPassword,
-    logout,
+    setUser,
+    updatePreferences,
+    clearUser,
   };
 });

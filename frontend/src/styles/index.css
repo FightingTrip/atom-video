@@ -1,0 +1,27 @@
+/**
+ * 样式系统入口文件
+ * 按照依赖顺序导入各模块
+ */
+
+/* 基础重置样式 */
+@import './reset.css';
+
+/* 设计变量 */
+@import './variables.css';
+
+/* 主题样式 */
+@import './theme.css';
+
+/* 组件样式 */
+@import './components.css';
+
+/* Tailwind配置 */
+@import './tailwind.css';
+
+/* 工具类 */
+@import './utilities.css';
+
+/**
+ * 这个文件作为样式系统的统一入口点
+ * 在main.ts中只需导入此文件即可加载完整样式系统
+ */

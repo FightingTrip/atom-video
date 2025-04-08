@@ -1,0 +1,22 @@
+{
+  "name": "@atom/shared-types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for Atom Video",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "typescript",
+    "types"
+  ],
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+} 

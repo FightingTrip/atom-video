@@ -6,20 +6,63 @@
 import { useMessage } from 'naive-ui';
 
 export function useToast() {
-  const message = useMessage();
+  try {
+    const message = useMessage();
 
-  return {
-    success(content: string) {
-      message.success(content);
-    },
-    error(content: string) {
-      message.error(content);
-    },
-    warning(content: string) {
-      message.warning(content);
-    },
-    info(content: string) {
-      message.info(content);
-    },
-  };
+    return {
+      success(content: string | undefined | null) {
+        if (content && message && typeof message.success === 'function') {
+          message.success(content);
+        } else if (content) {
+          console.log('Success:', content);
+        }
+      },
+      error(content: string | undefined | null) {
+        if (content && message && typeof message.error === 'function') {
+          message.error(content);
+        } else if (content) {
+          console.error('Error:', content);
+        } else {
+          // 提供默认错误信息，避免undefined错误
+          if (message && typeof message.error === 'function') {
+            message.error('发生未知错误');
+          } else {
+            console.error('Error: 发生未知错误');
+          }
+        }
+      },
+      warning(content: string | undefined | null) {
+        if (content && message && typeof message.warning === 'function') {
+          message.warning(content);
+        } else if (content) {
+          console.warn('Warning:', content);
+        }
+      },
+      info(content: string | undefined | null) {
+        if (content && message && typeof message.info === 'function') {
+          message.info(content);
+        } else if (content) {
+          console.info('Info:', content);
+        }
+      },
+    };
+  } catch (err) {
+    // 提供后备实现，以防useMessage不可用
+    console.error('Toast initialization error:', err);
+    return {
+      success(content: string | undefined | null) {
+        if (content) console.log('Success:', content);
+      },
+      error(content: string | undefined | null) {
+        if (content) console.error('Error:', content);
+        else console.error('Error: 发生未知错误');
+      },
+      warning(content: string | undefined | null) {
+        if (content) console.warn('Warning:', content);
+      },
+      info(content: string | undefined | null) {
+        if (content) console.info('Info:', content);
+      },
+    };
+  }
 }

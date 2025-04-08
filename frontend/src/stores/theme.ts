@@ -1,94 +1,90 @@
+/**
+ * 主题状态管理
+ */
 import { defineStore } from 'pinia';
+import { ref, computed, watch } from 'vue';
 import { darkTheme } from 'naive-ui';
 import type { GlobalThemeOverrides } from 'naive-ui';
 
-// 浅色主题 - 简洁大气
-const lightThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    primaryColor: '#0F172A',
-    primaryColorHover: '#1E293B',
-    primaryColorPressed: '#0F172A',
-    infoColor: '#0284C7',
-    successColor: '#10B981',
-    warningColor: '#F59E0B',
-    errorColor: '#EF4444',
-  },
-  Button: {
-    borderRadius: '6px',
-  },
-  Card: {
-    borderRadius: '8px',
-  },
-};
+// 主题类型
+type ThemeType = 'light' | 'dark' | 'system';
 
-// 深色主题 - 高端沉稳
-const darkThemeOverrides: GlobalThemeOverrides = {
-  common: {
-    primaryColor: '#3B82F6',
-    primaryColorHover: '#60A5FA',
-    primaryColorPressed: '#2563EB',
-    infoColor: '#38BDF8',
-    successColor: '#34D399',
-    warningColor: '#FBBF24',
-    errorColor: '#F87171',
-  },
-  Button: {
-    borderRadius: '6px',
-  },
-  Card: {
-    borderRadius: '8px',
-  },
-};
+// 主题状态
+export const useThemeStore = defineStore('theme', () => {
+  // 状态
+  const themeType = ref<ThemeType>((localStorage.getItem('theme') as ThemeType) || 'system');
+  const systemDarkMode = ref(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-export const useThemeStore = defineStore('theme', {
-  state: () => ({
-    isDark: localStorage.getItem('isDark') === 'true',
-  }),
+  // 计算当前是否应该使用深色主题
+  const isDark = computed(() => {
+    if (themeType.value === 'system') {
+      return systemDarkMode.value;
+    }
+    return themeType.value === 'dark';
+  });
 
-  getters: {
-    naiveTheme() {
-      return this.isDark ? darkTheme : null;
-    },
-    themeOverrides(): GlobalThemeOverrides {
-      return this.isDark ? darkThemeOverrides : lightThemeOverrides;
-    },
-  },
+  // 监听系统主题变化
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  mediaQuery.addEventListener('change', e => {
+    systemDarkMode.value = e.matches;
+  });
 
-  actions: {
-    toggleTheme() {
-      // 添加过渡动画类
-      document.documentElement.classList.add('theme-transitioning');
+  // 根据主题类型计算主题覆盖配置
+  const themeOverrides = computed<GlobalThemeOverrides>(() => {
+    // 默认主题覆盖配置
+    return {
+      common: {
+        primaryColor: '#3b82f6',
+        primaryColorHover: '#60a5fa',
+        primaryColorPressed: '#2563eb',
+      },
+    };
+  });
 
-      // 切换深色/浅色主题
-      this.isDark = !this.isDark;
-      localStorage.setItem('isDark', this.isDark.toString());
+  // 设置主题类型
+  function setTheme(type: ThemeType) {
+    themeType.value = type;
+    localStorage.setItem('theme', type);
+  }
 
-      // 应用主题
-      this.applyTheme();
+  // 切换主题
+  function toggleTheme() {
+    const newTheme = isDark.value ? 'light' : 'dark';
+    setTheme(newTheme);
+  }
 
-      // 在动画完成后移除过渡类
-      setTimeout(() => {
-        document.documentElement.classList.remove('theme-transitioning');
-      }, 500);
-    },
+  // 初始化主题
+  function initTheme() {
+    // 从localStorage获取保存的主题
+    const savedTheme = localStorage.getItem('theme') as ThemeType;
+    if (savedTheme) {
+      themeType.value = savedTheme;
+    }
 
-    initTheme() {
-      // 从本地存储中获取主题设置
-      const savedDarkMode = localStorage.getItem('isDark');
+    // 设置body的data-theme属性以支持CSS变量
+    applyThemeClass();
+  }
 
-      if (savedDarkMode !== null) {
-        this.isDark = savedDarkMode === 'true';
-      } else {
-        // 默认匹配系统主题
-        this.isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      }
+  // 应用主题类到body元素
+  function applyThemeClass() {
+    if (isDark.value) {
+      document.body.setAttribute('data-theme', 'dark');
+    } else {
+      document.body.setAttribute('data-theme', 'light');
+    }
+  }
 
-      this.applyTheme();
-    },
+  // 监听主题变化，更新CSS变量
+  watch(isDark, () => {
+    applyThemeClass();
+  });
 
-    applyTheme() {
-      // 应用主题到文档根元素
-      document.documentElement.classList.toggle('dark', this.isDark);
-    },
-  },
+  return {
+    themeType,
+    isDark,
+    themeOverrides,
+    setTheme,
+    toggleTheme,
+    initTheme,
+  };
 });

@@ -1,3 +1,8 @@
+/**
+ * Tailwind CSS配置
+ * 提供基础的工具类和组件类
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,7 +10,15 @@
 /* 自定义样式 */
 @layer base {
   body {
-    @apply bg-gray-100 dark:bg-gray-900;
+    background-color: rgb(243 244 246);
+  }
+
+  .dark body {
+    background-color: rgb(17 24 39);
+  }
+
+  html {
+    @apply antialiased;
   }
 }
 
@@ -34,8 +47,70 @@
   }
   
   .vivid-gradient-text {
-    @apply text-transparent bg-clip-text;
+    color: transparent;
+    background-clip: text;
     background-image: linear-gradient(to right, var(--primary-color), var(--accent-color));
+  }
+
+  /* 按钮组件 */
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-blue-500 text-white hover:bg-blue-600;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-500 text-white hover:bg-gray-600;
+  }
+
+  .btn-outline {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+  }
+
+  /* 输入框组件 */
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  /* 卡片组件 */
+  .card {
+    @apply bg-white rounded-lg shadow-sm p-4;
+  }
+
+  /* 标签组件 */
+  .tag {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .tag-primary {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .tag-secondary {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  /* 图片懒加载组件 */
+  .lazy-image {
+    @apply relative overflow-hidden;
+  }
+
+  .lazy-image img {
+    @apply transition-opacity duration-300;
+  }
+
+  .lazy-image.loaded img {
+    @apply opacity-100;
+  }
+
+  .lazy-image:not(.loaded) img {
+    @apply opacity-0;
+  }
+
+  .lazy-image .placeholder {
+    @apply absolute inset-0 bg-dark-lighter animate-pulse;
   }
 }
 
@@ -52,16 +127,16 @@
 }
 
 /* 浅色主题 */
-:root {
+:root, [data-theme="light"] {
   /* 基础颜色 */
   --primary-color: #0F172A;
   --accent-color: #3B82F6;
   
   /* 背景 */
   --content-bg: #F8FAFC;
-  --sidebar-bg: #FFFFFF;
-  --header-bg: #FFFFFF;
-  --footer-bg: #FFFFFF;
+  --sidebar-bg: #FFF;
+  --header-bg: #FFF;
+  --footer-bg: #FFF;
   
   /* 文本颜色 */
   --text-color: #0F172A;
@@ -76,11 +151,11 @@
   --tag-bg: #F1F5F9;
   --tag-active-bg: #0F172A;
   --tag-text: #334155;
-  --tag-active-text: #FFFFFF;
+  --tag-active-text: #FFF;
   
   /* 卡片 */
-  --card-bg: #FFFFFF;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --card-bg: #FFF;
+  --card-shadow: 0 1px 3px rgb(0 0 0 / 10%), 0 1px 2px rgb(0 0 0 / 6%);
   --card-border: #E2E8F0;
   
   /* 过渡动画 */
@@ -88,36 +163,36 @@
 }
 
 /* 深色主题 */
-:root.dark {
+[data-theme="dark"] {
   /* 基础颜色 */
   --primary-color: #3B82F6;
   --accent-color: #60A5FA;
   
-  /* 背景 */
-  --content-bg: #0F172A;
-  --sidebar-bg: #1E293B;
-  --header-bg: #1E293B;
-  --footer-bg: #1E293B;
+  /* 背景 - 使用更深的黑色 */
+  --content-bg: #0A0A0A; /* 更深的黑色背景 */
+  --sidebar-bg: #121212; /* 稍微亮一点的黑色 */
+  --header-bg: #121212;
+  --footer-bg: #121212;
   
-  /* 文本颜色 */
-  --text-color: #F8FAFC;
-  --text-secondary: #E2E8F0;
-  --text-muted: #94A3B8;
-  --sidebar-text: #F8FAFC;
+  /* 文本颜色 - 保持良好对比度 */
+  --text-color: #F9FAFB; /* 更亮的白色 */
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+  --sidebar-text: #F9FAFB;
   
   /* 边框 */
-  --border-color: #334155;
+  --border-color: #1F1F1F; /* 稍微亮一点的黑色边框 */
   
   /* 标签 */
-  --tag-bg: #1E293B;
+  --tag-bg: #1F1F1F;
   --tag-active-bg: #3B82F6;
-  --tag-text: #E2E8F0;
-  --tag-active-text: #FFFFFF;
+  --tag-text: #E5E7EB;
+  --tag-active-text: #FFF;
   
   /* 卡片 */
-  --card-bg: #1E293B;
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-  --card-border: #334155;
+  --card-bg: #121212; /* 比背景稍微亮一点的黑色 */
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --card-border: #1F1F1F;
 }
 
 /* 应用主题变量 */
@@ -182,7 +257,7 @@
 
 .video-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -2px rgb(0 0 0 / 5%);
 }
 
 /* 主题过渡动画 */
@@ -192,12 +267,12 @@
 
 /* 强化搜索框样式 */
 .theme-search-bar input {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
   font-size: 16px;
 }
 
 .theme-search-bar input:focus {
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 20%);
 }
 
 /* 底部组件 */
@@ -210,14 +285,9 @@
 
 /* 视频标题和描述文字样式 */
 .theme-video-title {
-  color: #000000 !important;
+  color: var(--text-color) !important;
 }
 
 .theme-video-text {
-  color: #000000 !important;
-}
-
-:root.dark .theme-video-title,
-:root.dark .theme-video-text {
-  color: #ffffff !important;
+  color: var(--text-secondary) !important;
 } 

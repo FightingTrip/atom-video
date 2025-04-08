@@ -1,228 +1,218 @@
-import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { RouteRecordRaw } from 'vue-router';
 
-// 修改懒加载的写法，添加注释和错误处理
-const Home = () =>
-  import('@/views/Home.vue').catch(err => {
-    console.error('Failed to load Home view:', err);
-    return import('@/views/NotFound.vue');
-  });
-const Login = () => import('@/views/auth/Login.vue');
-const Register = () => import('@/views/auth/Register.vue');
-const VerifyEmail = () => import('@/views/auth/VerifyEmail.vue');
-const Profile = () => import('@/views/Profile.vue');
-const Settings = () => import('@/views/Settings.vue');
-const VideoUpload = () => import('@/views/video/Upload.vue');
-const VideoDetail = () => import('@/views/VideoDetail.vue');
-const NotFound = () => import('@/views/NotFound.vue');
-const ForgotPassword = () => import('@/views/auth/ForgotPassword.vue');
-const ResetPassword = () => import('@/views/auth/ResetPassword.vue');
-const TagDetail = () => import('@/views/TagDetail.vue');
-const Trending = () => import('@/views/Trending.vue');
-const Subscriptions = () => import('@/views/Subscriptions.vue');
-const Library = () => import('@/views/Library.vue');
-const History = () => import('@/views/History.vue');
-
-const routes: Array<RouteRecordRaw> = [
+// 路由配置
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    component: () => import('../layouts/DefaultLayout.vue'),
+    component: () => import('@/layouts/DefaultLayout.vue'),
     children: [
       {
         path: '',
-        name: 'Home',
-        component: () => import('../views/Home.vue'),
+        name: 'home',
+        component: () => import('@/pages/feed/HomePage.vue'),
         meta: {
-          title: '首页',
+          title: '首页 - Atom Video',
+          requiresAuth: false,
         },
       },
       {
-        path: 'explore',
-        name: 'Explore',
-        component: () => import('../views/Explore.vue'),
+        path: '/feed/explore',
+        name: 'explore',
+        component: () => import('@/pages/feed/ExplorePage.vue'),
         meta: {
-          title: '探索',
+          title: '发现 - Atom Video',
+          requiresAuth: false,
         },
       },
-      // 其他需要默认布局的路由...
+      {
+        path: '/feed/trending',
+        name: 'trending',
+        component: () => import('@/pages/feed/TrendingPage.vue'),
+        meta: {
+          title: '热门 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
+        path: '/video/upload',
+        name: 'video-upload',
+        component: () => import('@/pages/video/VideoUploadPage.vue'),
+        meta: {
+          title: '上传视频 - Atom Video',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: '/video/:id',
+        name: 'video-detail',
+        component: () => import('@/pages/video/VideoDetailPage.vue'),
+        props: true,
+        meta: {
+          title: '视频详情 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
+        path: '/channel/:id',
+        name: 'channel',
+        component: () => import('@/pages/channel/ChannelPage.vue'),
+        meta: {
+          title: '频道 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
+        path: '/search',
+        name: 'search',
+        component: () => import('@/pages/search/SearchResultsPage.vue'),
+        meta: {
+          title: '搜索结果 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
+        path: '/library',
+        name: 'library',
+        component: () => import('@/pages/library/LibraryPage.vue'),
+        meta: {
+          title: '我的收藏 - Atom Video',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: '/library/history',
+        name: 'history',
+        component: () => import('@/pages/library/HistoryPage.vue'),
+        meta: {
+          title: '观看历史 - Atom Video',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: '/user/settings',
+        name: 'user-settings',
+        component: () => import('@/pages/user/SettingsPage.vue'),
+        meta: {
+          title: '用户设置 - Atom Video',
+          requiresAuth: true,
+        },
+      },
+      {
+        path: '/user/:id',
+        name: 'user-profile',
+        component: () => import('@/pages/user/ProfilePage.vue'),
+        meta: {
+          title: '用户资料 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      // 各种explore路径
+      {
+        path: '/explore/:category',
+        name: 'explore-category',
+        component: () => import('@/pages/explore/ExploreCategoryPage.vue'),
+        meta: {
+          title: '探索 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      // 404页面
+      {
+        path: '/:pathMatch(.*)*',
+        name: 'not-found',
+        component: () => import('@/pages/error/NotFoundPage.vue'),
+        meta: {
+          title: '页面未找到 - Atom Video',
+          requiresAuth: false,
+        },
+      },
     ],
   },
+  // 认证页面 - 使用BlankLayout，没有顶部和侧边栏
   {
     path: '/auth',
-    component: () => import('../layouts/BlankLayout.vue'),
+    component: () => import('@/layouts/BlankLayout.vue'),
     children: [
       {
-        path: '',
-        name: 'Auth',
-        component: () => import('../views/Auth.vue'),
-        meta: {
-          title: '登录与注册',
-          guest: true,
-        },
-      },
-      {
         path: 'login',
-        redirect: '/auth',
+        name: 'login',
+        component: () => import('@/pages/auth/LoginPage.vue'),
+        meta: {
+          title: '登录 - Atom Video',
+          requiresAuth: false,
+        },
       },
       {
         path: 'register',
-        redirect: '/auth',
-      },
-      {
-        path: 'verify-email',
-        name: 'VerifyEmail',
-        component: () => import('../views/auth/VerifyEmail.vue'),
+        name: 'register',
+        component: () => import('@/pages/auth/RegisterPage.vue'),
         meta: {
-          title: '验证邮箱',
-          guest: true,
-        },
-      },
-      {
-        path: 'forgot-password',
-        name: 'ForgotPassword',
-        component: () => import('../views/auth/ForgotPassword.vue'),
-        meta: {
-          title: '忘记密码',
-          guest: true,
-        },
-      },
-      {
-        path: 'reset-password',
-        name: 'ResetPassword',
-        component: () => import('../views/auth/ResetPassword.vue'),
-        meta: {
-          title: '重置密码',
-          guest: true,
+          title: '注册 - Atom Video',
+          requiresAuth: false,
         },
       },
     ],
-  },
-  {
-    path: '/profile',
-    name: 'profile',
-    component: Profile,
-    meta: { title: '个人资料', requiresAuth: true },
-  },
-  {
-    path: '/settings',
-    name: 'settings',
-    component: Settings,
-    meta: { title: '设置', requiresAuth: true },
-  },
-  {
-    path: '/trending',
-    name: 'Trending',
-    component: Trending,
-    meta: {
-      title: '热门',
-    },
-  },
-  {
-    path: '/subscriptions',
-    name: 'Subscriptions',
-    component: Subscriptions,
-    meta: {
-      title: '订阅',
-      requiresAuth: true,
-    },
-  },
-  {
-    path: '/library',
-    name: 'Library',
-    component: Library,
-    meta: {
-      title: '媒体库',
-      requiresAuth: true,
-    },
-  },
-  {
-    path: '/history',
-    name: 'History',
-    component: History,
-    meta: {
-      title: '历史记录',
-      requiresAuth: true,
-    },
-  },
-  {
-    path: '/video/upload',
-    name: 'VideoUpload',
-    component: VideoUpload,
-    meta: {
-      title: '上传视频',
-      requiresAuth: true,
-    },
-  },
-  {
-    path: '/video/:id',
-    name: 'VideoDetail',
-    component: VideoDetail,
-    meta: {
-      title: '视频详情',
-    },
-  },
-  {
-    path: '/tag/:id',
-    name: 'TagDetail',
-    component: TagDetail,
-    meta: {
-      title: '标签详情',
-    },
-  },
-  {
-    path: '/oauth/callback',
-    name: 'OAuthCallback',
-    component: () => import('../views/auth/OAuthCallback.vue'),
-    meta: {
-      title: 'OAuth Callback',
-      guest: true,
-    },
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-    component: () => import('../views/NotFound.vue'),
-    meta: {
-      title: '页面未找到',
-    },
   },
 ];
 
 // 创建路由实例
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(),
   routes,
 });
 
-// 添加全局错误处理
-router.onError(error => {
-  console.error('Router error:', error);
-});
-
-// 路由守卫处理标题等
+// 路由守卫
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 
-  document.title = `${to.meta.title || 'Atom Video'} - Make Develop All In One`;
+  console.log('[Router] beforeEach', {
+    to: {
+      path: to.path,
+      name: to.name,
+      fullPath: to.fullPath,
+      matched: to.matched.map(record => ({
+        path: record.path,
+        name: record.name,
+        component: record.components?.default?.name || 'Anonymous Component',
+      })),
+    },
+    isAuthRequired: to.meta.requiresAuth,
+    isAuthenticated: authStore.isAuthenticated,
+  });
 
-  // 检查认证状态
-  if (!authStore.isAuthenticated && authStore.token) {
-    authStore.checkAuth();
-  }
+  // 设置页面标题
+  document.title = `${to.meta.title}` || 'Atom Video';
 
-  // 需要认证的路由
+  // 处理需要登录的页面
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login', query: { redirect: to.fullPath } });
+    console.log('[Router] 重定向到登录页面，因为需要认证');
+    next({
+      name: 'login',
+      query: { redirect: to.fullPath },
+    });
     return;
   }
 
-  // 游客专属路由（已登录用户不能访问）
+  // 处理游客页面（已登录用户不能访问）
   if (to.meta.guest && authStore.isAuthenticated) {
+    console.log('[Router] 重定向到首页，因为用户已登录');
     next('/');
     return;
   }
 
+  // 继续路由处理
+  console.log('[Router] 继续导航到', to.path);
   next();
+});
+
+// 路由后置钩子 - 用于调试
+router.afterEach((to, from) => {
+  console.log('[Router] afterEach', {
+    navigatedTo: to.path,
+    fromPath: from.path,
+  });
 });
 
 export default router;

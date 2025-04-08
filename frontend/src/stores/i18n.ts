@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import  i18n  from '@/plugins/i18n';
+import i18n from '@/plugins/i18n';
 
 // 导入语言包
 import zh from '@/locales/zh-CN';
@@ -7,35 +7,30 @@ import en from '@/locales/en-US';
 
 export const useI18nStore = defineStore('i18n', {
   state: () => ({
-    currentLocale: localStorage.getItem('language') || 'zh-CN',
+    locale: localStorage.getItem('locale') || 'zh-CN',
   }),
 
   getters: {
-    locale: state => state.currentLocale,
+    currentLocale(): string {
+      return this.locale;
+    },
+    isZhCN(): boolean {
+      return this.locale === 'zh-CN';
+    },
   },
 
   actions: {
     setLocale(locale: string) {
-      console.log('Setting locale to:', locale); // 调试日志
-      this.currentLocale = locale;
+      this.locale = locale;
+      localStorage.setItem('locale', locale);
       i18n.global.locale.value = locale;
-      localStorage.setItem('language', locale);
 
       // 更新页面上的文本
       document.querySelector('html')?.setAttribute('lang', locale);
     },
 
     initLocale() {
-      const savedLocale = localStorage.getItem('language');
-      if (savedLocale) {
-        this.setLocale(savedLocale);
-      }
-    },
-  },
-
-  getters: {
-    isZhCN(): boolean {
-      return this.currentLocale === 'zh-CN';
+      this.setLocale(this.locale);
     },
   },
 });

@@ -1,152 +1,146 @@
 <!-- 
-  技术栈说明：
-  - Vue 3: 使用 Composition API 和 <script setup> 语法
-  - TypeScript: 强类型支持
-  - Tailwind CSS: 样式框架
-  - Vue Router: 路由管理
-  - Pinia: 状态管理
+  App.vue 
+  这是Vue应用的根组件，确保整个应用只有一个视图区域。
+  简化结构，移除任何可能导致双重头部和重复滚动条的嵌套布局。
 -->
 
-<script setup lang="ts">
-  // 导入路由视图
-  import { RouterView, useRoute } from 'vue-router'
-  import { useI18n } from 'vue-i18n'
-  // 导入 Naive UI 组件
-  import { NConfigProvider, NMessageProvider, NButton, NDropdown, NAvatar } from 'naive-ui'
-  // 导入 Toast 组件
-  import Toast from '@/components/Toast.vue'
-  import LanguageSelector from '@/components/LanguageSelector.vue'
-  import { computed, ref, onMounted, markRaw } from 'vue';
-  import { useThemeStore } from '@/stores/theme';
-  import { darkTheme, lightTheme } from 'naive-ui';
-  import ThemeToggle from '@/components/ThemeToggle.vue';
-  import UserMenu from '@/components/UserMenu.vue';
-  import Sidebar from '@/components/Sidebar.vue';
-  import SearchBar from '@/components/SearchBar.vue';
-  import TheHeader from '@/components/layout/TheHeader.vue';
-  import TheSidebar from '@/components/layout/TheSidebar.vue';
-  import TheFooter from '@/components/layout/TheFooter.vue';
-  import TagList from '@/components/TagList.vue'
-  import { useI18nStore } from '@/stores/i18n'
-  import { useVideoStore } from '@/stores/video'
-  import { useUserStore } from '@/stores/user'
-  import DefaultLayout from '@/layouts/DefaultLayout.vue'
-  import BlankLayout from '@/layouts/BlankLayout.vue'
-
-  // 声明使用的组件
-  const components = {
-    NConfigProvider,
-    NMessageProvider,
-    RouterView,
-    Toast,
-    LanguageSelector,
-    ThemeToggle,
-    UserMenu,
-    Sidebar,
-    SearchBar,
-    TheHeader,
-    TheSidebar,
-    TheFooter,
-    TagList
-  };
-
-  const { t, locale } = useI18n();
-  const route = useRoute();
-
-  const themeStore = useThemeStore();
-  const i18nStore = useI18nStore();
-  const videoStore = useVideoStore();
-  const userStore = useUserStore();
-
-  const theme = computed(() => {
-    return themeStore.isDark ? darkTheme : lightTheme;
-  });
-
-  const sidebarCollapsed = ref(false);
-  const selectedTag = ref('all');
-
-  const currentLanguageLabel = computed(() =>
-    i18nStore.currentLocale === 'zh-CN' ? '简体中文' : 'English'
-  );
-
-  const languageOptions = [
-    {
-      label: '简体中文',
-      key: 'zh-CN',
-    },
-    {
-      label: 'English',
-      key: 'en-US',
-    }
-  ];
-
-  const handleLanguageChange = (key: string) => {
-    i18nStore.setLocale(key);
-  };
-
-  const toggleTheme = () => {
-    themeStore.toggleTheme();
-  };
-
-  const tags = [
-    { id: 'all', name: 'all' },
-    { id: 'javascript', name: 'javascript' },
-    { id: 'typescript', name: 'typescript' },
-    { id: 'vue', name: 'vue' },
-    { id: 'react', name: 'react' },
-    { id: 'nodejs', name: 'nodejs' },
-    { id: 'python', name: 'python' },
-  ];
-
-  const selectTag = (tagId: string) => {
-    selectedTag.value = tagId;
-    videoStore.setCategory(tagId);
-  };
-
-  // 根据路由元数据选择布局
-  const layout = computed(() => {
-    const layoutName = route.meta.layout || 'default'
-    return markRaw(layoutName === 'blank' ? BlankLayout : DefaultLayout)
-  })
-
-  // 初始化主题
-  onMounted(() => {
-    i18nStore.initLocale();
-    themeStore.initTheme();
-    userStore.initUser();
-
-    // 设置初始语言
-    const savedLanguage = localStorage.getItem('language');
-    if (savedLanguage) {
-      i18nStore.setLocale(savedLanguage);
-      locale.value = savedLanguage;
-    }
-  });
-</script>
-
 <template>
-  <n-config-provider :theme="themeStore.naiveTheme" :theme-overrides="themeStore.themeOverrides">
-    <n-message-provider>
-      <router-view />
-    </n-message-provider>
+  <n-config-provider :theme="theme" :theme-overrides="themeOverrides" :locale="locale" :date-locale="dateLocale">
+    <n-dialog-provider>
+      <n-notification-provider>
+        <n-message-provider>
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </n-message-provider>
+      </n-notification-provider>
+    </n-dialog-provider>
   </n-config-provider>
 </template>
 
+<script setup lang="ts">
+  import { computed, onMounted, ref } from 'vue'
+  import { useThemeStore } from '@/stores/theme'
+  import { useUserStore } from '@/stores/user'
+  import {
+    NConfigProvider,
+    NMessageProvider,
+    NNotificationProvider,
+    NDialogProvider,
+    darkTheme,
+    zhCN,
+    dateZhCN
+  } from 'naive-ui'
+
+  // 全局状态
+  const themeStore = useThemeStore()
+  const userStore = useUserStore()
+
+  // 主题计算
+  const theme = computed(() => themeStore.isDark ? darkTheme : null)
+  const themeOverrides = computed(() => themeStore.themeOverrides)
+
+  // 设置区域化
+  const locale = ref(zhCN)
+  const dateLocale = ref(dateZhCN)
+
+  onMounted(async () => {
+    try {
+      // 初始化主题
+      themeStore.initTheme()
+
+      // 初始化用户
+      await userStore.initUser()
+    } catch (error) {
+      console.error('应用初始化失败', error)
+    }
+  })
+</script>
+
 <style>
-  @import '@fortawesome/fontawesome-free/css/all.min.css';
 
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  /* 全局CSS变量 */
+  :root {
+    /* 主题色 */
+    --primary-color: #3b82f6;
+    --primary-color-hover: #60a5fa;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --error-color: #ef4444;
+    --info-color: #6366f1;
+
+    /* 全局颜色 */
+    --bg-color: #ffffff;
+    --bg-color-secondary: #f9fafb;
+    --text-color: #18181b;
+    --text-color-secondary: #71717a;
+    --text-color-placeholder: #a1a1aa;
+    --border-color: #e5e7eb;
+    --hover-color: #f3f4f6;
+
+    /* 间距 */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+
+    /* 尺寸 */
+    --header-height: 56px;
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 72px;
+    --footer-height: 40px;
+
+    /* 动画 */
+    --transition-fast: 0.2s;
+    --transition-normal: 0.3s;
+    --transition-slow: 0.5s;
+
+    /* 字体 */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
+      'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
+  /* 深色主题 */
+  [data-theme="dark"] {
+    --bg-color: #18181b;
+    --bg-color-secondary: #27272a;
+    --text-color: #f4f4f5;
+    --text-color-secondary: #a1a1aa;
+    --text-color-placeholder: #71717a;
+    --border-color: #3f3f46;
+    --hover-color: #27272a;
   }
 
+  /* 基础样式 */
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: var(--font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  #app {
+    height: 100%;
+    width: 100%;
+  }
+
+  /* 过渡动画 */
   .fade-enter-active,
   .fade-leave-active {
-    transition: opacity 0.3s ease;
+    transition: opacity var(--transition-fast) ease;
   }
 
   .fade-enter-from,
@@ -154,45 +148,7 @@
     opacity: 0;
   }
 
-  /* 自定义滚动条 */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #666;
-  }
-
-  /* 深色模式滚动条 */
-  .dark ::-webkit-scrollbar-thumb {
-    background: #666;
-  }
-
-  .dark ::-webkit-scrollbar-thumb:hover {
-    background: #888;
-  }
-
-  .theme-title {
-    color: var(--text-color);
-    background: v-bind('themeStore.isDark ? "var(--primary-color)" : "var(--text-color)"');
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  .theme-search-bar {
-    background-color: var(--header-bg);
-    border-color: var(--border-color);
-    transition: background-color var(--transition-duration), border-color var(--transition-duration);
+  .n-config-provider {
+    height: 100%;
   }
 </style>
