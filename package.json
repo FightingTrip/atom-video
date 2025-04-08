@@ -34,6 +34,8 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,vue}\"",
     "clean": "pnpm -r exec rm -rf node_modules dist .turbo coverage",
     "clean:deps": "rimraf node_modules **/node_modules",
+    "check:monorepo": "node scripts/check-monorepo.js",
+    "fix:monorepo": "node scripts/fix-monorepo.js",
     "prepare": "husky",
     "list": "npx lerna list",
     "changed": "npx lerna changed",

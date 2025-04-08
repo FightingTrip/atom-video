@@ -1,0 +1,2 @@
+﻿#!/bin/sh
+node --experimental-modules scripts/check-monorepo.js
