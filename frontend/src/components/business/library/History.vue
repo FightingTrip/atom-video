@@ -36,6 +36,11 @@
           <div class="video-list">
             <div v-for="video in filteredVideos" :key="video.id" class="video-card-wrapper">
               <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <div class="video-card-actions">
+                <n-button text size="small" class="remove-video-btn" @click.stop="removeVideo(video.id)">
+                  <n-icon><i class="fa fa-trash"></i></n-icon>
+                </n-button>
+              </div>
             </div>
             <n-empty v-if="filteredVideos.length === 0" description="暂无观看历史" />
           </div>
@@ -44,6 +49,11 @@
           <div class="video-list">
             <div v-for="video in todayVideos" :key="video.id" class="video-card-wrapper">
               <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <div class="video-card-actions">
+                <n-button text size="small" class="remove-video-btn" @click.stop="removeVideo(video.id)">
+                  <n-icon><i class="fa fa-trash"></i></n-icon>
+                </n-button>
+              </div>
             </div>
             <n-empty v-if="todayVideos.length === 0" description="今天暂无观看记录" />
           </div>
@@ -52,6 +62,11 @@
           <div class="video-list">
             <div v-for="video in weekVideos" :key="video.id" class="video-card-wrapper">
               <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <div class="video-card-actions">
+                <n-button text size="small" class="remove-video-btn" @click.stop="removeVideo(video.id)">
+                  <n-icon><i class="fa fa-trash"></i></n-icon>
+                </n-button>
+              </div>
             </div>
             <n-empty v-if="weekVideos.length === 0" description="本周暂无观看记录" />
           </div>
@@ -60,6 +75,11 @@
           <div class="video-list">
             <div v-for="video in earlierVideos" :key="video.id" class="video-card-wrapper">
               <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <div class="video-card-actions">
+                <n-button text size="small" class="remove-video-btn" @click.stop="removeVideo(video.id)">
+                  <n-icon><i class="fa fa-trash"></i></n-icon>
+                </n-button>
+              </div>
             </div>
             <n-empty v-if="earlierVideos.length === 0" description="暂无更早观看记录" />
           </div>
@@ -78,15 +98,16 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import { NButton, NTabs, NTabPane, NPagination, NEmpty, useMessage } from 'naive-ui';
+  import { NButton, NTabs, NTabPane, NPagination, NEmpty, NIcon, useMessage } from 'naive-ui';
   import type { Video } from '@/types';
   import VideoCard from '@/components/business/video/VideoCard.vue';
-  import { historyApi } from '@/mock/videos';
+  import { useHistoryStore } from '@/stores/history';
   import { useUserStore } from '@/stores/user';
 
   const router = useRouter();
   const message = useMessage();
   const userStore = useUserStore();
+  const historyStore = useHistoryStore();
 
   // 状态
   const activeTab = ref('all');
@@ -137,7 +158,7 @@
 
   const clearHistory = async () => {
     try {
-      await historyApi.clearHistory(userStore.userId);
+      await historyStore.clearWatchHistory();
       historyVideos.value = [];
       total.value = 0;
       message.success('历史记录已清空');
@@ -168,7 +189,7 @@
 
     loading.value = true;
     try {
-      const videos = await historyApi.getHistory(userStore.userId);
+      const videos = await historyStore.getWatchHistory();
       historyVideos.value = videos;
       total.value = videos.length;
     } catch (error) {
@@ -176,6 +197,20 @@
       console.error('加载历史记录失败:', error);
     } finally {
       loading.value = false;
+    }
+  };
+
+  // 从历史记录中移除单个视频
+  const removeVideo = async (videoId: string) => {
+    try {
+      await historyStore.removeFromWatchHistory(videoId);
+      // 从本地数据中移除该视频
+      historyVideos.value = historyVideos.value.filter(v => v.id !== videoId);
+      total.value = historyVideos.value.length;
+      message.success('已从历史记录中移除');
+    } catch (error) {
+      message.error('移除失败');
+      console.error('移除视频失败:', error);
     }
   };
 
@@ -219,7 +254,31 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 24px;
-    margin-top: 16px;
+    padding: 16px 0;
+  }
+
+  .video-card-wrapper {
+    position: relative;
+    transition: transform 0.3s ease;
+  }
+
+  .video-card-wrapper:hover {
+    transform: translateY(-5px);
+  }
+
+  .video-card-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    padding: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .video-card-wrapper:hover .video-card-actions {
+    opacity: 1;
   }
 
   .history-pagination {
