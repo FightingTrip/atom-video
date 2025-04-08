@@ -63,7 +63,7 @@
             <n-button quaternary :type="isDanmakuEnabled ? 'primary' : 'default'" @click="toggleDanmaku">
               <template #icon>
                 <n-icon>
-                  <ChatBubbleIcon />
+                  <ChatbubbleOutline />
                 </n-icon>
               </template>
               弹幕
@@ -71,7 +71,7 @@
             <n-button quaternary :type="isDanmakuInputVisible ? 'primary' : 'default'" @click="toggleDanmakuInput">
               <template #icon>
                 <n-icon>
-                  <SendIcon />
+                  <SendOutline />
                 </n-icon>
               </template>
               发送
@@ -127,8 +127,8 @@
   import { NButton, NButtonGroup, NIcon, NInput, NSpin, NSelect, NTooltip } from 'naive-ui'
   import {
     AlertCircleOutline,
-    ChatBubbleIcon,
-    SendIcon,
+    ChatbubbleOutline,
+    SendOutline,
     SettingsOutline
   } from '@vicons/ionicons5'
   import type { Video } from '@/types'

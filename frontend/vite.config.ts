@@ -75,6 +75,12 @@ export default defineConfig({
 
           return `${extType}/[name]-[hash][extname]`;
         },
+        manualChunks: {
+          'naive-ui': ['naive-ui'],
+          'vue-router': ['vue-router'],
+          'vue-i18n': ['vue-i18n'],
+          '@vicons/ionicons5': ['@vicons/ionicons5'],
+        },
       },
       external: ['@faker-js/faker'],
     },
@@ -86,9 +92,21 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@faker-js/faker'],
+    include: ['naive-ui', '@vicons/ionicons5', 'vue-router', 'vue-i18n', 'pinia', 'vue-plyr'],
     esbuildOptions: {
       define: {
         global: 'globalThis',
+      },
+    },
+  },
+  server: {
+    port: 3000,
+    proxy: {
+      // 开发环境API代理
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        secure: false,
       },
     },
   },
