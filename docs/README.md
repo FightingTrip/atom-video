@@ -149,53 +149,114 @@ pnpm dev:backend
 
 ## 项目文档
 
-详细文档请参考以下链接：
+本文档包含 Atom Video 项目的详细技术文档和开发指南。
 
-- [环境搭建指南](./development/setup.md)
-- [Git 工作流程](./development/git-workflow.md)
-- [编码规范](./development/coding-standards.md)
-- [API 文档](./api/README.md)
-- [前端架构](./technical/frontend-architecture.md)
-- [后端架构](./technical/backend-architecture.md)
-- [测试指南](./development/testing.md)
-- [部署指南](./deployment/README.md)
+## 目录结构
 
-## 当前进度
+```
+docs/
+├── api/                    # API 文档
+│   ├── README.md          # API 文档概述
+│   ├── auth.md            # 认证相关 API
+│   ├── user.md            # 用户相关 API
+│   ├── video.md           # 视频相关 API
+│   ├── comment.md         # 评论相关 API
+│   └── interaction.md     # 互动相关 API
+│
+├── deployment/            # 部署相关文档
+│   ├── README.md         # 部署概述
+│   ├── frontend.md       # 前端部署指南
+│   ├── backend.md        # 后端部署指南
+│   └── docker.md         # Docker 部署指南
+│
+├── development/          # 开发相关文档
+│   ├── README.md        # 开发概述
+│   ├── setup.md         # 环境搭建指南
+│   ├── git-workflow.md  # Git 工作流程
+│   ├── coding-standards.md # 编码规范
+│   ├── testing.md       # 测试指南
+│   └── contributing.md  # 贡献指南
+│
+├── technical/           # 技术架构文档
+│   ├── README.md       # 技术架构概述
+│   ├── frontend-architecture.md # 前端架构
+│   ├── backend-architecture.md # 后端架构
+│   ├── database.md     # 数据库设计
+│   └── security.md     # 安全架构
+│
+└── user/              # 用户文档
+    ├── README.md     # 用户文档概述
+    ├── guide.md      # 用户指南
+    └── faq.md        # 常见问题
+```
 
-### 已完成功能
+## 文档说明
 
-- 用户注册与登录
-- 视频上传与转码
-- 视频播放器
-- 个人资料管理
-- 基础UI组件
-- Monorepo架构搭建
-- 用户互动功能(点赞、评论、收藏)
+### API 文档
+- 详细描述了所有 API 端点的使用方法
+- 包含请求/响应示例
+- 包含错误码说明
+- 包含认证要求
 
-### 开发中功能
+### 部署文档
+- 包含各种环境下的部署指南
+- 包含 Docker 部署说明
+- 包含 CI/CD 配置说明
+- 包含监控和日志配置
 
-- 视频评论系统
-- 用户订阅功能
-- 内容推荐算法
-- 通知系统
+### 开发文档
+- 包含环境搭建指南
+- 包含 Git 工作流程说明
+- 包含编码规范
+- 包含测试指南
+- 包含贡献指南
 
-### 计划功能
+### 技术架构文档
+- 包含前端架构说明
+- 包含后端架构说明
+- 包含数据库设计
+- 包含安全架构说明
 
-- 实时聊天
-- 视频编辑工具
-- 移动端适配
-- 高级搜索功能
-- 数据分析面板
+### 用户文档
+- 包含用户使用指南
+- 包含常见问题解答
+- 包含功能说明
 
-## 贡献指南
+## 文档更新说明
 
-我们欢迎所有形式的贡献，无论是新功能、bug修复还是文档改进。请查看[贡献指南](./development/contributing.md)了解更多详情。
+本文档会随着项目的发展持续更新。主要更新内容包括：
+
+1. 新增功能说明
+2. API 变更说明
+3. 架构调整说明
+4. 部署流程更新
+5. 开发规范更新
+
+## 贡献文档
+
+如果您发现文档中的任何问题或需要补充的内容，欢迎提交 Pull Request。请确保：
+
+1. 遵循现有的文档格式
+2. 使用 Markdown 语法
+3. 保持文档结构清晰
+4. 提供必要的示例和说明
+
+## 文档维护
+
+文档维护由项目核心团队负责，主要职责包括：
+
+1. 定期检查文档准确性
+2. 更新过时的内容
+3. 补充新的功能说明
+4. 优化文档结构
+5. 处理文档相关的 Issue
 
 ## 联系方式
 
-- 项目负责人：[Your Name](mailto:your.email@example.com)
-- 团队邮箱：team@atomvideo.com
-- GitHub Issues：[issues](https://github.com/your-username/atom-video/issues)
+如有任何文档相关的问题，请通过以下方式联系：
+
+- GitHub Issues: https://github.com/FightingTrip/atom-video/issues
+- 项目维护者: @FightingTrip
 
 ## 许可证
 
