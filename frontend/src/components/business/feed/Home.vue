@@ -238,6 +238,7 @@
   .home {
     padding: 2rem;
     background-color: #000;
+    background-color: var(--bg-color);
     min-height: 100vh;
   }
 
@@ -249,7 +250,7 @@
     font-size: 1.5rem;
     font-weight: 600;
     margin-bottom: 1.5rem;
-    color: #fff;
+    color: var(--text-color);
   }
 
   .tabs {
@@ -266,20 +267,20 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    background-color: #222;
-    color: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bg-color-secondary);
+    color: var(--text-color-secondary);
+    border: 1px solid var(--border-color);
   }
 
   .tab-btn:hover {
-    background-color: #333;
-    color: #fff;
+    background-color: var(--hover-color);
+    color: var(--text-color);
   }
 
   .tab-btn.active {
-    background-color: #3b82f6;
+    background-color: var(--primary-color);
     color: white;
-    border-color: #3b82f6;
+    border-color: var(--primary-color);
   }
 
   /* 响应式调整 */
@@ -301,22 +302,6 @@
   @media (max-width: 640px) {
     .home {
       padding: 1rem;
-    }
-
-    .section-title {
-      font-size: 1.125rem;
-    }
-
-    .tabs {
-      width: 100%;
-      overflow-x: auto;
-      padding-bottom: 0.5rem;
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    .tabs::-webkit-scrollbar {
-      display: none;
     }
   }
 

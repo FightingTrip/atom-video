@@ -98,7 +98,7 @@
     flex-direction: column;
     gap: var(--spacing-lg);
     padding: var(--spacing-lg);
-    background-color: var(--secondary-bg);
+    background-color: var(--bg-color);
     border-radius: var(--radius-lg);
   }
 
@@ -111,19 +111,19 @@
   .section-title {
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-color);
     margin: 0;
   }
 
   .refresh-button {
-    color: var(--text-secondary);
+    color: var(--text-color-secondary);
     background: none;
     border: none;
     transition: color var(--transition-normal);
   }
 
   .refresh-button:hover {
-    color: var(--text-primary);
+    color: var(--text-color);
   }
 
   .trending-list {
@@ -137,25 +137,26 @@
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-md);
-    background-color: var(--primary-bg);
+    background-color: var(--bg-color-secondary);
     border-radius: var(--radius-md);
     transition: transform var(--transition-normal);
   }
 
   .trending-item:hover {
     transform: translateX(var(--spacing-sm));
+    background-color: var(--bg-color-hover);
   }
 
   .trending-rank {
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--text-secondary);
+    color: var(--text-color-secondary);
     width: 24px;
     text-align: center;
   }
 
   .top-rank {
-    color: var(--primary-color);
+    color: var(--accent-primary);
   }
 
   .trending-content {
@@ -176,7 +177,7 @@
   .trending-title {
     font-size: var(--text-base);
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--text-color);
     margin: 0;
   }
 
@@ -192,7 +193,7 @@
     align-items: center;
     gap: var(--spacing-xs);
     font-size: var(--text-sm);
-    color: var(--text-secondary);
+    color: var(--text-color-secondary);
   }
 
   .author-avatar {
@@ -207,5 +208,56 @@
 
   .empty-state {
     padding: var(--spacing-xl) 0;
+  }
+
+  /* 暗色模式特定样式 */
+  :root.dark .trending-section,
+  .dark-mode .trending-section {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .trending-item,
+  .dark-mode .trending-item {
+    background-color: var(--bg-color-darker);
+  }
+
+  :root.dark .trending-item:hover,
+  .dark-mode .trending-item:hover {
+    background-color: var(--bg-color-darkest);
+  }
+
+  :root.dark .section-title,
+  .dark-mode .section-title {
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .trending-title,
+  .dark-mode .trending-title {
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .trending-rank,
+  .dark-mode .trending-rank {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .top-rank,
+  .dark-mode .top-rank {
+    color: var(--accent-primary-dark);
+  }
+
+  :root.dark .stat-item,
+  .dark-mode .stat-item {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .refresh-button,
+  .dark-mode .refresh-button {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .refresh-button:hover,
+  .dark-mode .refresh-button:hover {
+    color: var(--text-color-dark);
   }
 </style>

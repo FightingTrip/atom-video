@@ -9,7 +9,7 @@
   <div class="video-card" :class="{ 'has-progress': watchProgress && watchProgress > 0 }" @click="handleClick"
     @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
     <!-- 缩略图 -->
-    <div class="thumbnail">
+    <div class="thumbnail-container">
       <!-- 封面图 -->
       <img v-show="!isPlaying" :src="thumbnailUrl" :alt="video.title" loading="lazy" @error="handleImageError" />
 
@@ -41,18 +41,21 @@
     </div>
 
     <!-- 视频信息 -->
-    <div class="video-info">
+    <div class="content">
       <!-- 推荐原因 -->
       <div v-if="recommendReason" class="recommend-reason">
         {{ recommendReason }}
       </div>
 
       <!-- 标题 -->
-      <h3 class="video-title" :title="video.title">{{ video.title }}</h3>
+      <h3 class="title" :title="video.title">{{ video.title }}</h3>
 
       <!-- 作者信息 -->
-      <div class="meta-info">
-        <span class="author-name" :title="authorName">{{ authorName }}</span>
+      <div class="meta">
+        <div class="author">
+          <img v-if="authorAvatar" :src="authorAvatar" alt="Author Avatar" class="author-avatar" />
+          <span class="author-name" :title="authorName">{{ authorName }}</span>
+        </div>
         <div class="stats">
           <span class="views">{{ formatViews(video.views) }} 次观看</span>
           <span class="date">{{ formatPublishTime(video.createdAt) }}</span>
@@ -92,6 +95,10 @@
 
   const authorName = computed(() => {
     return props.video.author?.nickname || props.video.author?.username || '未知作者';
+  });
+
+  const authorAvatar = computed(() => {
+    return props.video.author?.avatarUrl || 'https://placehold.co/24x24?text=No+Avatar';
   });
 
   // 格式化方法
@@ -179,70 +186,89 @@
 <style scoped>
   .video-card {
     position: relative;
-    width: 100%;
-    border-radius: var(--radius-md);
-    background: #222;
+    border-radius: var(--radius-lg);
     overflow: hidden;
+    background-color: var(--bg-color);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
   }
 
   .video-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
   }
 
-  .thumbnail {
+  .thumbnail-container {
     position: relative;
     width: 100%;
-    padding-top: 56.25%;
-    /* 16:9 Aspect Ratio */
-    background-color: #181818;
+    padding-top: 56.25%; /* 16:9 比例 */
+    background-color: var(--bg-color-secondary);
     overflow: hidden;
   }
 
-  .thumbnail img,
-  .preview-video {
+  .thumbnail {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.3s ease;
   }
 
-  .overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .video-card:hover .overlay {
-    opacity: 1;
+  .video-card:hover .thumbnail {
+    transform: scale(1.05);
   }
 
   .duration {
     position: absolute;
     bottom: 8px;
     right: 8px;
-    background: rgba(0, 0, 0, 0.75);
-    color: white;
     padding: 2px 4px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
   }
 
-  .video-info {
-    padding: 12px;
+  .content {
+    padding: var(--spacing-md);
+  }
+
+  .title {
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--text-color);
+    margin-bottom: var(--spacing-xs);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-color-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .author {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .author-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .author-name {
+    color: var(--text-color-secondary);
   }
 
   .recommend-reason {
@@ -254,33 +280,6 @@
     font-size: 12px;
     font-weight: 500;
     border-radius: 4px;
-  }
-
-  .video-title {
-    font-size: 14px;
-    font-weight: 500;
-    margin: 0 0 6px 0;
-    color: white;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.3;
-  }
-
-  .meta-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .author-name {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
   .stats {
@@ -338,47 +337,32 @@
     background-color: rgba(0, 0, 0, 0.8);
   }
 
-  /* 暗色主题优化 */
+  /* 暗色模式特定样式 */
   :root.dark .video-card,
   .dark-mode .video-card {
-    background-color: #222;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bg-color-dark);
   }
 
-  :root.dark .video-card:hover,
-  .dark-mode .video-card:hover {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  :root.dark .thumbnail-container,
+  .dark-mode .thumbnail-container {
+    background-color: var(--bg-color-darker);
   }
 
-  :root.dark .video-title,
-  .dark-mode .video-title {
-    color: white;
+  :root.dark .title,
+  .dark-mode .title {
+    color: var(--text-color-dark);
   }
 
+  :root.dark .meta,
   :root.dark .author-name,
+  .dark-mode .meta,
   .dark-mode .author-name {
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  :root.dark .stats,
-  .dark-mode .stats {
-    color: rgba(255, 255, 255, 0.5);
-  }
-
-  :root.dark .recommend-reason,
-  .dark-mode .recommend-reason {
-    background-color: rgba(76, 110, 245, 0.15);
-    color: #60a5fa;
-  }
-
-  :root.dark .thumbnail,
-  .dark-mode .thumbnail {
-    background-color: #181818;
+    color: var(--text-color-secondary-dark);
   }
 
   /* 响应式调整 */
   @media (max-width: 768px) {
-    .video-title {
+    .title {
       font-size: 13px;
     }
 
@@ -393,7 +377,7 @@
       margin-bottom: 16px;
     }
 
-    .video-info {
+    .content {
       padding: 8px;
     }
   }

@@ -243,8 +243,8 @@
 <style scoped>
   .library-container {
     min-height: 100vh;
-    background-color: var(--primary-bg);
-    color: var(--text-primary);
+    background-color: var(--bg-color);
+    color: var(--text-color);
   }
 
   /* 视频卡片悬停效果 */
@@ -255,5 +255,33 @@
   .video-card-hover:hover {
     transform: scale(1.05);
     box-shadow: var(--shadow-lg);
+  }
+
+  /* 暗色模式特定样式 */
+  :root.dark .library-container,
+  .dark-mode .library-container {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .text-gray-600,
+  .dark-mode .text-gray-600 {
+    color: var(--text-color-secondary);
+  }
+
+  :root.dark .video-card-hover:hover,
+  .dark-mode .video-card-hover:hover {
+    box-shadow: var(--shadow-lg-dark);
+  }
+
+  /* 响应式布局 */
+  @media (max-width: 768px) {
+    .library-container {
+      padding: 16px;
+    }
+
+    .video-grid {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--spacing-md);
+    }
   }
 </style>
