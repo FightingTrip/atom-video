@@ -1,6 +1,6 @@
   <div class="header-right">
     <!-- 语言切换器 -->
-    <LanguageSelector />
+    <LanguageSelectorComponent />
 
     <!-- 上传按钮 -->
     <n-button v-if="isAuthenticated" type="primary" @click="handleUpload">
@@ -22,6 +22,6 @@
   import { NButton, NIcon } from 'naive-ui';
   import { CloudUploadOutline } from '@vicons/ionicons5';
   import UserMenu from '@/components/business/user/UserMenu.vue';
-  import LanguageSelector from '@/components/business/user/LanguageSelector.vue';
+  import LanguageSelectorComponent from '@/components/business/user/LanguageSelectorComponent.vue';
   import { useAuthStore } from '@/stores/auth';
 </script> 
