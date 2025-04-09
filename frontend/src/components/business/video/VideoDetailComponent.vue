@@ -214,6 +214,7 @@
   import VideoPlayerComponent from './VideoPlayerComponent.vue'
   import type { Video, Comment, PropType } from '@/types'
   import { useAuthStore } from '@/stores/auth'
+  import { formatNumber, formatDate as formatDateUtil } from '@/utils/format'
 
   const props = defineProps({
     video: {
@@ -314,13 +315,6 @@
     loadingMore.value = false
   }
 
-  const formatNumber = (num: number) => {
-    if (num >= 10000) {
-      return (num / 10000).toFixed(1) + 'w'
-    }
-    return num.toString()
-  }
-
   const formatDate = (date: string) => {
     const d = new Date(date)
     const now = new Date()
@@ -341,6 +335,18 @@
 
   const getFallbackAvatar = (id: string) => {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`
+  }
+
+  // 显示分享模态框
+  const showShareModal = ref(() => {
+    // 实现分享功能
+    alert('分享功能暂未实现');
+  })
+
+  // 下载视频
+  const handleDownload = () => {
+    // 实现下载功能
+    alert('下载功能暂未实现');
   }
 
   // 交互按钮
@@ -370,7 +376,7 @@
       text: '分享',
       active: false,
       count: null,
-      click: showShareModal,
+      click: () => showShareModal.value(),
       tooltip: '分享视频',
       disabled: props.offlineMode // 离线模式下禁用分享
     },
@@ -384,18 +390,6 @@
       disabled: props.offlineMode // 离线模式下禁用下载
     }
   ]
-
-  // 显示分享模态框
-  const showShareModal = () => {
-    // 实现分享功能
-    alert('分享功能暂未实现');
-  }
-
-  // 下载视频
-  const handleDownload = () => {
-    // 实现下载功能
-    alert('下载功能暂未实现');
-  }
 </script>
 
 <style scoped>

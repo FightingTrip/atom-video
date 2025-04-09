@@ -165,8 +165,8 @@
     error.value = null;
 
     try {
-      // 检查网络连接状态
-      if (!navigator.onLine) {
+      // 检查网络连接状态和mock模式
+      if (!navigator.onLine && !isMockMode) {
         localStorage.setItem('offline_mode', 'true');
         error.value = '网络连接已断开，显示离线模式';
         loading.value = false;
@@ -176,8 +176,8 @@
       // 获取视频详情
       const response = await videoService.getVideoById(videoId as string);
 
-      if (response.success) {
-        video.value = response.data || null;
+      if (response.success && response.data) {
+        video.value = response.data;
 
         // 获取视频互动状态
         if (userStore.isLoggedIn && video.value) {
@@ -199,26 +199,94 @@
         // 初始加载评论
         await loadComments();
 
+        // 加载相关视频
+        try {
+          const recResponse = await videoService.getRecommendedVideos(videoId as string, 5);
+          if (recResponse.success && recResponse.data) {
+            relatedVideos.value = recResponse.data;
+          }
+        } catch (err) {
+          console.warn('获取推荐视频失败:', err);
+        }
+
         // 非模拟模式下更新播放量
         if (!isMockMode) {
           updateVideoViews();
         }
       } else {
-        // API请求失败，显示错误信息
-        console.warn('API请求失败:', response.message);
-        error.value = response.message || '加载视频失败，请稍后重试';
+        // API请求失败，如果在mock模式下使用模拟数据
+        if (isMockMode) {
+          console.warn('Mock模式：API请求失败，使用模拟数据');
+          // 从videoService中直接获取模拟数据
+          const { getMockVideo } = await import('@/services/mockData');
+          video.value = getMockVideo(videoId as string);
 
-        // 检查是否为网络错误
-        if (error.value && (error.value.includes('Network Error') || error.value.includes('Failed to fetch'))) {
-          checkAndEnableOfflineMode(new Error(error.value));
+          // 获取模拟的互动状态
+          const { getMockVideoInteraction } = await import('@/services/mockData');
+          const interaction = getMockVideoInteraction(videoId as string);
+          isLiked.value = interaction.isLiked;
+          isFavorited.value = interaction.isFavorited;
+          isSubscribed.value = interaction.isSubscribed;
+
+          // 获取模拟的推荐视频
+          const { getMockRecommendedVideos } = await import('@/services/mockData');
+          relatedVideos.value = getMockRecommendedVideos(videoId as string, 5);
+
+          // 加载模拟评论
+          const { getMockComments } = await import('@/services/mockData');
+          comments.value = getMockComments(videoId as string);
+
+          // 记录到历史
+          if (video.value) {
+            try {
+              historyStore.addToHistory(video.value);
+              savedProgress.value = historyStore.getVideoProgress(videoId as string);
+            } catch (err) {
+              console.error('添加到历史记录失败:', err);
+            }
+          }
+        } else {
+          // 非mock模式下显示错误
+          console.warn('API请求失败:', response.message);
+          error.value = response.message || '加载视频失败，请稍后重试';
+
+          // 检查是否为网络错误
+          if (error.value && (error.value.includes('Network Error') || error.value.includes('Failed to fetch'))) {
+            checkAndEnableOfflineMode(new Error(error.value));
+          }
         }
       }
     } catch (err) {
       console.error('加载视频失败:', err);
-      error.value = err instanceof Error ? err.message : '加载视频失败，请稍后重试';
 
-      // 设置离线模式标记
-      checkAndEnableOfflineMode(err);
+      // 在mock模式下使用模拟数据即使出现错误
+      if (isMockMode) {
+        console.warn('Mock模式：错误处理中，使用模拟数据');
+        const { getMockVideo, getMockVideoInteraction, getMockRecommendedVideos, getMockComments } = await import('@/services/mockData');
+
+        video.value = getMockVideo(videoId as string);
+
+        const interaction = getMockVideoInteraction(videoId as string);
+        isLiked.value = interaction.isLiked;
+        isFavorited.value = interaction.isFavorited;
+        isSubscribed.value = interaction.isSubscribed;
+
+        relatedVideos.value = getMockRecommendedVideos(videoId as string, 5);
+        comments.value = getMockComments(videoId as string);
+
+        if (video.value) {
+          try {
+            historyStore.addToHistory(video.value);
+            savedProgress.value = historyStore.getVideoProgress(videoId as string);
+          } catch (histErr) {
+            console.error('添加到历史记录失败:', histErr);
+          }
+        }
+      } else {
+        error.value = err instanceof Error ? err.message : '加载视频失败，请稍后重试';
+        // 设置离线模式标记
+        checkAndEnableOfflineMode(err);
+      }
     } finally {
       loading.value = false;
     }

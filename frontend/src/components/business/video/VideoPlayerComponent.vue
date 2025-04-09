@@ -223,26 +223,74 @@
   })
 
   // 方法
-  const handleReady = () => {
-    loading.value = false
+  const handleReady = (player: any) => {
+    loading.value = false;
+    error.value = null;
 
-    try {
-      // 从历史记录或props中恢复播放进度
-      const savedProgress = historyStore.getVideoProgress(props.video.id)
-      if (savedProgress && videoRef.value) {
-        videoRef.value.currentTime = savedProgress
-      } else if (props.currentTime && videoRef.value) {
-        videoRef.value.currentTime = props.currentTime
-      }
-    } catch (err) {
-      console.error('获取播放进度失败:', err)
+    // 如果有初始时间，设置播放位置
+    if (props.currentTime && props.currentTime > 0) {
+      player.currentTime = props.currentTime;
     }
-  }
+  };
 
-  const handleError = (err: Error) => {
-    error.value = '视频加载失败'
-    console.error('Video error:', err)
-  }
+  const handleError = (event: any) => {
+    console.error('视频播放错误:', event);
+    const errorCode = event.target?.error?.code;
+    let errorMessage = '视频加载失败';
+
+    // 解析错误代码
+    switch (errorCode) {
+      case 1: // MEDIA_ERR_ABORTED
+        errorMessage = '视频播放已中止';
+        break;
+      case 2: // MEDIA_ERR_NETWORK
+        errorMessage = '网络错误导致视频下载失败';
+        break;
+      case 3: // MEDIA_ERR_DECODE
+        errorMessage = '视频解码错误';
+        break;
+      case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+        errorMessage = '不支持的视频格式或视频资源不可用';
+        break;
+      default:
+        errorMessage = '未知错误，请尝试刷新页面';
+    }
+
+    loading.value = false;
+    error.value = errorMessage;
+
+    // 提供错误详情日志
+    console.warn('视频URL:', videoSrc.value);
+    console.warn('错误代码:', errorCode);
+    console.warn('视频元素:', videoRef.value);
+  };
+
+  // 重试播放
+  const retry = () => {
+    error.value = null;
+    loading.value = true;
+
+    // 清除视频元素的src并重新加载
+    if (videoRef.value) {
+      videoRef.value.src = '';
+      setTimeout(() => {
+        if (videoRef.value) {
+          videoRef.value.src = videoSrc.value;
+          videoRef.value.load();
+          videoRef.value.play().catch(err => {
+            console.error('重试播放失败:', err);
+            // 如果是自动播放策略阻止，给用户提示
+            if (err.name === 'NotAllowedError') {
+              error.value = '浏览器阻止了自动播放，请点击播放按钮开始播放';
+            } else {
+              error.value = '视频加载失败，请检查网络连接后再试';
+            }
+            loading.value = false;
+          });
+        }
+      }, 1000);
+    }
+  };
 
   // 防抖更新播放历史
   const updateHistory = debounce((currentTime: number) => {
@@ -282,12 +330,6 @@
     if (props.video && props.video.id) {
       historyStore.saveVideoProgress(props.video.id, 0)
     }
-  }
-
-  const retry = () => {
-    loading.value = true
-    error.value = null
-    videoRef.value?.load()
   }
 
   const toggleDanmaku = () => {

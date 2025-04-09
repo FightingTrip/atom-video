@@ -2,8 +2,37 @@ import axios from 'axios';
 import type { ApiResponse } from '@/types';
 
 // 获取当前API模式
-const isMockMode = import.meta.env.VITE_API_MODE === 'mock';
+// 确保在dev:mock模式下始终为true
+const getIsMockMode = () => {
+  // 检查环境变量
+  const envMode = import.meta.env.VITE_API_MODE;
+  if (envMode === 'mock') return true;
+
+  // 检查URL参数，允许通过URL强制启用mock模式
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('mock') === 'true') return true;
+
+  // 检查本地存储，允许在开发过程中手动启用mock模式
+  if (localStorage.getItem('use_mock_data') === 'true') return true;
+
+  return false;
+};
+
+const isMockMode = getIsMockMode();
 console.log(`当前API模式: ${isMockMode ? '模拟数据' : '真实API'}`);
+
+// 开发用：设置全局函数让开发者可以打开/关闭mock模式
+if (import.meta.env.DEV) {
+  (window as any).enableMockMode = () => {
+    localStorage.setItem('use_mock_data', 'true');
+    window.location.reload();
+  };
+
+  (window as any).disableMockMode = () => {
+    localStorage.removeItem('use_mock_data');
+    window.location.reload();
+  };
+}
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',

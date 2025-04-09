@@ -19,9 +19,15 @@ export const videoService = {
    */
   getVideoById: async (videoId: string): Promise<ApiResponse<Video>> => {
     if (isMockMode) {
-      // 模拟网络延迟
-      await mockDelay(500);
-      return createMockResponse(getMockVideo(videoId));
+      // 在mock模式下返回模拟数据，并增加一定的延迟以模拟网络请求
+      try {
+        await mockDelay(500);
+        return createMockResponse(getMockVideo(videoId));
+      } catch (error) {
+        console.error('获取模拟视频失败:', error);
+        // 即使模拟数据出错也尝试返回基本的视频对象
+        return createMockResponse(getMockVideo(videoId));
+      }
     }
 
     // 真实API调用
@@ -29,6 +35,7 @@ export const videoService = {
       return await api.get(`/videos/${videoId}`);
     } catch (error) {
       console.error('获取视频详情失败:', error);
+      // 在真实API失败时，如果配置允许，仍然使用模拟数据作为回退
       return createMockResponse(getMockVideo(videoId), false, '获取视频失败，使用备用数据');
     }
   },
@@ -159,14 +166,21 @@ export const videoService = {
     limit: number = 5
   ): Promise<ApiResponse<Video[]>> => {
     if (isMockMode) {
-      await mockDelay(400);
-      return createMockResponse(getMockRecommendedVideos(videoId, limit));
+      try {
+        await mockDelay(400);
+        return createMockResponse(getMockRecommendedVideos(videoId, limit));
+      } catch (error) {
+        console.error('获取模拟推荐视频失败:', error);
+        // 即使出错也尝试返回基本的推荐视频数据
+        return createMockResponse(getMockRecommendedVideos(videoId, limit));
+      }
     }
 
     try {
       return await api.get(`/videos/${videoId}/recommended`, { params: { limit } });
     } catch (error) {
       console.error('获取推荐视频失败:', error);
+      // 使用模拟数据作为备用
       return createMockResponse(
         getMockRecommendedVideos(videoId, limit),
         false,
