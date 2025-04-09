@@ -248,9 +248,10 @@
   const updateHistory = debounce((currentTime: number) => {
     if (props.video && props.video.id) {
       try {
-        historyStore.saveVideoProgress(props.video.id, currentTime)
+        // 在本地保存视频进度，无论是否在线
+        historyStore.saveVideoProgress(props.video.id, currentTime);
       } catch (err) {
-        console.error('保存播放进度失败:', err)
+        console.error('保存播放进度失败:', err);
       }
     }
   }, 1000)
@@ -388,9 +389,26 @@
     // 将视频添加到播放历史
     if (props.video && props.video.id) {
       try {
-        historyStore.addToHistory(props.video)
+        // 检查是否处于离线模式
+        const isOfflineMode = localStorage.getItem('offline_mode') === 'true';
+
+        if (isOfflineMode) {
+          // 在离线模式下，仅保存到本地历史记录
+          const watchHistory = JSON.parse(localStorage.getItem('watch_history') || '[]');
+          const existingIndex = watchHistory.findIndex((v: any) => v.id === props.video.id);
+
+          if (existingIndex >= 0) {
+            watchHistory.splice(existingIndex, 1);
+          }
+
+          watchHistory.unshift(props.video);
+          localStorage.setItem('watch_history', JSON.stringify(watchHistory.slice(0, 30)));
+        } else {
+          // 正常模式下使用historyStore
+          historyStore.addToHistory(props.video);
+        }
       } catch (err) {
-        console.error('添加到历史记录失败:', err)
+        console.error('添加到历史记录失败:', err);
       }
     }
   })

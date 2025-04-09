@@ -79,13 +79,32 @@ export const useHistoryStore = defineStore('history', () => {
 
   // 添加视频到观看历史
   const addToWatchHistory = async (videoId: string): Promise<void> => {
+    // 如果处于离线模式或上一次请求失败，不再发送请求
+    if (localStorage.getItem('offline_mode') === 'true') {
+      return;
+    }
+
     try {
       loading.value = true;
       error.value = null;
       await api.post(`/history/watch/${videoId}`);
     } catch (err) {
       error.value = err instanceof Error ? err.message : '添加视频失败';
-      throw err;
+
+      // 检查是否为网络错误
+      if (
+        err instanceof Error &&
+        (err.message.includes('Network Error') ||
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('ERR_CONNECTION_REFUSED'))
+      ) {
+        // 设置离线模式标记，避免后续重复请求
+        localStorage.setItem('offline_mode', 'true');
+        console.warn('网络连接失败，已切换至离线模式，历史记录将只保存在本地');
+      }
+
+      // 不再向外部抛出错误，仅记录日志
+      console.error('添加观看历史失败:', err);
     } finally {
       loading.value = false;
     }
@@ -187,10 +206,21 @@ export const useHistoryStore = defineStore('history', () => {
       watchHistory.value = watchHistory.value.slice(0, 100);
     }
 
-    // 同时调用后端API记录观看历史 (异步操作，不用等待结果)
-    addToWatchHistory(video.id).catch(err => {
-      console.error('添加观看历史失败:', err);
-    });
+    // 保存到本地存储
+    try {
+      localStorage.setItem('watch_history', JSON.stringify(watchHistory.value.slice(0, 30)));
+    } catch (err) {
+      console.error('保存观看历史到本地存储失败:', err);
+    }
+
+    // 如果在线且未进入离线模式，则同时调用后端API记录观看历史
+    const isOfflineMode = localStorage.getItem('offline_mode') === 'true';
+    if (!isOfflineMode) {
+      // 调用API，但不等待结果
+      addToWatchHistory(video.id).catch(() => {
+        // 错误处理已在addToWatchHistory内部完成
+      });
+    }
   };
 
   // 保存视频播放进度
@@ -217,6 +247,36 @@ export const useHistoryStore = defineStore('history', () => {
     videoProgressHistory.value = [];
   };
 
+  // 初始化
+  const initFromLocalStorage = () => {
+    // 加载本地存储的观看历史
+    try {
+      const savedHistory = localStorage.getItem('watch_history');
+      if (savedHistory) {
+        watchHistory.value = JSON.parse(savedHistory);
+      }
+    } catch (err) {
+      console.error('从本地存储加载观看历史失败:', err);
+    }
+  };
+
+  // 初始化时从本地存储加载数据
+  initFromLocalStorage();
+
+  // 检查网络状态，如果曾经设置了离线模式，尝试重新连接
+  if (localStorage.getItem('offline_mode') === 'true') {
+    // 尝试重新连接一次API服务器，如果成功则取消离线模式
+    api
+      .get('/ping')
+      .then(() => {
+        localStorage.removeItem('offline_mode');
+        console.log('网络已恢复，已退出离线模式');
+      })
+      .catch(() => {
+        console.log('网络仍不可用，保持离线模式');
+      });
+  }
+
   return {
     watchHistory,
     searchHistory,
@@ -236,5 +296,6 @@ export const useHistoryStore = defineStore('history', () => {
     clearVideoProgressHistory,
     addToHistory,
     saveVideoProgress,
+    initFromLocalStorage,
   };
 });

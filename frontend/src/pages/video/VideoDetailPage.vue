@@ -24,6 +24,24 @@
       </n-space>
     </n-card>
 
+    <!-- 离线模式提示 -->
+    <n-alert v-if="isOfflineMode" type="warning" closable style="margin-bottom: 16px">
+      <template #header>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <n-icon>
+            <CloudOfflineOutline />
+          </n-icon>
+          <span>当前处于离线模式</span>
+        </div>
+      </template>
+      历史记录和交互功能将仅在本地保存，无法与服务器同步。请检查网络连接。
+      <template #action>
+        <n-button text type="warning" @click="checkNetworkAndRefresh">
+          重新连接
+        </n-button>
+      </template>
+    </n-alert>
+
     <template v-else-if="video">
       <VideoPlayerComponent :video="video" v-if="video" />
       <VideoDetailComponent :video="video" :current-time="savedProgress" :is-liked="isLiked" :is-favorited="isFavorited"
@@ -36,8 +54,8 @@
 <script setup lang="ts">
   import { ref, onMounted, watch, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import { NCard, NSpace, NSpin, NButton, NIcon, useMessage } from 'naive-ui';
-  import { WarningOutline } from '@vicons/ionicons5';
+  import { NCard, NSpace, NSpin, NButton, NIcon, NAlert, useMessage } from 'naive-ui';
+  import { WarningOutline, CloudOfflineOutline } from '@vicons/ionicons5';
   import { videoService } from '@/services/video';
   import { useHistoryStore } from '@/stores/history';
   import { useUserStore } from '@/stores/user';
@@ -64,6 +82,33 @@
   const commentPage = ref(1);
   const hasMoreComments = ref(true);
   const loadingMoreComments = ref(false);
+
+  // 离线模式状态 
+  const isOfflineMode = computed(() => {
+    return localStorage.getItem('offline_mode') === 'true';
+  });
+
+  // 检查网络并刷新页面
+  const checkNetworkAndRefresh = async () => {
+    try {
+      // 设置一个短超时
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      await fetch('/api/ping', { signal: controller.signal });
+
+      clearTimeout(timeoutId);
+      localStorage.removeItem('offline_mode');
+      message.success('网络已恢复，正在刷新页面');
+
+      // 短暂延迟后刷新
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      message.error('网络连接仍然不可用，请检查您的网络设置');
+    }
+  };
 
   // 获取视频信息
   const fetchVideoData = async () => {
@@ -115,6 +160,12 @@
         // 如果API请求失败，使用备用模拟数据
         console.warn('API请求失败，使用模拟数据', res.message);
 
+        // 检查是否为网络错误，如果是，切换到离线模式
+        if (error.value &&
+          (error.value.includes('Network Error') || error.value.includes('Failed to fetch'))) {
+          localStorage.setItem('offline_mode', 'true');
+        }
+
         if (!video.value) {
           // 创建一个模拟视频对象
           video.value = {
@@ -149,12 +200,18 @@
 
           // 记录到历史
           try {
-            historyStore.addToHistory(video.value);
+            // 只有在非离线模式时尝试添加到历史记录API
+            if (!isOfflineMode.value) {
+              historyStore.addToHistory(video.value);
+            } else {
+              // 如果是离线模式，仅在本地记录
+              historyStore.watchHistory.unshift(video.value);
+              localStorage.setItem('watch_history', JSON.stringify(historyStore.watchHistory.slice(0, 30)));
+            }
           } catch (err) {
             console.error('添加到历史记录失败:', err);
           }
-
-          message.info('使用模拟数据进行测试，真实环境中将显示从服务器获取的视频');
+          message.warning('使用备用数据进行显示，请联系管理员处理API问题');
         }
       }
     } catch (err) {
@@ -246,8 +303,26 @@
     }
   };
 
+  // 记录播放进度
+  const handleTimeUpdate = (time: number) => {
+    if (video.value) {
+      try {
+        // 无论是否在线都保存进度
+        historyStore.saveVideoProgress(video.value.id, time);
+      } catch (err) {
+        console.error('保存播放进度失败:', err);
+      }
+    }
+  };
+
   // 处理视频互动
-  const handleLike = async () => {
+  const handleLike = () => {
+    if (isOfflineMode.value) {
+      message.info('离线模式下，点赞操作仅在本地显示，不会同步到服务器');
+      isLiked.value = !isLiked.value;
+      return;
+    }
+
     if (!userStore.isLoggedIn) {
       message.info('请先登录');
       router.push('/login?redirect=' + route.fullPath);
@@ -273,7 +348,13 @@
     }
   };
 
-  const handleFavorite = async () => {
+  const handleFavorite = () => {
+    if (isOfflineMode.value) {
+      message.info('离线模式下，收藏操作仅在本地显示，不会同步到服务器');
+      isFavorited.value = !isFavorited.value;
+      return;
+    }
+
     if (!userStore.isLoggedIn) {
       message.info('请先登录');
       router.push('/login?redirect=' + route.fullPath);
@@ -299,7 +380,13 @@
     }
   };
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = () => {
+    if (isOfflineMode.value) {
+      message.info('离线模式下，订阅操作仅在本地显示，不会同步到服务器');
+      isSubscribed.value = !isSubscribed.value;
+      return;
+    }
+
     if (!userStore.isLoggedIn) {
       message.info('请先登录');
       router.push('/login?redirect=' + route.fullPath);
@@ -326,6 +413,11 @@
   };
 
   const handleComment = async (content: string) => {
+    if (isOfflineMode.value) {
+      message.info('离线模式下无法发表评论');
+      return;
+    }
+
     if (!userStore.isLoggedIn) {
       message.info('请先登录');
       router.push('/login?redirect=' + route.fullPath);
@@ -348,17 +440,6 @@
     } catch (err) {
       console.error('发表评论失败:', err);
       message.error('评论失败，请重试');
-    }
-  };
-
-  // 记录播放进度
-  const handleTimeUpdate = (time: number) => {
-    if (video.value) {
-      try {
-        historyStore.saveVideoProgress(video.value.id, time);
-      } catch (err) {
-        console.error('保存播放进度失败:', err);
-      }
     }
   };
 
