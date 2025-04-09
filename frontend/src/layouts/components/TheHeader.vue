@@ -138,27 +138,27 @@
     {
       label: '个人中心',
       key: 'profile',
-      icon: () => h(PersonCircleOutline)
+      icon: () => h(NIcon, null, { default: () => h(PersonCircleOutline) })
     },
     {
       label: '我的视频',
       key: 'videos',
-      icon: () => h(VideocamOutline)
+      icon: () => h(NIcon, null, { default: () => h(VideocamOutline) })
     },
     {
       label: '收藏',
       key: 'favorites',
-      icon: () => h(BookmarkOutline)
+      icon: () => h(NIcon, null, { default: () => h(BookmarkOutline) })
     },
     {
       label: '历史记录',
       key: 'history',
-      icon: () => h(TimeOutline)
+      icon: () => h(NIcon, null, { default: () => h(TimeOutline) })
     },
     {
       label: '设置',
       key: 'settings',
-      icon: () => h(SettingsOutline)
+      icon: () => h(NIcon, null, { default: () => h(SettingsOutline) })
     },
     {
       type: 'divider',
@@ -167,7 +167,7 @@
     {
       label: '退出登录',
       key: 'logout',
-      icon: () => h(LogOutOutline)
+      icon: () => h(NIcon, null, { default: () => h(LogOutOutline) })
     }
   ]
 
@@ -192,27 +192,31 @@
   }
 
   // 用户菜单处理
-  const handleUserMenuSelect = (key: string) => {
-    switch (key) {
-      case 'profile':
-        router.push(`/user/${userStore.userId}`)
-        break
-      case 'videos':
-        router.push('/video/list')
-        break
-      case 'favorites':
-        router.push('/library')
-        break
-      case 'history':
-        router.push('/library/history')
-        break
-      case 'settings':
-        router.push('/user/settings')
-        break
-      case 'logout':
-        authStore.logout()
-        router.push('/')
-        break
+  const handleUserMenuSelect = async (key: string) => {
+    try {
+      switch (key) {
+        case 'profile':
+          await router.push(`/user/${userStore.userId}`)
+          break
+        case 'videos':
+          await router.push('/video/list')
+          break
+        case 'favorites':
+          await router.push('/library')
+          break
+        case 'history':
+          await router.push('/library/history')
+          break
+        case 'settings':
+          await router.push('/user/settings')
+          break
+        case 'logout':
+          await authStore.logout()
+          await router.push('/')
+          break
+      }
+    } catch (error) {
+      console.error('导航错误:', error)
     }
   }
 

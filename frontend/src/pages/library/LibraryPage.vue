@@ -10,13 +10,15 @@
     <header class="library-header">
       <h1>视频图书馆</h1>
       <div class="filter-section">
-        <el-select v-model="selectedType" placeholder="视频类型" clearable>
-          <el-option v-for="type in videoTypes" :key="type.value" :label="type.label" :value="type.value" />
-        </el-select>
-        <el-select v-model="selectedDifficulty" placeholder="难度等级" clearable>
-          <el-option v-for="level in difficultyLevels" :key="level.value" :label="level.label" :value="level.value" />
-        </el-select>
-        <el-input v-model="searchQuery" placeholder="搜索视频..." prefix-icon="el-icon-search" clearable />
+        <n-select v-model:value="selectedType" placeholder="视频类型" clearable :options="videoTypes" />
+        <n-select v-model:value="selectedDifficulty" placeholder="难度等级" clearable :options="difficultyLevels" />
+        <n-input v-model:value="searchQuery" placeholder="搜索视频..." clearable>
+          <template #prefix>
+            <n-icon>
+              <SearchOutline />
+            </n-icon>
+          </template>
+        </n-input>
       </div>
     </header>
 
@@ -25,13 +27,12 @@
     </main>
 
     <div v-if="!loading && filteredVideos.length === 0" class="no-results">
-      <el-empty description="没有找到匹配的视频" />
+      <n-empty description="没有找到匹配的视频" />
     </div>
 
     <div class="pagination-container">
-      <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :total="totalVideos"
-        :page-sizes="[12, 24, 36, 48]" layout="total, sizes, prev, pager, next" @size-change="handleSizeChange"
-        @current-change="handleCurrentChange" />
+      <n-pagination v-model:page="currentPage" v-model:page-size="pageSize" :item-count="totalVideos" 
+        :page-sizes="[12, 24, 36, 48]" show-size-picker @update:page="handleCurrentChange" @update:page-size="handleSizeChange" />
     </div>
   </div>
 </template>
@@ -39,6 +40,8 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
+  import { NSelect, NInput, NIcon, NPagination, NEmpty } from 'naive-ui';
+  import { SearchOutline } from '@vicons/ionicons5';
   import type { IVideo, VideoType, DifficultyLevel } from '@atom-video/shared-types';
   import { generateVideoList } from '@/mock/videos';
   import VideoList from '@/components/business/video/VideoList.vue';
@@ -149,11 +152,11 @@
     margin-bottom: 24px;
   }
 
-  .filter-section .el-select {
+  .filter-section .n-select {
     width: 160px;
   }
 
-  .filter-section .el-input {
+  .filter-section .n-input {
     width: 240px;
   }
 

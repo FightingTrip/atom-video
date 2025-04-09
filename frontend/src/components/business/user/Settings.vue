@@ -2,14 +2,7 @@
   <div class="settings-container">
     <div class="settings-sidebar">
       <h2 class="sidebar-title">设置</h2>
-      <n-menu :value="activeSection" @update:value="activeSection = $event">
-        <n-menu-item v-for="section in sections" :key="section.id" :value="section.id">
-          <template #icon>
-            <span class="nav-icon">{{ section.icon }}</span>
-          </template>
-          {{ section.name }}
-        </n-menu-item>
-      </n-menu>
+      <n-menu :value="activeSection" @update:value="activeSection = $event" :options="menuOptions" />
     </div>
 
     <div class="settings-content">
@@ -308,10 +301,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted } from 'vue';
+  import { ref, reactive, onMounted, computed, h } from 'vue';
   import {
     NMenu,
-    NMenuItem,
     NForm,
     NFormItem,
     NInput,
@@ -336,6 +328,33 @@
     { id: 'notifications', name: '通知设置', icon: '🔔' },
     { id: 'privacy', name: '隐私设置', icon: '🔒' },
     { id: 'appearance', name: '外观设置', icon: '🎨' }
+  ];
+
+  // 菜单选项
+  const menuOptions = computed(() =>
+    sections.map(section => ({
+      label: section.name,
+      key: section.id,
+      icon: () => h('span', { class: 'nav-icon' }, section.icon)
+    }))
+  );
+
+  // 社交平台选项
+  const socialPlatformOptions = [
+    { label: 'GitHub', value: 'GitHub' },
+    { label: 'Twitter', value: 'Twitter' },
+    { label: 'LinkedIn', value: 'LinkedIn' },
+    { label: 'YouTube', value: 'YouTube' },
+    { label: 'Instagram', value: 'Instagram' },
+    { label: '个人网站', value: 'Personal' }
+  ];
+
+  // 评论权限选项
+  const commentOptions = [
+    { label: '所有人', value: 'everyone' },
+    { label: '已关注我的人', value: 'followers' },
+    { label: '我关注的人', value: 'following' },
+    { label: '禁止评论', value: 'none' }
   ];
 
   // 当前活动部分
