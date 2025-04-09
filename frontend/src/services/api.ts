@@ -1,6 +1,10 @@
 import axios from 'axios';
 import type { ApiResponse } from '@/types';
 
+// 获取当前API模式
+const isMockMode = import.meta.env.VITE_API_MODE === 'mock';
+console.log(`当前API模式: ${isMockMode ? '模拟数据' : '真实API'}`);
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
@@ -44,8 +48,8 @@ export const apiClient = {
     return api.get(url, { params });
   },
 
-  async post<T>(url: string, data?: object): Promise<ApiResponse<T>> {
-    return api.post(url, data);
+  async post<T>(url: string, data?: object, config?: object): Promise<ApiResponse<T>> {
+    return api.post(url, data, config);
   },
 
   async put<T>(url: string, data?: object): Promise<ApiResponse<T>> {
@@ -57,4 +61,5 @@ export const apiClient = {
   },
 };
 
+export { isMockMode };
 export default api;

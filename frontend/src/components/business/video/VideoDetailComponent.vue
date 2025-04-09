@@ -197,16 +197,23 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
-  import { NButton, NButtonGroup, NIcon, NInput, NAvatar, NTag } from 'naive-ui'
+  import { ref, computed, h } from 'vue'
+  import { NButton, NButtonGroup, NIcon, NInput, NAvatar, NTag, NTooltip } from 'naive-ui'
   import {
     ThumbsUp,
     Bookmark,
     Share,
-    Chatbubble
+    Chatbubble,
+    ThumbUpOutline,
+    HeartOutline,
+    Heart,
+    ShareSocialOutline,
+    DownloadOutline,
+    CloudOfflineOutline,
+    ThumbUp
   } from '@vicons/ionicons5'
   import VideoPlayerComponent from './VideoPlayerComponent.vue'
-  import type { Video, Comment } from '@/types'
+  import type { Video, Comment, PropType } from '@/types'
   import { useAuthStore } from '@/stores/auth'
 
   const props = defineProps({
@@ -378,6 +385,18 @@
       disabled: props.offlineMode // 离线模式下禁用下载
     }
   ]
+
+  // 显示分享模态框
+  const showShareModal = () => {
+    // 实现分享功能
+    alert('分享功能暂未实现');
+  }
+
+  // 下载视频
+  const handleDownload = () => {
+    // 实现下载功能
+    alert('下载功能暂未实现');
+  }
 </script>
 
 <style scoped>

@@ -72,6 +72,7 @@
   import { videoService } from '@/services/video';
   import { useHistoryStore } from '@/stores/history';
   import { useUserStore } from '@/stores/user';
+  import { isMockMode } from '@/services/api';
   import VideoPlayerComponent from '@/components/business/video/VideoPlayerComponent.vue';
   import VideoDetailComponent from '@/components/business/video/VideoDetailComponent.vue';
   import CommentListComponent from '@/components/business/comment/CommentListComponent.vue';
@@ -490,6 +491,18 @@
 
   onMounted(() => {
     fetchVideoData();
+
+    // 如果处于模拟数据模式，加载推荐视频
+    if (isMockMode) {
+      videoService.getRecommendedVideos(route.params.id as string)
+        .then(res => {
+          if (res.success) {
+            relatedVideos.value = res.data;
+          }
+        })
+        .catch(err => console.error('加载推荐视频失败:', err));
+    }
+
     console.log('[VideoDetailPage] 组件已挂载');
 
     // 如果处于离线模式，尝试定时检测网络
