@@ -7,34 +7,34 @@
 
 <template>
   <div class="video-detail-page">
-    <n-card v-if="loading">
+    <n-card v-if="loading" class="loading-card">
       <n-space justify="center" align="center" style="height: 400px">
         <n-spin size="large" />
         <p>加载视频信息...</p>
       </n-space>
     </n-card>
 
-    <n-card v-else-if="error">
+    <n-card v-else-if="error" class="error-card">
       <n-space vertical justify="center" align="center" style="height: 300px">
         <n-icon size="48" color="#d03050">
           <WarningOutline />
         </n-icon>
         <p>{{ error }}</p>
-        <n-button @click="fetchVideoData">重试</n-button>
+        <n-button @click="fetchVideoData" type="primary">重试</n-button>
       </n-space>
     </n-card>
 
     <!-- 离线模式提示 -->
-    <n-alert v-if="isOfflineMode" type="warning" closable style="margin-bottom: 16px">
+    <n-alert v-if="isOfflineMode" type="warning" closable style="margin-bottom: 16px" class="offline-alert">
       <template #header>
         <div style="display: flex; align-items: center; gap: 8px">
           <n-icon>
             <CloudOfflineOutline />
           </n-icon>
-          <span>当前处于离线模式</span>
+          <span>网络连接不可用，当前处于离线模式</span>
         </div>
       </template>
-      历史记录和交互功能将仅在本地保存，无法与服务器同步。请检查网络连接。
+      历史记录和互动功能将仅在本地保存，无法与服务器同步。视频可以正常播放，但互动功能将受限。
       <template #action>
         <n-button text type="warning" @click="checkNetworkAndRefresh">
           重新连接
@@ -42,17 +42,30 @@
       </template>
     </n-alert>
 
-    <template v-else-if="video">
-      <VideoPlayerComponent :video="video" v-if="video" />
-      <VideoDetailComponent :video="video" :current-time="savedProgress" :is-liked="isLiked" :is-favorited="isFavorited"
-        :is-subscribed="isSubscribed" @time-update="handleTimeUpdate" @like="handleLike" @favorite="handleFavorite"
-        @subscribe="handleSubscribe" @comment="handleComment" @load-more-comments="loadMoreComments" />
-    </template>
+    <div v-else-if="video" class="video-content">
+      <div class="primary-column">
+        <VideoPlayerComponent :video="video" v-if="video" class="video-player" />
+        <VideoDetailComponent :video="video" :current-time="savedProgress" :is-liked="isLiked"
+          :is-favorited="isFavorited" :is-subscribed="isSubscribed" :offline-mode="isOfflineMode"
+          @time-update="handleTimeUpdate" @like="handleLike" @favorite="handleFavorite" @subscribe="handleSubscribe"
+          @comment="handleComment" @load-more-comments="loadMoreComments" class="video-detail" />
+      </div>
+      <div class="secondary-column">
+        <div class="related-videos">
+          <h3 class="related-title">推荐视频</h3>
+          <!-- 这里可以加入推荐视频组件 -->
+          <n-skeleton v-if="!relatedVideos.length" text :repeat="5" />
+          <div v-else class="video-suggestions">
+            <!-- 推荐视频内容 -->
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watch, computed } from 'vue';
+  import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { NCard, NSpace, NSpin, NButton, NIcon, NAlert, useMessage } from 'naive-ui';
   import { WarningOutline, CloudOfflineOutline } from '@vicons/ionicons5';
@@ -82,6 +95,8 @@
   const commentPage = ref(1);
   const hasMoreComments = ref(true);
   const loadingMoreComments = ref(false);
+  const networkRetryTimer = ref<number | null>(null);
+  const relatedVideos = ref<Video[]>([]);
 
   // 离线模式状态 
   const isOfflineMode = computed(() => {
@@ -95,18 +110,41 @@
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-      await fetch('/api/ping', { signal: controller.signal });
-
+      const response = await fetch('/api/ping', { signal: controller.signal });
       clearTimeout(timeoutId);
-      localStorage.removeItem('offline_mode');
-      message.success('网络已恢复，正在刷新页面');
 
-      // 短暂延迟后刷新
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      if (response.ok) {
+        localStorage.removeItem('offline_mode');
+        message.success('网络已恢复，正在刷新页面');
+
+        // 短暂延迟后刷新
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        throw new Error('服务器响应异常');
+      }
     } catch (err) {
       message.error('网络连接仍然不可用，请检查您的网络设置');
+      console.error('网络检查失败:', err);
+
+      // 定时自动重试
+      if (networkRetryTimer.value === null) {
+        networkRetryTimer.value = window.setInterval(() => {
+          fetch('/api/ping')
+            .then(response => {
+              if (response.ok) {
+                clearInterval(networkRetryTimer.value!);
+                networkRetryTimer.value = null;
+                localStorage.removeItem('offline_mode');
+                message.success('网络已自动恢复，刷新页面获取最新数据');
+              }
+            })
+            .catch(() => {
+              // 静默失败，继续等待下次重试
+            });
+        }, 30000) as unknown as number; // 每30秒自动检测一次
+      }
     }
   };
 
@@ -316,7 +354,7 @@
   };
 
   // 处理视频互动
-  const handleLike = () => {
+  const handleLike = async () => {
     if (isOfflineMode.value) {
       message.info('离线模式下，点赞操作仅在本地显示，不会同步到服务器');
       isLiked.value = !isLiked.value;
@@ -348,7 +386,7 @@
     }
   };
 
-  const handleFavorite = () => {
+  const handleFavorite = async () => {
     if (isOfflineMode.value) {
       message.info('离线模式下，收藏操作仅在本地显示，不会同步到服务器');
       isFavorited.value = !isFavorited.value;
@@ -380,7 +418,7 @@
     }
   };
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (isOfflineMode.value) {
       message.info('离线模式下，订阅操作仅在本地显示，不会同步到服务器');
       isSubscribed.value = !isSubscribed.value;
@@ -453,6 +491,19 @@
   onMounted(() => {
     fetchVideoData();
     console.log('[VideoDetailPage] 组件已挂载');
+
+    // 如果处于离线模式，尝试定时检测网络
+    if (isOfflineMode.value && networkRetryTimer.value === null) {
+      checkNetworkAndRefresh();
+    }
+  });
+
+  // 组件卸载时清除定时器
+  onBeforeUnmount(() => {
+    if (networkRetryTimer.value !== null) {
+      clearInterval(networkRetryTimer.value);
+      networkRetryTimer.value = null;
+    }
   });
 </script>
 
@@ -460,13 +511,72 @@
   .video-detail-page {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 16px;
     color: var(--text-color-base);
+  }
+
+  .offline-alert {
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+
+  .loading-card,
+  .error-card {
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .video-content {
+    display: flex;
+    gap: 24px;
+  }
+
+  .primary-column {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .secondary-column {
+    width: 320px;
+    flex-shrink: 0;
+  }
+
+  .video-player {
+    margin-bottom: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .video-detail {
+    border-radius: 8px;
+  }
+
+  .related-videos {
+    background-color: var(--color-bg-surface, #ffffff);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .related-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: var(--color-text-primary);
+  }
+
+  @media (max-width: 1100px) {
+    .video-content {
+      flex-direction: column;
+    }
+
+    .secondary-column {
+      width: 100%;
+    }
   }
 
   @media (max-width: 768px) {
     .video-detail-page {
-      padding: 10px;
+      padding: 8px;
     }
   }
 </style>

@@ -21,6 +21,10 @@
 * @props
 * - video: 视频信息对象
 * - currentTime: 当前播放时间（可选）
+* - isLiked: 是否已点赞（可选）
+* - isFavorited: 是否已收藏（可选）
+* - isSubscribed: 是否已关注（可选）
+* - offlineMode: 是否离线模式（可选）
 *
 * @emits
 * - time-update: 播放时间更新
@@ -107,6 +111,32 @@
       </div>
     </div>
 
+    <!-- 视频互动区 -->
+    <div class="video-actions">
+      <n-tooltip v-for="(action, index) in actionButtons" :key="index" :trigger="action.disabled ? 'hover' : 'none'"
+        placement="bottom" :content="action.disabled ? action.tooltip : ''">
+        <n-button class="action-button" :class="{ active: action.active }" :disabled="action.disabled" ghost
+          @click="action.click">
+          <template #icon>
+            <n-icon size="20">
+              <component
+                :is="action.active ? action.activeIcon ? action.activeIcon() : action.icon() : action.icon()" />
+            </n-icon>
+          </template>
+          {{ action.text }}
+          <span v-if="action.count" class="count">({{ action.count }})</span>
+        </n-button>
+      </n-tooltip>
+    </div>
+
+    <!-- 离线模式状态提示 -->
+    <div v-if="offlineMode" class="offline-notice">
+      <n-icon color="#f0a020">
+        <CloudOfflineOutline />
+      </n-icon>
+      <span>离线模式下，互动功能将在本地模拟，不会同步到服务器</span>
+    </div>
+
     <!-- 评论区 -->
     <div class="comments">
       <h2 class="comments-title">
@@ -179,10 +209,32 @@
   import type { Video, Comment } from '@/types'
   import { useAuthStore } from '@/stores/auth'
 
-  const props = defineProps<{
-    video: Video
-    currentTime?: number
-  }>()
+  const props = defineProps({
+    video: {
+      type: Object as PropType<Video>,
+      required: true
+    },
+    currentTime: {
+      type: Number,
+      default: 0
+    },
+    isLiked: {
+      type: Boolean,
+      default: false
+    },
+    isFavorited: {
+      type: Boolean,
+      default: false
+    },
+    isSubscribed: {
+      type: Boolean,
+      default: false
+    },
+    offlineMode: {
+      type: Boolean,
+      default: false
+    }
+  })
 
   const emit = defineEmits<{
     (e: 'time-update', time: number): void
@@ -199,9 +251,6 @@
   // 状态
   const authStore = useAuthStore()
   const currentTime = ref(props.currentTime || 0)
-  const isLiked = ref(false)
-  const isFavorited = ref(false)
-  const isSubscribed = ref(false)
   const commentText = ref('')
   const comments = ref<Comment[]>([])
   const loadingMore = ref(false)
@@ -235,17 +284,14 @@
   }
 
   const handleLike = () => {
-    isLiked.value = !isLiked.value
     emit('like')
   }
 
   const handleFavorite = () => {
-    isFavorited.value = !isFavorited.value
     emit('favorite')
   }
 
   const handleSubscribe = () => {
-    isSubscribed.value = !isSubscribed.value
     emit('subscribe')
   }
 
@@ -290,6 +336,48 @@
   const getFallbackAvatar = (id: string) => {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`
   }
+
+  // 交互按钮
+  const actionButtons = [
+    {
+      icon: () => h(ThumbUpOutline),
+      activeIcon: () => h(ThumbUp),
+      text: '点赞',
+      active: props.isLiked,
+      count: computed(() => formatNumber(props.video.likes)),
+      click: () => emit('like'),
+      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isLiked ? '取消点赞' : '点赞')),
+      disabled: false
+    },
+    {
+      icon: () => h(HeartOutline),
+      activeIcon: () => h(Heart),
+      text: '收藏',
+      active: props.isFavorited,
+      count: computed(() => formatNumber(props.video.favorites)),
+      click: () => emit('favorite'),
+      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isFavorited ? '取消收藏' : '收藏')),
+      disabled: false
+    },
+    {
+      icon: () => h(ShareSocialOutline),
+      text: '分享',
+      active: false,
+      count: null,
+      click: showShareModal,
+      tooltip: '分享视频',
+      disabled: props.offlineMode // 离线模式下禁用分享
+    },
+    {
+      icon: () => h(DownloadOutline),
+      text: '下载',
+      active: false,
+      count: null,
+      click: handleDownload,
+      tooltip: props.offlineMode ? '离线模式下无法下载' : '下载视频',
+      disabled: props.offlineMode // 离线模式下禁用下载
+    }
+  ]
 </script>
 
 <style scoped>
@@ -517,6 +605,47 @@
     display: flex;
     justify-content: center;
     margin-top: var(--spacing-lg);
+  }
+
+  .video-actions {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+  }
+
+  .action-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 18px;
+    transition: all 0.2s;
+  }
+
+  .action-button.active {
+    color: var(--primary-color, #1890ff);
+    background-color: var(--primary-color-light, #e6f7ff);
+  }
+
+  .action-button:hover:not(:disabled) {
+    background-color: var(--color-bg-hover, #f5f5f5);
+  }
+
+  .action-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .offline-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 8px 12px;
+    background-color: var(--warning-color-light, #fff7e6);
+    border-radius: 4px;
+    color: var(--warning-color, #faad14);
+    font-size: 0.9em;
   }
 
   @media (max-width: 768px) {

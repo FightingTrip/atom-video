@@ -15,7 +15,7 @@
           <a href="/privacy" class="footer-link">隐私政策</a>
         </div>
         <div class="footer-section">
-          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="footer-link">
+          <a href="https://github.com/FightingTrip/atom-video/" target="_blank" rel="noopener noreferrer" class="footer-link">
             <n-icon class="footer-icon">
               <LogoGithub />
             </n-icon>
