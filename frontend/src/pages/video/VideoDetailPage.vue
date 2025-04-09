@@ -25,21 +25,15 @@
     </n-card>
 
     <!-- 离线模式提示 -->
-    <n-alert v-if="isOfflineMode" type="warning" closable style="margin-bottom: 16px" class="offline-alert">
-      <template #icon>
-        <n-icon>
-          <CloudOfflineOutline />
-        </n-icon>
-      </template>
+    <div v-if="isOfflineMode" class="offline-alert">
+      <n-icon>
+        <CloudOfflineOutline />
+      </n-icon>
       <span>网络连接不可用，当前处于离线模式。历史记录和互动功能将仅在本地保存，无法与服务器同步。</span>
-      <template #footer>
-        <div style="text-align: right;">
-          <n-button text type="warning" @click="checkNetworkAndRefresh">
-            重新连接
-          </n-button>
-        </div>
-      </template>
-    </n-alert>
+      <n-button text type="warning" @click="checkNetworkAndRefresh">
+        重新连接
+      </n-button>
+    </div>
 
     <div v-else-if="video" class="video-content">
       <div class="primary-column">
@@ -477,6 +471,26 @@
   .offline-alert {
     margin-bottom: 16px;
     border-radius: 8px;
+    background-color: #fff7e6;
+    border: 1px solid #ffe58f;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .offline-alert .n-icon {
+    color: #faad14;
+    font-size: 20px;
+  }
+
+  .offline-alert span {
+    flex: 1;
+    color: #d48806;
+  }
+
+  .offline-alert .n-button {
+    margin-left: auto;
   }
 
   .loading-card,

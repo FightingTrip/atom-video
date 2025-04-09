@@ -209,8 +209,7 @@
     Heart,
     ShareSocialOutline,
     DownloadOutline,
-    CloudOfflineOutline,
-    ThumbUp
+    CloudOfflineOutline
   } from '@vicons/ionicons5'
   import VideoPlayerComponent from './VideoPlayerComponent.vue'
   import type { Video, Comment, PropType } from '@/types'
@@ -348,7 +347,7 @@
   const actionButtons = [
     {
       icon: () => h(ThumbUpOutline),
-      activeIcon: () => h(ThumbUp),
+      activeIcon: () => h(ThumbsUp),
       text: '点赞',
       active: props.isLiked,
       count: computed(() => formatNumber(props.video.likes)),
