@@ -204,7 +204,7 @@
     Bookmark,
     Share,
     Chatbubble,
-    ThumbUpOutline,
+    ThumbsUpOutline,
     HeartOutline,
     Heart,
     ShareSocialOutline,
@@ -346,7 +346,7 @@
   // 交互按钮
   const actionButtons = [
     {
-      icon: () => h(ThumbUpOutline),
+      icon: () => h(ThumbsUpOutline),
       activeIcon: () => h(ThumbsUp),
       text: '点赞',
       active: props.isLiked,

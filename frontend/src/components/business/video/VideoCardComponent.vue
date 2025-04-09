@@ -192,10 +192,16 @@
   // 方法
   const handleClick = () => {
     emit('click', props.video)
-    router.push({
-      name: 'video-detail',
-      params: { id: props.video.id }
-    })
+    try {
+      router.push({
+        name: 'video-detail',
+        params: { id: props.video.id }
+      })
+    } catch (err) {
+      console.error('路由跳转错误:', err)
+      // 回退到常规URL导航
+      router.push(`/video/${props.video.id}`)
+    }
   }
 
   const handleAuthorClick = () => {
