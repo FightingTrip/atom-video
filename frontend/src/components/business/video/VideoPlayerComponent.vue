@@ -225,12 +225,17 @@
   // 方法
   const handleReady = () => {
     loading.value = false
-    // 从历史记录或props中恢复播放进度
-    const savedProgress = historyStore.getVideoProgress(props.video.id)
-    if (savedProgress && videoRef.value) {
-      videoRef.value.currentTime = savedProgress
-    } else if (props.currentTime && videoRef.value) {
-      videoRef.value.currentTime = props.currentTime
+
+    try {
+      // 从历史记录或props中恢复播放进度
+      const savedProgress = historyStore.getVideoProgress(props.video.id)
+      if (savedProgress && videoRef.value) {
+        videoRef.value.currentTime = savedProgress
+      } else if (props.currentTime && videoRef.value) {
+        videoRef.value.currentTime = props.currentTime
+      }
+    } catch (err) {
+      console.error('获取播放进度失败:', err)
     }
   }
 
@@ -242,7 +247,11 @@
   // 防抖更新播放历史
   const updateHistory = debounce((currentTime: number) => {
     if (props.video && props.video.id) {
-      historyStore.saveVideoProgress(props.video.id, currentTime)
+      try {
+        historyStore.saveVideoProgress(props.video.id, currentTime)
+      } catch (err) {
+        console.error('保存播放进度失败:', err)
+      }
     }
   }, 1000)
 
@@ -378,7 +387,11 @@
 
     // 将视频添加到播放历史
     if (props.video && props.video.id) {
-      historyStore.addToHistory(props.video)
+      try {
+        historyStore.addToHistory(props.video)
+      } catch (err) {
+        console.error('添加到历史记录失败:', err)
+      }
     }
   })
 

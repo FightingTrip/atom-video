@@ -15,7 +15,21 @@ export const useHistoryStore = defineStore('history', () => {
   const searchHistory = ref<string[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
-  const videoProgressHistory = ref<VideoProgress[]>([]);
+
+  // 初始化videoProgressHistory，尝试从localStorage加载
+  const videoProgressHistory = ref<VideoProgress[]>(
+    (() => {
+      try {
+        const savedProgress = localStorage.getItem('video-progress-history');
+        if (savedProgress) {
+          return JSON.parse(savedProgress);
+        }
+      } catch (err) {
+        console.error('从本地存储加载视频进度失败:', err);
+      }
+      return [];
+    })()
+  );
 
   // 获取观看历史
   const getWatchHistory = async (): Promise<Video[]> => {
@@ -155,6 +169,43 @@ export const useHistoryStore = defineStore('history', () => {
     }
   };
 
+  // 添加视频到历史记录，直接保存视频对象
+  const addToHistory = (video: Video): void => {
+    // 检查是否已经存在于历史记录中
+    const existingIndex = watchHistory.value.findIndex(v => v.id === video.id);
+    if (existingIndex >= 0) {
+      // 如果存在，将该视频移动到历史记录的最前面
+      const existingVideo = watchHistory.value.splice(existingIndex, 1)[0];
+      watchHistory.value.unshift(existingVideo);
+    } else {
+      // 如果不存在，将视频添加到历史记录的最前面
+      watchHistory.value.unshift(video);
+    }
+
+    // 保持历史记录不超过100条
+    if (watchHistory.value.length > 100) {
+      watchHistory.value = watchHistory.value.slice(0, 100);
+    }
+
+    // 同时调用后端API记录观看历史 (异步操作，不用等待结果)
+    addToWatchHistory(video.id).catch(err => {
+      console.error('添加观看历史失败:', err);
+    });
+  };
+
+  // 保存视频播放进度
+  const saveVideoProgress = (videoId: string, progress: number): void => {
+    addVideoProgress(videoId, progress);
+
+    // 将播放进度同步到本地存储
+    try {
+      const progressData = JSON.stringify(videoProgressHistory.value);
+      localStorage.setItem('video-progress-history', progressData);
+    } catch (err) {
+      console.error('保存视频进度到本地存储失败:', err);
+    }
+  };
+
   // 获取视频进度
   const getVideoProgress = (videoId: string): number => {
     const video = videoProgressHistory.value.find(item => item.videoId === videoId);
@@ -183,5 +234,7 @@ export const useHistoryStore = defineStore('history', () => {
     addVideoProgress,
     getVideoProgress,
     clearVideoProgressHistory,
+    addToHistory,
+    saveVideoProgress,
   };
 });

@@ -96,10 +96,21 @@
         savedProgress.value = historyStore.getVideoProgress(videoId as string);
 
         // 记录观看历史
-        historyStore.addToHistory(res.data);
+        try {
+          historyStore.addToHistory(res.data);
+        } catch (err) {
+          console.error('添加到历史记录失败:', err);
+        }
 
         // 初始加载评论
         await loadComments();
+
+        // 记录到历史
+        try {
+          historyStore.addToHistory(video.value);
+        } catch (err) {
+          console.error('添加到历史记录失败:', err);
+        }
       } else {
         // 如果API请求失败，使用备用模拟数据
         console.warn('API请求失败，使用模拟数据', res.message);
@@ -137,7 +148,11 @@
           };
 
           // 记录到历史
-          historyStore.addToHistory(video.value);
+          try {
+            historyStore.addToHistory(video.value);
+          } catch (err) {
+            console.error('添加到历史记录失败:', err);
+          }
 
           message.info('使用模拟数据进行测试，真实环境中将显示从服务器获取的视频');
         }
@@ -178,7 +193,11 @@
           ]
         };
 
-        historyStore.addToHistory(video.value);
+        try {
+          historyStore.addToHistory(video.value);
+        } catch (err) {
+          console.error('添加到历史记录失败:', err);
+        }
         message.warning('使用备用数据进行显示，请联系管理员处理API问题');
         error.value = null; // 清除错误，显示视频
       }
@@ -335,7 +354,11 @@
   // 记录播放进度
   const handleTimeUpdate = (time: number) => {
     if (video.value) {
-      historyStore.saveVideoProgress(video.value.id, time);
+      try {
+        historyStore.saveVideoProgress(video.value.id, time);
+      } catch (err) {
+        console.error('保存播放进度失败:', err);
+      }
     }
   };
 
