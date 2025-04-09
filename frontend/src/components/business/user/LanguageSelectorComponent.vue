@@ -19,7 +19,9 @@
     <n-dropdown trigger="click" :options="options" @select="handleSelect">
       <button class="selector-trigger" :title="$t('settings.language')">
         <transition name="fade" mode="out-in">
-          <i :key="locale" class="fas fa-globe text-xl"></i>
+          <n-icon :key="locale" class="globe-icon">
+            <LanguageOutline />
+          </n-icon>
         </transition>
         <span class="language-text">{{ currentLanguageLabel }}</span>
         <n-icon class="dropdown-icon">
@@ -34,8 +36,8 @@
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { DropdownOption } from 'naive-ui';
-  import { useMessage } from 'naive-ui';
-  import { ChevronDownOutline } from '@vicons/ionicons5';
+  import { useMessage, NIcon, NDropdown } from 'naive-ui';
+  import { ChevronDownOutline, LanguageOutline } from '@vicons/ionicons5';
 
   const message = useMessage();
   const { locale, t } = useI18n();
@@ -72,6 +74,7 @@
 <style scoped>
   .language-selector {
     position: relative;
+    margin-right: 0.5rem;
   }
 
   .selector-trigger {
@@ -83,13 +86,18 @@
     cursor: pointer;
     transition: all 0.3s ease;
     color: var(--text-color-primary);
-    background-color: var(--bg-color-secondary);
-    border: 1px solid var(--border-color);
+    background-color: var(--primary-color-light, #e6f7ff);
+    border: 1px solid var(--primary-color, #1890ff);
   }
 
   .selector-trigger:hover {
-    background-color: var(--bg-color-hover);
+    background-color: var(--primary-color, #1890ff);
+    color: #fff;
     transform: translateY(-1px);
+  }
+
+  .globe-icon {
+    font-size: 1.25rem;
   }
 
   .selector-trigger:active {
@@ -109,6 +117,7 @@
 
   .selector-trigger:hover .dropdown-icon {
     transform: translateY(2px);
+    opacity: 1;
   }
 
   .fade-enter-active,
@@ -127,7 +136,7 @@
     }
 
     .selector-trigger {
-      padding: 0.375rem;
+      padding: 0.5rem;
     }
 
     .dropdown-icon {
@@ -138,12 +147,13 @@
   /* 深色模式优化 */
   :root.dark .selector-trigger,
   .dark-mode .selector-trigger {
-    background-color: var(--bg-color-dark);
-    border-color: var(--border-color-dark);
+    background-color: var(--primary-color-dark, #003a8c);
+    border-color: var(--primary-color, #1890ff);
+    color: #fff;
   }
 
   :root.dark .selector-trigger:hover,
   .dark-mode .selector-trigger:hover {
-    background-color: var(--bg-color-hover-dark);
+    background-color: var(--primary-color, #1890ff);
   }
 </style>

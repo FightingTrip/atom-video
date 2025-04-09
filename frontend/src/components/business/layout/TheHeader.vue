@@ -1,6 +1,6 @@
   <div class="header-right">
     <!-- 语言切换器 -->
-    <LanguageSelectorComponent />
+    <LanguageSelectorComponent class="language-selector-container" />
 
     <!-- 上传按钮 -->
     <n-button v-if="isAuthenticated" type="primary" @click="handleUpload">
@@ -24,4 +24,26 @@
   import UserMenu from '@/components/business/user/UserMenu.vue';
   import LanguageSelectorComponent from '@/components/business/user/LanguageSelectorComponent.vue';
   import { useAuthStore } from '@/stores/auth';
-</script> 
+</script>
+
+<style scoped>
+
+  /* 添加样式 */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .language-selector-container {
+    display: flex;
+    align-items: center;
+  }
+
+  /* 确保在移动端也能显示 */
+  @media (max-width: 768px) {
+    .header-right {
+      gap: 0.5rem;
+    }
+  }
+</style> 
