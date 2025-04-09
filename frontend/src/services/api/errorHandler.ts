@@ -68,3 +68,31 @@ export function handleApiError(error: unknown): never {
 
   throw new ApiError(message, 0, 'UNKNOWN_ERROR');
 }
+
+// 检查当前是否处于离线模式
+export function isOfflineMode(): boolean {
+  return localStorage.getItem('offline_mode') === 'true';
+}
+
+// 尝试自动检测网络连接并刷新
+export async function checkNetworkAndReconnect(): Promise<boolean> {
+  try {
+    // 设置一个短超时
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch('/api/ping', { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      // 网络恢复，清除离线模式标志
+      localStorage.removeItem('offline_mode');
+      return true;
+    }
+    return false;
+  } catch (err) {
+    // 网络仍然不可用
+    console.warn('网络连接检测失败:', err);
+    return false;
+  }
+}

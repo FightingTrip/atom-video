@@ -29,7 +29,7 @@ export const videoService = {
       return await api.get(`/videos/${videoId}`);
     } catch (error) {
       console.error('获取视频详情失败:', error);
-      return createMockResponse(getMockVideo(videoId), true, '使用备用数据');
+      return createMockResponse(getMockVideo(videoId), false, '获取视频失败，使用备用数据');
     }
   },
 
@@ -56,8 +56,8 @@ export const videoService = {
           totalPages: 2,
           currentPage: params.page || 1,
         },
-        true,
-        '使用备用数据'
+        false,
+        '获取评论失败，使用备用数据'
       );
     }
   },
@@ -75,7 +75,11 @@ export const videoService = {
       return await api.get(`/videos/${videoId}/interaction`);
     } catch (error) {
       console.error('获取视频交互状态失败:', error);
-      return createMockResponse(getMockVideoInteraction(videoId), true, '使用备用数据');
+      return createMockResponse(
+        getMockVideoInteraction(videoId),
+        false,
+        '获取交互状态失败，使用备用数据'
+      );
     }
   },
 
@@ -92,7 +96,7 @@ export const videoService = {
       return await api.post(`/videos/${videoId}/like`, { action });
     } catch (error) {
       console.error('点赞操作失败:', error);
-      throw error;
+      return createMockResponse(null, false, '点赞操作失败，请检查网络连接');
     }
   },
 
@@ -109,7 +113,7 @@ export const videoService = {
       return await api.post(`/videos/${videoId}/favorite`, { action });
     } catch (error) {
       console.error('收藏操作失败:', error);
-      throw error;
+      return createMockResponse(null, false, '收藏操作失败，请检查网络连接');
     }
   },
 
@@ -126,7 +130,7 @@ export const videoService = {
       return await api.post(`/authors/${authorId}/subscribe`, { action });
     } catch (error) {
       console.error('订阅操作失败:', error);
-      throw error;
+      return createMockResponse(null, false, '订阅操作失败，请检查网络连接');
     }
   },
 
@@ -143,7 +147,7 @@ export const videoService = {
       return await api.post(`/videos/${videoId}/comments`, { content });
     } catch (error) {
       console.error('评论发表失败:', error);
-      throw error;
+      return createMockResponse(null, false, '评论发表失败，请检查网络连接');
     }
   },
 
@@ -163,7 +167,28 @@ export const videoService = {
       return await api.get(`/videos/${videoId}/recommended`, { params: { limit } });
     } catch (error) {
       console.error('获取推荐视频失败:', error);
-      return createMockResponse(getMockRecommendedVideos(videoId, limit), true, '使用备用数据');
+      return createMockResponse(
+        getMockRecommendedVideos(videoId, limit),
+        false,
+        '获取推荐视频失败，使用备用数据'
+      );
+    }
+  },
+
+  /**
+   * 更新视频播放次数
+   */
+  updateVideoViews: async (videoId: string): Promise<ApiResponse<any>> => {
+    if (isMockMode) {
+      await mockDelay(100);
+      return createMockResponse({ success: true });
+    }
+
+    try {
+      return await api.post(`/videos/${videoId}/views`);
+    } catch (error) {
+      console.error('更新视频播放量失败:', error);
+      return createMockResponse(null, false, '更新播放量失败');
     }
   },
 };
