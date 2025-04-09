@@ -1,8 +1,8 @@
 /**
-* @file CommentSection.vue
-* @description 评论区域组件，用于显示视频评论和回复
+* @file CommentSectionComponent.vue
+* @description 评论区组件 - 包含评论输入框和评论列表的业务组件
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 *
 * @features
 * - 评论列表展示

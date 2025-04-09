@@ -35,7 +35,7 @@
         <n-tab-pane name="all" tab="全部">
           <div class="video-list">
             <div v-for="video in filteredVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="filteredVideos.length === 0" description="暂无观看历史" />
           </div>
@@ -43,7 +43,7 @@
         <n-tab-pane name="today" tab="今天">
           <div class="video-list">
             <div v-for="video in todayVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="todayVideos.length === 0" description="今天暂无观看记录" />
           </div>
@@ -51,7 +51,7 @@
         <n-tab-pane name="week" tab="本周">
           <div class="video-list">
             <div v-for="video in weekVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="weekVideos.length === 0" description="本周暂无观看记录" />
           </div>
@@ -59,7 +59,7 @@
         <n-tab-pane name="earlier" tab="更早">
           <div class="video-list">
             <div v-for="video in earlierVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="earlierVideos.length === 0" description="暂无更早观看记录" />
           </div>
@@ -80,7 +80,7 @@
   import { useRouter } from 'vue-router';
   import { NButton, NTabs, NTabPane, NPagination, NEmpty, useMessage } from 'naive-ui';
   import type { Video } from '@/types';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
   import { historyApi } from '@/mock/videos';
   import { useUserStore } from '@/stores/user';
 

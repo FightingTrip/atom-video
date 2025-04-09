@@ -1,3 +1,10 @@
+/**
+* @file ExploreCategoryComponent.vue
+* @description 分类探索组件 - 展示特定分类内视频内容的业务组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
+
 <!-- 探索分类组件 -->
 <template>
   <div class="explore-category">
@@ -19,7 +26,7 @@
     </div>
 
     <div class="category-content">
-      <VideoList :videos="filteredVideos" @video-click="handleVideoClick" />
+      <VideoListComponent :videos="filteredVideos" @video-click="handleVideoClick" />
     </div>
 
     <div class="category-pagination">
@@ -34,7 +41,7 @@
   import { ref, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import type { IVideo } from '@atom-video/shared-types';
-  import VideoList from '@/components/business/video/VideoList.vue';
+  import VideoListComponent from '@/components/business/video/VideoListComponent.vue';
   import { mockVideos } from '@/mock/video';
 
   const route = useRoute();

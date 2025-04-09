@@ -2,7 +2,7 @@
 * @file LanguageSelector.vue
 * @description 语言选择器组件，用于切换网站语言
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 *
 * @features
 * - 语言切换功能
@@ -10,22 +10,39 @@
 * - 语言持久化存储
 * - 响应式布局
 * - 黑白主题适配
+* - 切换反馈提示
+* - 过渡动画效果
 */
 
 <template>
-  <n-dropdown trigger="click" :options="options" @select="handleSelect">
-    <button class="p-2 text-gray-600 dark:text-gray-300 hover:text-blue-500">
-      <i class="fas fa-globe text-xl"></i>
-    </button>
-  </n-dropdown>
+  <div class="language-selector">
+    <n-dropdown trigger="click" :options="options" @select="handleSelect">
+      <button class="selector-trigger" :title="$t('settings.language')">
+        <transition name="fade" mode="out-in">
+          <i :key="locale" class="fas fa-globe text-xl"></i>
+        </transition>
+        <span class="language-text">{{ currentLanguageLabel }}</span>
+        <n-icon class="dropdown-icon">
+          <ChevronDownOutline />
+        </n-icon>
+      </button>
+    </n-dropdown>
+  </div>
 </template>
 
 <script setup lang="ts">
   import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { DropdownOption } from 'naive-ui';
+  import { useMessage } from 'naive-ui';
+  import { ChevronDownOutline } from '@vicons/ionicons5';
 
+  const message = useMessage();
   const { locale, t } = useI18n();
+
+  const currentLanguageLabel = computed(() => {
+    return locale.value === 'zh-CN' ? '简体中文' : 'English';
+  });
 
   const options = computed<DropdownOption[]>(() => [
     {
@@ -40,9 +57,15 @@
     }
   ]);
 
-  const handleSelect = (key: string) => {
-    locale.value = key;
-    localStorage.setItem('language', key);
+  const handleSelect = async (key: string) => {
+    try {
+      locale.value = key;
+      localStorage.setItem('language', key);
+      message.success(t('settings.languageChanged'));
+    } catch (error) {
+      message.error(t('settings.languageChangeFailed'));
+      console.error('Language change failed:', error);
+    }
   };
 </script>
 
@@ -54,61 +77,73 @@
   .selector-trigger {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-md);
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
     cursor: pointer;
-    transition: background-color var(--transition-normal);
-    color: var(--text-primary);
+    transition: all 0.3s ease;
+    color: var(--text-color-primary);
+    background-color: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
   }
 
   .selector-trigger:hover {
-    background-color: var(--tertiary-bg);
+    background-color: var(--bg-color-hover);
+    transform: translateY(-1px);
   }
 
-  .language-icon {
-    font-size: var(--text-xl);
+  .selector-trigger:active {
+    transform: translateY(0);
   }
 
-  .dropdown-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: var(--spacing-sm);
-    background-color: var(--primary-bg);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    min-width: 150px;
-    z-index: 50;
+  .language-text {
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 
-  .language-option {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md) var(--spacing-lg);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: background-color var(--transition-normal);
+  .dropdown-icon {
+    font-size: 1rem;
+    opacity: 0.7;
+    transition: transform 0.3s ease;
   }
 
-  .language-option:hover {
-    background-color: var(--tertiary-bg);
+  .selector-trigger:hover .dropdown-icon {
+    transform: translateY(2px);
   }
 
-  .language-option.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.3s ease;
   }
 
-  .language-option.disabled:hover {
-    background-color: transparent;
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
   }
 
   @media (max-width: 768px) {
     .language-text {
       display: none;
     }
+
+    .selector-trigger {
+      padding: 0.375rem;
+    }
+
+    .dropdown-icon {
+      display: none;
+    }
+  }
+
+  /* 深色模式优化 */
+  :root.dark .selector-trigger,
+  .dark-mode .selector-trigger {
+    background-color: var(--bg-color-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  :root.dark .selector-trigger:hover,
+  .dark-mode .selector-trigger:hover {
+    background-color: var(--bg-color-hover-dark);
   }
 </style>

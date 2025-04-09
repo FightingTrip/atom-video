@@ -1,17 +1,9 @@
-<!--
- * @description 评论列表组件
- * @features
- * - 评论列表展示：支持多级评论嵌套
- * - 评论功能：发表评论、回复评论
- * - 互动功能：点赞评论
- * - 分页加载：支持无限滚动
- * - 响应式布局
- * - 主题适配
- * @dependencies
- * - naive-ui: UI组件库
- * - @vueuse/core: 实用工具集
- * - dayjs: 日期处理
- -->
+/**
+* @file CommentListComponent.vue
+* @description 评论列表组件 - 展示和管理评论的业务组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
 
 <template>
   <div class="comment-section">

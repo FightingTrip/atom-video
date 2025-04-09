@@ -1,49 +1,38 @@
 /**
-* @file Home.vue
-* @description 首页业务组件，展示推荐、热门和最新视频
-* @features
-* - 视频推荐：基于用户偏好的个性化推荐
-* - 分类筛选：支持多种筛选方式
-* - 懒加载：按需加载视频内容
-* - 用户交互：稍后观看、点击跳转等功能
-* - 响应式布局：适配不同设备屏幕
-* @dependencies
-* - VideoGrid: 展示视频网格
-* - VideoCard: 展示单个视频信息
-* - useVideo: 视频数据获取和缓存
+* @file HomeComponent.vue
+* @description 首页组件 - 展示首页内容的业务组件
 * @author Atom Video Team
-* @date 2025-04-06
-* @version 1.0.0
-* @license MIT
+* @date 2025-04-09
 */
 
 <template>
   <div class="home">
+    <!-- 页面标题和整合的分类菜单 -->
+    <div class="page-header">
+      <h1 class="page-title">为你推荐</h1>
+      <div class="header-controls">
+        <CategoryTabs v-model="activeRecommendTab" :tabs="recommendationTabs" @change="handleCategoryChange" />
+      </div>
+    </div>
+
     <!-- 推荐视频区域 -->
     <section class="video-section">
-      <h2 class="section-title">为你推荐</h2>
-      <div class="tabs">
-        <button v-for="tab in recommendationTabs" :key="tab.id" class="tab-btn"
-          :class="{ 'active': activeRecommendTab === tab.id }" @click="activeRecommendTab = tab.id">
-          {{ tab.name }}
-        </button>
-      </div>
-      <VideoGrid :videos="filteredRecommendedVideos" :loading="loading" @video-click="handleVideoClick"
-        @watch-later="handleWatchLater" />
+      <VideoGridComponent :videos="filteredRecommendedVideos" :loading="loading" :disableToolbar="true"
+        @video-click="handleVideoClick" @watch-later="handleWatchLater" />
     </section>
 
     <!-- 热门视频区域 -->
     <section class="video-section">
       <h2 class="section-title">热门视频</h2>
-      <VideoGrid :videos="trendingVideos" :loading="loading" @video-click="handleVideoClick"
-        @watch-later="handleWatchLater" />
+      <VideoGridComponent :videos="trendingVideos" :loading="loading" :disableToolbar="true"
+        @video-click="handleVideoClick" @watch-later="handleWatchLater" />
     </section>
 
     <!-- 最新视频区域 -->
     <section class="video-section">
       <h2 class="section-title">最新视频</h2>
-      <VideoGrid :videos="latestVideos" :loading="loading" @video-click="handleVideoClick"
-        @watch-later="handleWatchLater" />
+      <VideoGridComponent :videos="latestVideos" :loading="loading" :disableToolbar="true"
+        @video-click="handleVideoClick" @watch-later="handleWatchLater" />
     </section>
 
     <!-- 加载状态 -->
@@ -64,10 +53,14 @@
   import { useUserStore } from '@/stores/user';
   import { useVideo } from '@/composables/useVideo';
   import { useToast } from '@/composables/useToast';
-  import VideoGrid from '@/components/common/video/VideoGrid.vue';
+  import { NButton, NButtonGroup, NIcon } from 'naive-ui';
+  import { GridOutline, ListOutline } from '@vicons/ionicons5';
+  import VideoGridComponent from '@/components/common/video/VideoGridComponent.vue';
+  import VideoListComponent from '@/components/business/video/VideoListComponent.vue';
+  import CategoryTabs from '@/components/common/controls/CategoryTabs.vue';
 
   // 懒加载非关键组件
-  const VideoCard = defineAsyncComponent(() => import('@/components/business/video/VideoCard.vue'));
+  const VideoCard = defineAsyncComponent(() => import('@/components/business/video/VideoCardComponent.vue'));
   const LoadingSpinner = defineAsyncComponent(() => import('@/components/common/loading/LoadingSpinner.vue'));
   const ErrorMessage = defineAsyncComponent(() => import('@/components/common/feedback/ErrorMessage.vue'));
 
@@ -86,6 +79,7 @@
   ];
 
   // 状态
+  const viewMode = ref<'grid' | 'list'>('grid');
   const loading = ref(false);
   const error = ref<string | null>(null);
   const activeRecommendTab = ref('all');
@@ -153,8 +147,27 @@
     // 实际应用中应调用API或更新store
   };
 
+  // 视图切换处理
+  const updateView = (mode: 'grid' | 'list') => {
+    viewMode.value = mode;
+    // 保存用户偏好
+    localStorage.setItem('preferredViewMode', mode);
+  };
+
+  // 标签切换处理
+  const handleCategoryChange = (categoryId: string) => {
+    activeRecommendTab.value = categoryId;
+    // 可以记录用户偏好或触发其他操作
+  };
+
   // 初始化
   onMounted(async () => {
+    // 尝试从本地存储加载用户偏好的视图模式
+    const savedViewMode = localStorage.getItem('preferredViewMode');
+    if (savedViewMode && (savedViewMode === 'grid' || savedViewMode === 'list')) {
+      viewMode.value = savedViewMode as 'grid' | 'list';
+    }
+
     await loadData();
   });
 
@@ -235,13 +248,43 @@
 <style scoped>
   .home {
     padding: 2rem;
-    background-color: #000;
     background-color: var(--bg-color);
     min-height: 100vh;
+    position: relative;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .view-switcher-compact {
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-color-secondary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .video-section {
     margin-bottom: 3rem;
+    position: relative;
   }
 
   .section-title {
@@ -251,49 +294,21 @@
     color: var(--text-color);
   }
 
-  .tabs {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .tab-btn {
-    padding: 0.35rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background-color: var(--bg-color-secondary);
-    color: var(--text-color-secondary);
-    border: 1px solid var(--border-color);
-  }
-
-  .tab-btn:hover {
-    background-color: var(--hover-color);
-    color: var(--text-color);
-  }
-
-  .tab-btn.active {
-    background-color: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-  }
-
   /* 响应式调整 */
-  @media (max-width: 992px) {
+  @media (max-width: 768px) {
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .header-controls {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
     .home {
       padding: 1.5rem;
-    }
-
-    .section-title {
-      font-size: 1.25rem;
-    }
-
-    .tab-btn {
-      padding: 0.25rem 0.6rem;
-      font-size: 0.8rem;
     }
   }
 
@@ -314,17 +329,10 @@
     color: #fff;
   }
 
-  :root.dark .tab-btn,
-  .dark-mode .tab-btn {
-    background-color: #222;
-    color: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  :root.dark .tab-btn:hover,
-  .dark-mode .tab-btn:hover {
-    background-color: #333;
-    color: #fff;
+  :root.dark .view-switcher-compact,
+  .dark-mode .view-switcher-compact {
+    background-color: rgba(50, 50, 50, 0.7);
+    border: 1px solid rgba(70, 70, 70, 0.5);
   }
 
   .loading-container,

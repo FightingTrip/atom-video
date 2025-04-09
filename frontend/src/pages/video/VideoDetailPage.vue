@@ -1,3 +1,10 @@
+/**
+* @file VideoDetailPage.vue
+* @description 视频详情页面，使用VideoPlayerComponent和评论组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
+
 <template>
   <div class="video-detail-page">
     <n-card v-if="loading">
@@ -18,7 +25,8 @@
     </n-card>
 
     <template v-else-if="video">
-      <VideoDetail :video="video" :current-time="savedProgress" :is-liked="isLiked" :is-favorited="isFavorited"
+      <VideoPlayerComponent :video="video" v-if="video" />
+      <VideoDetailComponent :video="video" :current-time="savedProgress" :is-liked="isLiked" :is-favorited="isFavorited"
         :is-subscribed="isSubscribed" @time-update="handleTimeUpdate" @like="handleLike" @favorite="handleFavorite"
         @subscribe="handleSubscribe" @comment="handleComment" @load-more-comments="loadMoreComments" />
     </template>
@@ -26,14 +34,16 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watch } from 'vue';
+  import { ref, onMounted, watch, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { NCard, NSpace, NSpin, NButton, NIcon, useMessage } from 'naive-ui';
   import { WarningOutline } from '@vicons/ionicons5';
   import { videoService } from '@/services/video';
   import { useHistoryStore } from '@/stores/history';
   import { useUserStore } from '@/stores/user';
-  import VideoDetail from '@/components/business/video/VideoDetail.vue';
+  import VideoPlayerComponent from '@/components/business/video/VideoPlayerComponent.vue';
+  import VideoDetailComponent from '@/components/business/video/VideoDetailComponent.vue';
+  import CommentListComponent from '@/components/business/comment/CommentListComponent.vue';
   import type { Video } from '@/types';
 
   const route = useRoute();

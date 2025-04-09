@@ -1,8 +1,8 @@
 /**
-* @file Trending.vue
-* @description 热门视频业务组件，展示平台热门内容
+* @file TrendingComponent.vue
+* @description 热门视频组件 - 展示热门视频和趋势内容的业务组件
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 */
 
 <template>

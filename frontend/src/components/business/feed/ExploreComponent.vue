@@ -1,8 +1,8 @@
 /**
-* @file Explore.vue
-* @description 发现页业务组件
+* @file ExploreComponent.vue
+* @description 探索页面组件 - 展示分类内容和发现功能的业务组件
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 */
 
 <template>
@@ -17,9 +17,9 @@
       </div>
 
       <div class="category-content">
-        <!-- 使用VideoGrid组件 -->
-        <VideoGrid :videos="videos" :loading="loading" :empty-text="'暂无' + (currentCategory?.name || '') + '视频'"
-          @video-click="handleVideoClick" />
+        <!-- 使用VideoGridComponent组件 -->
+        <VideoGridComponent :videos="videos" :loading="loading"
+          :empty-text="'暂无' + (currentCategory?.name || '') + '视频'" @video-click="handleVideoClick" />
 
         <!-- 加载更多 -->
         <div v-if="hasMore && !loading && videos.length > 0" class="load-more">
@@ -35,7 +35,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
-  import VideoGrid from '@/components/common/video/VideoGrid.vue';
+  import VideoGridComponent from '@/components/common/video/VideoGridComponent.vue';
   import { Video } from '@/types/video';
 
   interface Category {

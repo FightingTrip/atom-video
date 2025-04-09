@@ -1,29 +1,9 @@
-<!--
- * @description 视频播放器组件
- * @features
- * - 基础播放控制：播放、暂停、进度条、音量
- * - 画质切换：支持多清晰度切换
- * - 弹幕系统：支持发送和显示弹幕
- * - 快捷键：支持键盘快捷键控制
- * - 全屏控制：支持全屏和画中画模式
- * - 字幕支持：支持多语言字幕切换
- * - 播放历史记录：自动保存播放进度
- * @dependencies
- * - naive-ui: UI组件库
- * - @vueuse/core: 实用工具集
- * - video.js: 视频播放核心
- * @props
- * - src: 视频源地址
- * - poster: 视频封面
- * - autoplay: 是否自动播放
- * - controls: 是否显示控制栏
- * @emits
- * - play: 播放事件
- * - pause: 暂停事件
- * - ended: 播放结束事件
- * - timeupdate: 播放进度更新事件
- * - error: 错误事件
- -->
+/**
+* @file VideoPlayerComponent.vue
+* @description 视频播放器组件 - 核心视频播放功能的业务组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
 
 <template>
   <div class="video-player">

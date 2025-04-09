@@ -1,5 +1,5 @@
 /**
-* @file VideoGrid.vue
+* @file VideoGridComponent.vue
 * @description 视频网格组件，用于以网格形式展示多个视频卡片
 * @features
 * - 响应式网格布局
@@ -39,8 +39,8 @@
 
     <!-- 视频网格 -->
     <div v-else class="video-grid">
-      <div v-for="video in visibleVideos" :key="video.id" class="video-item">
-        <VideoCard :video="video" :show-author="showAuthor" @click="handleVideoClick(video)"
+      <div v-for="video in visibleVideos" :key="video.id" class="video-item" @click="handleVideoClick(video)">
+        <VideoCardComponent :video="video" :show-author="showAuthor"
           @watch-later="(video) => emit('watch-later', video)" />
       </div>
     </div>
@@ -56,7 +56,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, onUnmounted } from 'vue';
   import { useElementSize, useIntersectionObserver } from '@vueuse/core';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
   import type { Video } from '@/types';
 
   const props = defineProps({
@@ -154,6 +154,7 @@
   };
 
   const handleVideoClick = (video: Video) => {
+    // 仅触发点击事件，不再在VideoCard中处理导航
     emit('video-click', video);
   };
 
@@ -166,6 +167,8 @@
 <style scoped>
   .video-grid-container {
     width: 100%;
+    background-color: transparent;
+    /* 移除可能的背景色，使用父容器背景 */
   }
 
   .video-grid {
@@ -173,10 +176,29 @@
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--spacing-lg);
     padding: var(--spacing-md);
+    background-color: transparent;
+    /* 确保网格背景透明 */
+  }
+
+  .video-item {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+    background-color: var(--bg-color-secondary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    /* 确保鼠标指针样式正确 */
+  }
+
+  .video-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
   }
 
   .loading-state {
     padding: var(--spacing-md);
+    background-color: transparent;
+    /* 确保加载状态背景透明 */
   }
 
   .skeleton-grid {
@@ -186,8 +208,8 @@
   }
 
   .skeleton-item {
-    background-color: var(--bg-color-secondary);
-    border-radius: var(--radius-lg);
+    background-color: var(--bg-color-tertiary);
+    border-radius: var(--radius-sm);
     overflow: hidden;
     animation: pulse 1.5s infinite;
   }
@@ -224,6 +246,8 @@
     justify-content: center;
     padding: var(--spacing-xl);
     color: var(--text-color-secondary);
+    background-color: transparent;
+    /* 确保空状态背景透明 */
   }
 
   .empty-icon {
@@ -247,24 +271,25 @@
     }
   }
 
-  /* 暗色模式特定样式 */
-  :root.dark .skeleton-item,
-  .dark-mode .skeleton-item {
-    background-color: var(--bg-color-dark);
+  /* 深色模式优化 */
+  :root.dark .video-item,
+  .dark-mode .video-item {
+    background-color: rgba(35, 35, 35, 0.7);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(70, 70, 70, 0.5);
   }
 
-  :root.dark .skeleton-thumbnail,
-  :root.dark .skeleton-title,
-  :root.dark .skeleton-meta,
-  .dark-mode .skeleton-thumbnail,
-  .dark-mode .skeleton-title,
-  .dark-mode .skeleton-meta {
-    background-color: var(--bg-color-darker);
+  :root.dark .video-item:hover,
+  .dark-mode .video-item:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    border-color: rgba(100, 100, 100, 0.7);
   }
 
-  :root.dark .empty-state,
-  .dark-mode .empty-state {
-    color: var(--text-color-secondary-dark);
+  /* 标签样式优化 */
+  :root.dark .tag,
+  .dark-mode .tag {
+    background-color: rgba(60, 60, 60, 0.8);
+    color: rgba(240, 240, 240, 0.9);
   }
 
   @media (max-width: 768px) {
@@ -303,5 +328,25 @@
 
   .load-more-button button:hover {
     background-color: var(--bg-color-primary-hover);
+  }
+
+  /* 暗色模式特定样式 */
+  :root.dark .skeleton-item,
+  .dark-mode .skeleton-item {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .skeleton-thumbnail,
+  :root.dark .skeleton-title,
+  :root.dark .skeleton-meta,
+  .dark-mode .skeleton-thumbnail,
+  .dark-mode .skeleton-title,
+  .dark-mode .skeleton-meta {
+    background-color: var(--bg-color-darker);
+  }
+
+  :root.dark .empty-state,
+  .dark-mode .empty-state {
+    color: var(--text-color-secondary-dark);
   }
 </style>

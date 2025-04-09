@@ -1,8 +1,8 @@
 /**
-* @file VideoDetail.vue
-* @description 视频详情页面组件
+* @file VideoDetailComponent.vue
+* @description 视频详情组件 - 展示视频详细信息的业务组件
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 *
 * @features
 * - 视频播放：支持播放、暂停、进度控制、音量调节
@@ -36,8 +36,8 @@
 <template>
   <div class="video-detail">
     <!-- 视频播放器 -->
-    <video-player :video="video" :current-time="currentTime" @time-update="handleTimeUpdate" @play="handlePlay"
-      @pause="handlePause" @ended="handleEnded" />
+    <video-player-component :video="video" :current-time="currentTime" @time-update="handleTimeUpdate"
+      @play="handlePlay" @pause="handlePause" @ended="handleEnded" />
 
     <!-- 视频信息 -->
     <div class="video-info">
@@ -175,7 +175,7 @@
     Share,
     Chatbubble
   } from '@vicons/ionicons5'
-  import VideoPlayer from './VideoPlayer.vue'
+  import VideoPlayerComponent from './VideoPlayerComponent.vue'
   import type { Video, Comment } from '@/types'
   import { useAuthStore } from '@/stores/auth'
 
@@ -303,7 +303,8 @@
   .video-player-container {
     position: relative;
     width: 100%;
-    padding-top: 56.25%; /* 16:9 比例 */
+    padding-top: 56.25%;
+    /* 16:9 比例 */
     background-color: var(--bg-color-darker);
     border-radius: var(--radius-lg);
     overflow: hidden;

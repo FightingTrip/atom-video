@@ -1,3 +1,10 @@
+/**
+* @file UserProfileComponent.vue
+* @description 用户资料展示组件 - 业务组件，用于展示用户资料信息，不是页面组件
+* @author Atom Video Team
+* @date 2025-04-08
+*/
+
 <template>
   <div class="profile-container">
     <div class="profile-header">
@@ -10,7 +17,7 @@
         <h1 class="profile-name">{{ userProfile.nickname }}</h1>
         <p class="profile-username">@{{ userProfile.username }}</p>
         <p class="profile-bio">{{ userProfile.bio || '这个用户很懒，还没有填写个人简介' }}</p>
-        <div class="profile-stats">
+        <div class="user-stats">
           <div class="stat-item">
             <span class="stat-value">{{ userProfile.videoCount }}</span>
             <span class="stat-label">视频</span>
@@ -415,33 +422,45 @@
   }
 
   .profile-bio {
-    font-size: var(--text-md);
-    color: var(--text-primary);
-    margin: 0 0 var(--spacing-lg) 0;
-    line-height: 1.6;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    color: var(--text-color);
+    line-height: 1.5;
+    max-width: 80%;
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 8px 12px;
+    border-radius: 8px;
   }
 
-  .profile-stats {
+  [data-theme="dark"] .profile-bio,
+  .dark-mode .profile-bio {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .user-stats {
     display: flex;
-    gap: var(--spacing-xl);
-    margin-bottom: var(--spacing-lg);
+    justify-content: flex-start;
+    gap: 24px;
+    margin: 16px 0;
   }
 
   .stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 60px;
   }
 
   .stat-value {
-    font-size: var(--text-lg);
+    font-size: 18px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-color);
   }
 
   .stat-label {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+    font-size: 14px;
+    color: var(--text-color-secondary);
+    margin-top: 4px;
   }
 
   .profile-actions {
@@ -481,7 +500,8 @@
   .video-thumbnail {
     position: relative;
     width: 100%;
-    padding-top: 56.25%; /* 16:9 比例 */
+    padding-top: 56.25%;
+    /* 16:9 比例 */
   }
 
   .video-thumbnail img {
@@ -634,7 +654,7 @@
       font-size: var(--text-xl);
     }
 
-    .profile-stats {
+    .user-stats {
       gap: var(--spacing-lg);
     }
 

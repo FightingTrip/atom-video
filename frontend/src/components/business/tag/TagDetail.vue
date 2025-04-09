@@ -30,7 +30,7 @@
       <!-- 视频列表 -->
       <div class="lg:col-span-2">
         <div class="video-grid">
-          <VideoCard v-for="video in videos" :key="video.id" :video="video" class="video-card" />
+          <VideoCardComponent v-for="video in videos" :key="video.id" :video="video" class="video-card" />
         </div>
 
         <div class="pagination mt-8" v-if="totalPages > 1">
@@ -67,7 +67,7 @@
   import { useRoute } from 'vue-router';
   import api from '@/utils/api';
   import type { Video, Tag } from '@/types';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
   import TagStats from '@/components/business/tag/TagStats.vue';
 
   interface RelatedTag {

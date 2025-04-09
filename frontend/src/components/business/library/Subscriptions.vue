@@ -29,7 +29,7 @@
       </router-link>
     </div>
     <div v-else class="subscriptions-grid">
-      <VideoCard v-for="video in videos" :key="video.id" :video="video" />
+      <VideoCardComponent v-for="video in videos" :key="video.id" :video="video" />
     </div>
   </div>
 </template>
@@ -37,7 +37,7 @@
 <script setup lang="ts">
   import { ref, onMounted, computed } from 'vue';
   import { useAuthStore } from '@/stores/auth';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
   import type { Video } from '@/types';
   import api from '@/utils/api';
 

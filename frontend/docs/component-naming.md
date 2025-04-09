@@ -1,3 +1,106 @@
+# 组件命名规范
+
+本文档详细说明了Atom-Video项目中的组件命名规范，以保证代码库的一致性和可维护性。
+
+## 命名约定
+
+### 业务组件
+
+所有位于`components/business`目录下的业务组件应遵循以下命名约定：
+
+- **格式**：`[模块名][功能名]Component.vue`
+- **示例**：
+  - `VideoCardComponent.vue` 
+  - `UserProfileComponent.vue`
+  - `CommentListComponent.vue`
+
+### 页面组件
+
+所有位于`pages`目录下的页面组件应遵循以下命名约定：
+
+- **格式**：`[模块名][功能名]Page.vue`
+- **示例**：
+  - `VideoDetailPage.vue`
+  - `ProfilePage.vue`
+  - `HomePage.vue`
+
+### 通用组件
+
+所有位于`components/common`目录下的通用组件应遵循以下命名约定：
+
+- **格式**：`[功能名].vue`
+- **示例**：
+  - `Button.vue`
+  - `Modal.vue`
+  - `Icon.vue`
+
+## 文件头注释规范
+
+每个组件文件都应该包含标准化的文件头注释：
+
+```vue
+/**
+ * @file [文件名].vue
+ * @description [组件描述] - [组件类型说明]
+ * @author Atom Video Team
+ * @date [最后更新日期]
+ */
+```
+
+## 组件类型说明
+
+为了清晰地区分不同类型的组件，我们在文件头注释中明确标识组件的类型：
+
+- **业务组件**：实现特定业务功能的组件
+- **页面组件**：呈现整个页面的组件，通常由多个业务组件组成
+- **通用组件**：可在多个场景中复用的基础UI组件
+
+## 引用路径示例
+
+```js
+// 引用业务组件
+import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
+
+// 引用页面组件
+import VideoDetailPage from '@/pages/video/VideoDetailPage.vue';
+
+// 引用通用组件
+import Button from '@/components/common/Button.vue';
+```
+
+## 测试文件命名
+
+测试文件的命名应与被测试的组件保持一致：
+
+- **格式**：`[组件名].test.[js|ts]`
+- **示例**：
+  - `VideoCardComponent.test.ts`
+  - `UserProfileComponent.test.ts`
+
+## 命名规范的好处
+
+1. **清晰的组件类型识别**：通过命名可以立即知道组件的类型和用途
+2. **避免命名冲突**：添加后缀可减少与其他组件或第三方库冲突的可能性
+3. **更一致的代码库结构**：统一的命名规则提高代码可读性和可维护性
+4. **更明确的引用路径**：避免混淆类似名称的组件
+
+## 重命名历史
+
+以下是根据此规范重命名的部分关键组件：
+
+- `VideoCard.vue` → `VideoCardComponent.vue`
+- `VideoPlayer.vue` → `VideoPlayerComponent.vue`
+- `Home.vue` → `HomeComponent.vue`
+- `CommentList.vue` → `CommentListComponent.vue`
+- `Profile.vue` → `UserProfileComponent.vue`
+- `Settings.vue` → `UserSettingsComponent.vue`
+
+## 注意事项
+
+- 重命名组件后必须更新所有引用该组件的导入语句
+- 确保更新组件的测试文件名，保持一致性
+- 在组件文件头部添加正确的注释，明确标识组件类型
+
 # Atom Video 组件命名规范
 
 ## 组件分类与职责

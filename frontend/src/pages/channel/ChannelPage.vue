@@ -95,7 +95,8 @@
               </n-empty>
             </div>
             <div v-else class="video-grid">
-              <VideoCard v-for="video in videos" :key="video.id" :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent v-for="video in videos" :key="video.id" :video="video"
+                @click="handleVideoClick(video)" />
             </div>
 
             <!-- 加载更多 -->
@@ -189,7 +190,7 @@
     LogoYoutube,
     LogoFacebook
   } from '@vicons/ionicons5';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
   import { useUserStore } from '@/stores/user';
   import type { Video } from '@/types';
   import dayjs from 'dayjs';

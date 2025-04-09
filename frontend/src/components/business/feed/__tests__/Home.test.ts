@@ -1,15 +1,16 @@
 /**
- * @file Home.test.ts
- * @description 首页组件测试
+ * @file HomeComponent.test.ts
+ * @description Home组件单元测试
  * @author Atom Video Team
  * @date 2025-04-06
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
+import { createRouter, createWebHistory } from 'vue-router';
+import HomeComponent from '../HomeComponent.vue';
 import { createI18n } from 'vue-i18n';
-import Home from '../Home.vue';
 import { useVideoStore } from '@/stores/video';
 
 // 创建测试用的 i18n 实例
@@ -91,7 +92,7 @@ const mockLatestVideos = [
   },
 ];
 
-describe('Home', () => {
+describe('HomeComponent', () => {
   let wrapper: any;
 
   beforeEach(() => {
@@ -110,7 +111,7 @@ describe('Home', () => {
     });
 
     // 挂载组件
-    wrapper = mount(Home, {
+    wrapper = mount(HomeComponent, {
       global: {
         plugins: [pinia, i18n],
       },

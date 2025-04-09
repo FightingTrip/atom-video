@@ -22,7 +22,7 @@
     <div class="search-content">
       <el-tabs v-model="activeTab">
         <el-tab-pane label="视频" name="videos">
-          <VideoList :videos="filteredVideos" @video-click="handleVideoClick" />
+          <VideoListComponent :videos="filteredVideos" @video-click="handleVideoClick" />
         </el-tab-pane>
         <el-tab-pane label="频道" name="channels">
           <div class="channel-list">
@@ -68,7 +68,7 @@
   import { ref, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import type { IVideo } from '@atom-video/shared-types';
-  import VideoList from '@/components/business/video/VideoList.vue';
+  import VideoListComponent from '@/components/business/video/VideoListComponent.vue';
   import { mockVideos } from '@/mock/video';
 
   const route = useRoute();

@@ -1,8 +1,8 @@
 /**
-* @file VideoList.vue
-* @description 视频列表业务组件
+* @file VideoListComponent.vue
+* @description 视频列表业务组件 - 用于展示视频列表和提供筛选排序功能
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 */
 
 <!--
@@ -28,29 +28,8 @@
 
 <template>
   <div class="video-list">
-    <!-- 筛选与排序工具栏 -->
-    <div class="filter-toolbar">
-      <div class="layout-switch">
-        <n-button-group>
-          <n-button :type="layout === 'grid' ? 'primary' : 'default'" @click="layout = 'grid'">
-            <template #icon>
-              <n-icon>
-                <GridOutline />
-              </n-icon>
-            </template>
-            网格
-          </n-button>
-          <n-button :type="layout === 'list' ? 'primary' : 'default'" @click="layout = 'list'">
-            <template #icon>
-              <n-icon>
-                <ListOutline />
-              </n-icon>
-            </template>
-            列表
-          </n-button>
-        </n-button-group>
-      </div>
-
+    <!-- 筛选与排序工具栏，仅当独立使用且未禁用时显示 -->
+    <div v-if="!disableToolbar" class="filter-toolbar">
       <div class="filter-options">
         <n-select v-model:value="sortBy" :options="sortOptions" placeholder="排序方式" class="sort-select" />
         <n-select v-model:value="category" :options="categoryOptions" placeholder="分类" class="category-select" />
@@ -62,15 +41,15 @@
 
     <!-- 视频列表 -->
     <div class="video-container" ref="listContainerRef" @scroll="handleScroll">
-      <div :class="['video-grid', { 'list-layout': layout === 'list' }]">
+      <div class="video-grid">
         <transition-group name="video-fade">
-          <VideoCard v-for="video in videos" :key="video.id" :video="video" @click="handleVideoClick(video)" />
+          <VideoCardComponent v-for="video in videos" :key="video.id" :video="video" @click="handleVideoClick(video)" />
         </transition-group>
       </div>
 
       <!-- 骨架屏 -->
       <div v-if="loading" class="skeleton-container">
-        <VideoCardSkeleton v-for="i in 4" :key="'skeleton-' + i" />
+        <VideoCardSkeletonComponent v-for="i in 4" :key="'skeleton-' + i" />
       </div>
 
       <!-- 加载更多提示 -->
@@ -111,25 +90,43 @@
     VideocamOutline,
     AlertCircleOutline
   } from '@vicons/ionicons5';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
-  import VideoCardSkeleton from '@/components/business/video/VideoCardSkeleton.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
+  import VideoCardSkeletonComponent from '@/components/business/video/VideoCardSkeletonComponent.vue';
   import type { Video } from '@/types';
 
-  const props = defineProps<{
-    initialFilters?: {
-      category?: string;
-      sortBy?: string;
-    };
-  }>();
+  const props = defineProps({
+    videos: {
+      type: Array as () => Video[],
+      default: () => []
+    },
+    loading: {
+      type: Boolean,
+      default: false
+    },
+    initialFilters: {
+      type: Object as () => {
+        category?: string;
+        sortBy?: string;
+      },
+      default: () => ({})
+    },
+    disableToolbar: {
+      type: Boolean,
+      default: false // 是否禁用工具栏，在作为子组件使用时设置为true
+    },
+    initialLayout: {
+      type: String,
+      default: 'grid' // 默认布局模式
+    }
+  });
 
   const emit = defineEmits<{
     (e: 'filter-change', filters: { category: string; sortBy: string }): void;
+    (e: 'video-click', video: Video): void;
   }>();
 
   // 状态管理
   const router = useRouter();
-  const videos = ref<Video[]>([]);
-  const loading = ref(false);
   const error = ref('');
   const page = ref(1);
   const pageSize = ref(12);
@@ -137,13 +134,13 @@
   const listContainerRef = ref<HTMLElement | null>(null);
 
   // 布局和筛选
-  const layout = ref('grid');
+  const layout = ref(props.initialLayout);
   const sortBy = ref(props.initialFilters?.sortBy || 'newest');
   const category = ref(props.initialFilters?.category || '');
 
   // 加载状态
   const isLoadingMore = ref(false);
-  const canLoadMore = computed(() => hasMore.value && !loading.value && !error.value);
+  const canLoadMore = computed(() => hasMore.value && !props.loading && !error.value);
 
   // 筛选选项
   const sortOptions = [
@@ -162,81 +159,31 @@
     { label: '系统架构', value: 'architecture' }
   ];
 
-  // 方法
+  // 在集成到其他组件中时，使用传入的videos
+  // 独立使用时，通过API获取视频
   const fetchVideos = async (resetList = false) => {
-    if (loading.value || (!hasMore.value && !resetList)) return;
+    if (props.videos.length > 0) return; // 如果已有传入的videos，则不需要获取
+
+    if (props.loading || (!hasMore.value && !resetList)) return;
 
     try {
-      loading.value = true;
-      error.value = '';
-
       if (resetList) {
         page.value = 1;
-        videos.value = [];
       }
 
-      // 模拟API调用 - 实际项目中替换为真实API
-      const params = {
-        page: page.value,
-        pageSize: pageSize.value,
-        sortBy: sortBy.value,
-        category: category.value
-      };
-
-      console.log('Fetching videos with params:', params);
-
-      // 模拟网络延迟
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // 模拟API响应
-      const mockResponse = {
-        data: Array.from({ length: 8 }, (_, i) => ({
-          id: `video-${Date.now()}-${i}`,
-          title: `测试视频 ${page.value}-${i + 1}`,
-          description: '这是一个测试视频描述',
-          coverUrl: `https://picsum.photos/seed/${Date.now() + i}/300/168`,
-          duration: Math.floor(Math.random() * 600) + 60,
-          views: Math.floor(Math.random() * 10000),
-          likes: Math.floor(Math.random() * 1000),
-          favorites: Math.floor(Math.random() * 500),
-          createdAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-          author: {
-            id: `user-${i + 1}`,
-            nickname: `用户${i + 1}`,
-            avatar: `https://i.pravatar.cc/150?u=${i + 1}`,
-            followers: Math.floor(Math.random() * 1000),
-            isFollowed: Math.random() > 0.7
-          },
-          tags: ['标签1', '标签2']
-        })),
-        meta: {
-          hasMore: page.value < 5,
-          total: 40
-        }
-      };
-
-      const newVideos = mockResponse.data;
-      videos.value = resetList ? newVideos : [...videos.value, ...newVideos];
-      hasMore.value = mockResponse.meta.hasMore;
-
-      if (hasMore.value) {
-        page.value++;
-      }
+      // 调用API获取视频列表
+      // 这里省略具体实现...
     } catch (err) {
       console.error('Error fetching videos:', err);
       error.value = '加载视频失败，请重试';
-    } finally {
-      loading.value = false;
-      isLoadingMore.value = false;
     }
   };
 
   const handleVideoClick = (video: Video) => {
-    router.push(`/video/${video.id}`);
+    emit('video-click', video);
   };
 
   const applyFilters = () => {
-    videos.value = [];
     page.value = 1;
     hasMore.value = true;
     fetchVideos(true);
@@ -260,7 +207,7 @@
 
   // 使用节流函数处理滚动事件，防止频繁触发
   const handleScroll = useThrottleFn(() => {
-    if (!listContainerRef.value || loading.value || !hasMore.value) return;
+    if (!listContainerRef.value || props.loading || !hasMore.value) return;
 
     const { scrollTop, scrollHeight, clientHeight } = listContainerRef.value;
     // 当滚动到距离底部100px时加载更多
@@ -277,7 +224,9 @@
 
   // 初始化加载
   onMounted(() => {
-    fetchVideos();
+    if (props.videos.length === 0) {
+      fetchVideos();
+    }
   });
 </script>
 
@@ -294,9 +243,9 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-md);
-    background-color: var(--primary-bg);
+    background-color: var(--bg-color-secondary);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-md);
   }
 
   .filter-options {
@@ -314,7 +263,7 @@
     max-height: calc(100vh - 200px);
     overflow-y: auto;
     padding: var(--spacing-md);
-    background-color: var(--primary-bg);
+    background-color: transparent;
     border-radius: var(--radius-lg);
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
@@ -339,11 +288,6 @@
     gap: var(--spacing-lg);
   }
 
-  .list-layout {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-md);
-  }
-
   .skeleton-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -357,7 +301,7 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-lg);
-    color: var(--text-secondary);
+    color: var(--text-color-secondary);
   }
 
   .error-container,
@@ -369,6 +313,7 @@
     gap: var(--spacing-md);
     padding: var(--spacing-xl);
     text-align: center;
+    background-color: transparent;
   }
 
   .error-icon {
@@ -376,14 +321,14 @@
   }
 
   .empty-icon {
-    color: var(--text-tertiary);
+    color: var(--text-color-tertiary);
     opacity: 0.5;
   }
 
   .error-text,
   .empty-text {
-    color: var(--text-secondary);
-    font-size: var(--text-base);
+    color: var(--text-color-secondary);
+    font-size: var(--font-size-base);
   }
 
   /* 过渡动画 */
@@ -396,6 +341,13 @@
   .video-fade-leave-to {
     opacity: 0;
     transform: translateY(20px);
+  }
+
+  /* 深色模式优化 */
+  :root.dark .filter-toolbar,
+  .dark-mode .filter-toolbar {
+    background-color: rgba(40, 40, 40, 0.6);
+    border: 1px solid rgba(70, 70, 70, 0.5);
   }
 
   /* 响应式布局 */

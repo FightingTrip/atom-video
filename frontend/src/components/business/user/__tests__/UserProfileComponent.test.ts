@@ -1,15 +1,15 @@
 /**
- * @file UserProfile.test.ts
+ * @file UserProfileComponent.test.ts
  * @description 用户资料组件测试
  * @author Atom Video Team
- * @date 2025-04-06
+ * @date 2025-04-08
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 import { createI18n } from 'vue-i18n';
-import UserProfile from '../UserProfile.vue';
+import UserProfileComponent from '../UserProfileComponent.vue';
 import { useUserStore } from '@/stores/user';
 import { useVideoStore } from '@/stores/video';
 
@@ -81,7 +81,7 @@ const mockVideos = [
   },
 ];
 
-describe('UserProfile', () => {
+describe('UserProfileComponent', () => {
   let wrapper: any;
 
   beforeEach(() => {
@@ -103,7 +103,7 @@ describe('UserProfile', () => {
     });
 
     // 挂载组件
-    wrapper = mount(UserProfile, {
+    wrapper = mount(UserProfileComponent, {
       global: {
         plugins: [pinia, i18n],
       },

@@ -1,18 +1,18 @@
 /**
 * @file SettingsPage.vue
-* @description 用户设置页面，使用 Settings 组件
+* @description 用户设置页面，使用 UserSettingsComponent 组件
 * @author Atom Video Team
 * @date 2025-04-06
 */
 
 <template>
   <div class="settings-page">
-    <Settings />
+    <UserSettingsComponent />
   </div>
 </template>
 
 <script setup lang="ts">
-  import Settings from '@/components/business/user/Settings.vue'
+  import UserSettingsComponent from '@/components/business/user/UserSettingsComponent.vue'
 </script>
 
 <style scoped>

@@ -1,3 +1,10 @@
+/**
+* @file UserSettingsComponent.vue
+* @description 用户设置组件 - 业务组件，用于用户修改个人设置，不是页面组件
+* @author Atom Video Team
+* @date 2025-04-08
+*/
+
 <template>
   <div class="settings-container">
     <div class="settings-sidebar">

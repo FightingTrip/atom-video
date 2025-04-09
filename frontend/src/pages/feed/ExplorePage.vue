@@ -1,18 +1,18 @@
 /**
 * @file ExplorePage.vue
-* @description 发现页面，使用 Explore 组件
+* @description 发现页面，使用 ExploreComponent 组件
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 */
 
 <template>
   <div class="explore-page">
-    <Explore />
+    <ExploreComponent />
   </div>
 </template>
 
 <script setup lang="ts">
-  import Explore from '@/components/business/feed/Explore.vue';
+  import ExploreComponent from '@/components/business/feed/ExploreComponent.vue';
 </script>
 
 <style scoped>
