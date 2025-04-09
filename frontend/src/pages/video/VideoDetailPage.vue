@@ -101,11 +101,87 @@
         // 初始加载评论
         await loadComments();
       } else {
-        error.value = res.message || '无法加载视频';
+        // 如果API请求失败，使用备用模拟数据
+        console.warn('API请求失败，使用模拟数据', res.message);
+
+        if (!video.value) {
+          // 创建一个模拟视频对象
+          video.value = {
+            id: videoId as string,
+            title: '测试视频 - ' + videoId,
+            description: '这是一个模拟视频，用于测试播放功能。实际项目中，这里将显示从后端获取的真实视频数据。',
+            thumbnail: `https://picsum.photos/seed/${videoId}/480/270`,
+            duration: 60,
+            views: 1000,
+            likes: 100,
+            favorites: 50,
+            comments: 10,
+            createdAt: new Date().toISOString(),
+            tags: ['测试', '开发'],
+            videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            coverUrl: `https://picsum.photos/seed/${videoId}/480/270`,
+            author: {
+              id: 'author-1',
+              nickname: '测试用户',
+              avatar: 'https://i.pravatar.cc/150',
+              verified: true,
+            },
+            sources: [
+              {
+                url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                type: 'video/mp4',
+                label: '720p',
+                size: 720
+              }
+            ]
+          };
+
+          // 记录到历史
+          historyStore.addToHistory(video.value);
+
+          message.info('使用模拟数据进行测试，真实环境中将显示从服务器获取的视频');
+        }
       }
     } catch (err) {
       console.error('加载视频失败:', err);
       error.value = '加载视频失败，请稍后重试';
+
+      // 使用备用模拟数据
+      if (!video.value) {
+        video.value = {
+          id: videoId as string,
+          title: '测试视频 (错误恢复) - ' + videoId,
+          description: '这是一个模拟视频，用于错误恢复测试。在API请求失败时显示此内容。',
+          thumbnail: `https://picsum.photos/seed/${videoId}/480/270`,
+          duration: 60,
+          views: 1000,
+          likes: 100,
+          favorites: 50,
+          comments: 10,
+          createdAt: new Date().toISOString(),
+          tags: ['测试', '错误恢复'],
+          videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+          coverUrl: `https://picsum.photos/seed/${videoId}/480/270`,
+          author: {
+            id: 'author-1',
+            nickname: '测试用户',
+            avatar: 'https://i.pravatar.cc/150',
+            verified: true,
+          },
+          sources: [
+            {
+              url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+              type: 'video/mp4',
+              label: '720p',
+              size: 720
+            }
+          ]
+        };
+
+        historyStore.addToHistory(video.value);
+        message.warning('使用备用数据进行显示，请联系管理员处理API问题');
+        error.value = null; // 清除错误，显示视频
+      }
     } finally {
       loading.value = false;
     }

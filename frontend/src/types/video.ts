@@ -11,6 +11,7 @@
 
 import type { User, Author, Video } from './index';
 import type { Tag } from './tags';
+import { User as UserType } from './user';
 
 // 视频状态
 export enum VideoStatus {
@@ -32,25 +33,150 @@ export enum VideoCategory {
   OTHER = 'other',
 }
 
-// 视频信息
+// 视频类型及其相关接口定义
 export interface VideoInfo {
   id: string;
   title: string;
   description: string;
-  coverUrl: string;
+  author: UserType;
+  publishDate: string;
+  views: number;
+  likes: number;
+  duration: number; // 单位：秒
+  thumbnailUrl: string;
   videoUrl: string;
+  tags: string[];
+}
+
+export interface VideoDetailInfo extends VideoInfo {
+  comments: Comment[];
+  relatedVideos: VideoInfo[];
+  nextVideo?: VideoInfo;
+  isLiked: boolean;
+  isFavorited: boolean;
+}
+
+export interface VideoUploadInfo {
+  title: string;
+  description: string;
+  tags: string[];
+  thumbnailFile: File;
+  videoFile: File;
+}
+
+export interface VideoUpdateInfo {
+  id: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+  thumbnailFile?: File;
+}
+
+export interface VideoFilterOptions {
+  sort: 'newest' | 'popular' | 'trending';
+  category?: string;
+  duration?: 'short' | 'medium' | 'long';
+  date?: 'today' | 'week' | 'month' | 'year';
+}
+
+export interface VideoPlayerConfig {
+  autoplay: boolean;
+  loop: boolean;
+  muted: boolean;
+  volume: number;
+  quality: '1080p' | '720p' | '480p' | '360p';
+  playbackRate: number;
+  danmakuEnabled: boolean;
+}
+
+export interface VideoComment {
+  id: string;
+  content: string;
+  author: UserType;
+  createTime: string;
+  likes: number;
+  replies?: VideoComment[];
+  isLiked?: boolean;
+}
+
+export interface VideoStats {
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalFavorites: number;
+  viewsGraph: {
+    labels: string[];
+    data: number[];
+  };
+  topCountries: {
+    country: string;
+    views: number;
+  }[];
+  demographics: {
+    ageRange: string;
+    percentage: number;
+  }[];
+}
+
+// 更新视频接口定义，包含更多字段
+export interface Video {
+  id: string;
+  title: string;
+  description: string;
   thumbnail: string;
   duration: number;
   views: number;
   likes: number;
-  favorites: number;
-  comments: number;
-  status: VideoStatus;
-  category: VideoCategory;
-  tags: string[];
-  userId: string;
+  favorites?: number;
+  comments?: number;
   createdAt: string;
-  updatedAt: string;
+  tags: string[];
+  author: {
+    id: string;
+    nickname: string;
+    avatar: string;
+    verified: boolean;
+    followersCount?: number;
+    followingCount?: number;
+  };
+  videoUrl?: string; // 视频播放URL
+  previewUrl?: string; // 视频预览URL
+  coverUrl?: string; // 视频封面URL
+  url?: string; // 兼容字段，某些组件使用
+  sources?: Array<{
+    url: string;
+    type: string;
+    label: string;
+    size: number;
+  }>;
+  subtitles?: Array<{
+    url: string;
+    label: string;
+    srclang: string;
+    default?: boolean;
+  }>;
+}
+
+export interface VideoService {
+  getVideos(
+    page: number,
+    limit: number,
+    tag?: string
+  ): Promise<{
+    videos: VideoInfo[];
+    hasMore: boolean;
+  }>;
+
+  getVideoById(id: string): Promise<VideoInfo>;
+
+  getVideosByUser(
+    userId: string,
+    page?: number,
+    limit?: number
+  ): Promise<{
+    videos: VideoInfo[];
+    hasMore: boolean;
+  }>;
 }
 
 // 视频列表查询参数
@@ -75,30 +201,10 @@ export interface VideoUploadParams {
   thumbnail?: File;
 }
 
-// 视频评论
-export interface VideoComment {
-  id: string;
-  content: string;
-  userId: string;
-  videoId: string;
-  createdAt: string;
-  updatedAt: string;
-  likes: number;
-  replies: VideoComment[];
-}
-
 export interface VideoUploadResponse {
   id: string;
   uploadUrl: string;
   thumbnailUploadUrl: string;
-}
-
-export interface VideoStats {
-  views: number;
-  likes: number;
-  favorites: number;
-  comments: number;
-  duration: number;
 }
 
 export interface VideoFilter {
@@ -115,16 +221,6 @@ export interface VideoSearchResult {
   total: number;
   page: number;
   pageSize: number;
-}
-
-export interface VideoPlayerConfig {
-  autoplay: boolean;
-  loop: boolean;
-  muted: boolean;
-  volume: number;
-  quality: '1080p' | '720p' | '480p' | '360p';
-  playbackRate: number;
-  danmakuEnabled: boolean;
 }
 
 // 视频质量选项
@@ -193,28 +289,6 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   totalPages: number;
-}
-
-export interface VideoService {
-  getVideos(
-    page: number,
-    limit: number,
-    tag?: string
-  ): Promise<{
-    videos: VideoInfo[];
-    hasMore: boolean;
-  }>;
-
-  getVideoById(id: string): Promise<VideoInfo>;
-
-  getVideosByUser(
-    userId: string,
-    page?: number,
-    limit?: number
-  ): Promise<{
-    videos: VideoInfo[];
-    hasMore: boolean;
-  }>;
 }
 
 // 统一Video类型扩展

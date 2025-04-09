@@ -28,10 +28,10 @@
     <div v-else class="player-container">
       <vue-plyr ref="playerRef" :options="playerOptions" @ready="handleReady" @error="handleError"
         @timeupdate="handleTimeUpdate" @play="handlePlay" @pause="handlePause" @ended="handleEnded">
-        <video ref="videoRef" :src="video.url" :poster="video.coverUrl" :preload="'auto'" crossorigin playsinline>
-          <source v-for="source in video.sources" :key="source.url" :src="source.url" :type="source.type"
+        <video ref="videoRef" :src="videoSrc" :poster="posterSrc" :preload="'auto'" crossorigin playsinline>
+          <source v-for="source in videoSources" :key="source.url" :src="source.url" :type="source.type"
             :size="source.size" :label="source.label" />
-          <track v-for="subtitle in video.subtitles" :key="subtitle.url" :src="subtitle.url" :label="subtitle.label"
+          <track v-for="subtitle in videoSubtitles" :key="subtitle.url" :src="subtitle.url" :label="subtitle.label"
             :srclang="subtitle.srclang" :default="subtitle.default" kind="subtitles" />
         </video>
       </vue-plyr>
@@ -186,6 +186,40 @@
     return danmakuList.value.filter(
       danmaku => Math.abs(danmaku.time - currentTime) < 3
     )
+  })
+
+  // 视频源URL，兼容不同的视频对象属性
+  const videoSrc = computed(() => {
+    return props.video.videoUrl || props.video.url || '';
+  })
+
+  // 封面图URL，兼容不同的视频对象属性
+  const posterSrc = computed(() => {
+    return props.video.coverUrl || props.video.thumbnail || '';
+  })
+
+  // 视频源列表，兼容不同的视频对象属性
+  const videoSources = computed(() => {
+    if (props.video.sources && props.video.sources.length > 0) {
+      return props.video.sources;
+    }
+
+    // 如果没有sources，但有videoUrl，创建一个默认source
+    if (props.video.videoUrl || props.video.url) {
+      return [{
+        url: props.video.videoUrl || props.video.url || '',
+        type: 'video/mp4',
+        label: '720p',
+        size: 720
+      }];
+    }
+
+    return [];
+  })
+
+  // 字幕列表，兼容不同的视频对象属性
+  const videoSubtitles = computed(() => {
+    return props.video.subtitles || [];
   })
 
   // 方法
