@@ -32,20 +32,27 @@ export interface Video {
   favorites: number;
   comments: number;
   createdAt: string;
-  author: Author;
+  previewUrl?: string;
+  author: {
+    id: string;
+    username: string;
+    nickname: string;
+    avatar: string;
+    verified?: boolean;
+  };
   tags: string[];
-  sources: Array<{
+  sources: {
     url: string;
     type: string;
-    size: number;
-    label: string;
-  }>;
-  subtitles: Array<{
+    size?: number;
+    label?: string;
+  }[];
+  subtitles: {
     url: string;
     label: string;
     srclang: string;
-    default: boolean;
-  }>;
+    default?: boolean;
+  }[];
 }
 
 // 频道相关类型

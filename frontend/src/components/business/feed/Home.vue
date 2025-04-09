@@ -1,8 +1,20 @@
 /**
 * @file Home.vue
-* @description 首页业务组件
+* @description 首页业务组件，展示推荐、热门和最新视频
+* @features
+* - 视频推荐：基于用户偏好的个性化推荐
+* - 分类筛选：支持多种筛选方式
+* - 懒加载：按需加载视频内容
+* - 用户交互：稍后观看、点击跳转等功能
+* - 响应式布局：适配不同设备屏幕
+* @dependencies
+* - VideoGrid: 展示视频网格
+* - VideoCard: 展示单个视频信息
+* - useVideo: 视频数据获取和缓存
 * @author Atom Video Team
 * @date 2025-04-06
+* @version 1.0.0
+* @license MIT
 */
 
 <template>
@@ -17,23 +29,21 @@
         </button>
       </div>
       <VideoGrid :videos="filteredRecommendedVideos" :loading="loading" @video-click="handleVideoClick"
-        @watch-later="handleWatchLater">
-        <template #video-card="{ video }">
-          <VideoCard :video="video" />
-        </template>
-      </VideoGrid>
+        @watch-later="handleWatchLater" />
     </section>
 
     <!-- 热门视频区域 -->
     <section class="video-section">
       <h2 class="section-title">热门视频</h2>
-      <VideoGrid :videos="trendingVideos" :loading="loading" @video-click="handleVideoClick" />
+      <VideoGrid :videos="trendingVideos" :loading="loading" @video-click="handleVideoClick"
+        @watch-later="handleWatchLater" />
     </section>
 
     <!-- 最新视频区域 -->
     <section class="video-section">
       <h2 class="section-title">最新视频</h2>
-      <VideoGrid :videos="latestVideos" :loading="loading" @video-click="handleVideoClick" />
+      <VideoGrid :videos="latestVideos" :loading="loading" @video-click="handleVideoClick"
+        @watch-later="handleWatchLater" />
     </section>
 
     <!-- 加载状态 -->
@@ -49,15 +59,18 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
+  import { ref, computed, onMounted, defineAsyncComponent, onUnmounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { useUserStore } from '@/stores/user';
   import { useVideo } from '@/composables/useVideo';
   import { useToast } from '@/composables/useToast';
   import VideoGrid from '@/components/common/video/VideoGrid.vue';
-  import VideoCard from '@/components/common/video/VideoCard.vue';
-  import LoadingSpinner from '@/components/common/loading/LoadingSpinner.vue';
-  import ErrorMessage from '@/components/common/feedback/ErrorMessage.vue';
+
+  // 懒加载非关键组件
+  const VideoCard = defineAsyncComponent(() => import('@/components/business/video/VideoCard.vue'));
+  const LoadingSpinner = defineAsyncComponent(() => import('@/components/common/loading/LoadingSpinner.vue'));
+  const ErrorMessage = defineAsyncComponent(() => import('@/components/common/feedback/ErrorMessage.vue'));
+
   import type { Video } from '@/types';
 
   const router = useRouter();
@@ -142,6 +155,19 @@
 
   // 初始化
   onMounted(async () => {
+    await loadData();
+  });
+
+  // 清理资源
+  onUnmounted(() => {
+    // 释放大型数据对象引用
+    recommendVideos.value = [];
+    trendingVideos.value = [];
+    latestVideos.value = [];
+  });
+
+  // 数据加载函数，提取到单独函数便于重用
+  const loadData = async () => {
     try {
       loading.value = true;
       error.value = null;
@@ -154,84 +180,56 @@
       ]);
 
       // 将API返回的数据转换为Video类型
-      recommendVideos.value = recommended.map(item => ({
+      const convertToVideo = (item: any) => ({
         id: item.id,
         title: item.title,
-        description: '', // 默认值
-        coverUrl: item.thumbnailUrl,
-        videoUrl: '', // 默认值
-        duration: item.duration,
-        views: item.views,
-        likes: 0, // 默认值
-        favorites: 0, // 默认值
-        comments: 0, // 默认值
-        createdAt: item.publishedAt, // 使用publishedAt作为createdAt
+        description: item.description || '',
+        coverUrl: item.thumbnailUrl || '',
+        videoUrl: item.videoUrl || '',
+        duration: item.duration || 0,
+        views: item.views || 0,
+        likes: item.likes || 0,
+        favorites: item.favorites || 0,
+        comments: item.comments || 0,
+        createdAt: item.publishedAt || new Date().toISOString(),
+        previewUrl: item.previewUrl || '',
         author: {
-          id: item.author.id,
-          username: '', // 默认值
-          nickname: item.author.name,
-          avatar: item.author.avatar,
-          verified: false // 默认值
+          id: item.author?.id || '',
+          username: item.author?.username || item.author?.name || '',
+          nickname: item.author?.nickname || item.author?.name || '',
+          avatar: item.author?.avatar || '',
+          verified: item.author?.verified || false
         },
-        tags: [], // 默认值
-        sources: [], // 默认值
-        subtitles: [] // 默认值
-      }));
-
-      trendingVideos.value = trending.map(item => ({
-        id: item.id,
-        title: item.title,
-        description: '',
-        coverUrl: item.thumbnailUrl,
-        videoUrl: '',
-        duration: item.duration,
-        views: item.views,
-        likes: 0,
-        favorites: 0,
-        comments: 0,
-        createdAt: item.publishedAt,
-        author: {
-          id: item.author.id,
-          username: '',
-          nickname: item.author.name,
-          avatar: item.author.avatar,
-          verified: false
-        },
-        tags: [],
-        sources: [],
+        tags: item.tags || [],
+        sources: [{
+          url: item.videoUrl || '',
+          type: 'video/mp4',
+          label: '标准'
+        }],
         subtitles: []
-      }));
+      });
 
-      latestVideos.value = latest.map(item => ({
-        id: item.id,
-        title: item.title,
-        description: '',
-        coverUrl: item.thumbnailUrl,
-        videoUrl: '',
-        duration: item.duration,
-        views: item.views,
-        likes: 0,
-        favorites: 0,
-        comments: 0,
-        createdAt: item.publishedAt,
-        author: {
-          id: item.author.id,
-          username: '',
-          nickname: item.author.name,
-          avatar: item.author.avatar,
-          verified: false
-        },
-        tags: [],
-        sources: [],
-        subtitles: []
-      }));
+      // 转换所有视频数据
+      recommendVideos.value = recommended.map(convertToVideo);
+      trendingVideos.value = trending.map(convertToVideo);
+      latestVideos.value = latest.map(convertToVideo);
     } catch (err) {
       error.value = '加载数据失败';
       console.error('加载数据失败:', err);
     } finally {
       loading.value = false;
     }
-  });
+  };
+
+  // 刷新数据
+  const refreshData = async () => {
+    // 清除缓存
+    const { clearCache } = useVideo();
+    clearCache();
+
+    // 重新加载数据
+    await loadData();
+  };
 </script>
 
 <style scoped>

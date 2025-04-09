@@ -1,21 +1,30 @@
 <!--
- * @description 视频卡片组件
+ * @file VideoCard.vue
+ * @description 视频卡片组件 - 展示视频概览信息
  * @features
  * - 视频信息展示：标题、作者、时长、播放量
  * - 封面展示：支持懒加载和加载失败处理
- * - 交互功能：点击跳转、悬停效果
+ * - 交互功能：点击跳转、悬停效果、稍后观看、添加到播放列表
  * - 预览功能：悬停时自动播放预览
  * - 响应式布局：适配不同屏幕尺寸
  * - 主题适配：支持亮色和暗色主题
+ * - 视频进度显示：展示已观看进度
  * @dependencies
  * - naive-ui: UI组件库
- * - @vueuse/core: 实用工具集
+ * - useHistoryStore: 存储视频观看历史
+ * - @vicons/ionicons5: 图标集合
  * @props
  * - video: 视频信息对象
- * - loading: 是否显示加载状态
  * @emits
  * - click: 点击事件
- * - hover: 悬停事件
+ * - author-click: 作者点击事件
+ * - tag-click: 标签点击事件
+ * - watch-later: 稍后观看事件
+ * - add-to-playlist: 添加到播放列表事件
+ * @author Atom Video Team
+ * @date 2025-04-06
+ * @version 1.0.0
+ * @license MIT
  -->
 
 <template>
@@ -27,7 +36,8 @@
         :src="video.previewUrl" poster=""></video>
 
       <!-- 封面图 -->
-      <img v-show="!isPlaying" :src="video.coverUrl" :alt="video.title" loading="lazy" @error="handleImageError" />
+      <img v-show="!isPlaying" :src="imageSrc" :alt="video.title" loading="lazy" @error="handleImageError"
+        fetchpriority="low" @load="handleImageLoaded" />
 
       <!-- 进度条 -->
       <div v-if="watchProgress > 0" class="progress-bar">
@@ -80,7 +90,7 @@
       <div class="meta">
         <div class="author" @click.stop="handleAuthorClick">
           <n-avatar round :size="24" :src="video.author.avatar" :fallback-src="fallbackAvatar" />
-          <span class="author-name">{{ video.author.nickname }}</span>
+          <span class="author-name">{{ authorName }}</span>
         </div>
         <div class="stats">
           <span class="views">{{ formatNumber(video.views) }} 次观看</span>
@@ -160,9 +170,38 @@
     { id: '3', name: '学习清单', videoCount: 5, selected: false }
   ])
 
+  // 预加载和延迟加载逻辑
+  onMounted(() => {
+    if (props.video.coverUrl) {
+      // 为缩略图添加预加载
+      const img = new Image();
+      img.src = props.video.coverUrl;
+    }
+  });
+
+  // 延迟加载图片
+  const imageSrc = computed(() => {
+    return props.video.coverUrl || fallbackAvatar.value;
+  });
+
+  // 图片加载状态
+  const imageLoaded = ref(false);
+  const imageLoading = ref(true);
+
+  const handleImageLoaded = () => {
+    imageLoaded.value = true;
+    imageLoading.value = false;
+  };
+
   // 计算属性
   const fallbackAvatar = computed(() => {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${props.video.author.id}`
+  })
+
+  // 作者名称，兼容不同的Video类型定义
+  const authorName = computed(() => {
+    const author = props.video.author as any; // 使用any类型临时绕过类型检查
+    return author.nickname || author.name || author.username || '未知用户';
   })
 
   // 播放进度

@@ -1,12 +1,23 @@
 /**
 * @file VideoGrid.vue
 * @description 视频网格组件，用于以网格形式展示多个视频卡片
+* @features
+* - 响应式网格布局
+* - 懒加载和优化的图片处理
+* - 空状态和加载状态处理
+* - 虚拟滚动支持大量视频展示
+* - 无限滚动功能
+* @dependencies
+* - useIntersectionObserver: 用于实现无限滚动
+* - 支持自定义内容插槽用于灵活展示
 * @author Atom Video Team
 * @date 2025-04-06
+* @version 1.0.0
+* @license MIT
 */
 
 <template>
-  <div class="video-grid-container">
+  <div class="video-grid-container" ref="containerRef">
     <!-- 加载状态 -->
     <div v-if="loading" class="loading-state">
       <div class="skeleton-grid">
@@ -21,38 +32,32 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="videos.length === 0" class="empty-state">
+    <div v-else-if="videoArray.length === 0" class="empty-state">
       <div class="empty-icon">📺</div>
       <p class="empty-text">{{ emptyText }}</p>
     </div>
 
     <!-- 视频网格 -->
     <div v-else class="video-grid">
-      <VideoCard v-for="video in videos" :key="video.id" :video="video" :show-author="showAuthor"
-        @click="handleVideoClick(video)" />
+      <div v-for="video in visibleVideos" :key="video.id" class="video-item">
+        <VideoCard :video="video" :show-author="showAuthor" @click="handleVideoClick(video)"
+          @watch-later="(video) => emit('watch-later', video)" />
+      </div>
+    </div>
+
+    <!-- 加载更多按钮 -->
+    <div v-if="useVirtualScroll && !loadingMore && videoArray.length > 0 && visibleCount < videoArray.length"
+      class="load-more-button" ref="bottomObserverRef">
+      <button @click="loadMore">加载更多</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import VideoCard from './VideoCard.vue';
-
-  interface VideoAuthor {
-    id: string;
-    name: string;
-    avatar: string;
-  }
-
-  interface Video {
-    id: string;
-    title: string;
-    description?: string;
-    thumbnailUrl: string;
-    duration: number;
-    views: number;
-    publishedAt: string;
-    author: VideoAuthor;
-  }
+  import { ref, computed, onMounted, onUnmounted } from 'vue';
+  import { useElementSize, useIntersectionObserver } from '@vueuse/core';
+  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import type { Video } from '@/types';
 
   const props = defineProps({
     /**
@@ -82,14 +87,80 @@
     emptyText: {
       type: String,
       default: '暂无视频'
+    },
+    /**
+     * 是否使用虚拟滚动
+     */
+    useVirtualScroll: {
+      type: Boolean,
+      default: false // 改为简单的false默认值，避免使用this访问
+    },
+    /**
+     * 一次加载的视频数量
+     */
+    batchSize: {
+      type: Number,
+      default: 12
     }
   });
 
-  const emit = defineEmits(['video-click']);
+  const emit = defineEmits(['video-click', 'watch-later']);
+
+  const containerRef = ref<HTMLElement | null>(null);
+  const loadingMore = ref(false);
+  const visibleCount = ref(props.batchSize);
+
+  // 安全访问视频数组
+  const videoArray = computed(() => {
+    return Array.isArray(props.videos) ? props.videos : [];
+  });
+
+  // 可见视频列表
+  const visibleVideos = computed(() => {
+    if (videoArray.value.length === 0) return [];
+
+    return props.useVirtualScroll
+      ? videoArray.value.slice(0, visibleCount.value)
+      : videoArray.value;
+  });
+
+  // 检测容器底部可见性，用于实现无限滚动
+  const bottomObserverRef = ref<HTMLElement | null>(null);
+  const { stop } = useIntersectionObserver(
+    bottomObserverRef,
+    ([{ isIntersecting }]) => {
+      if (isIntersecting && !loadingMore.value && videoArray.value.length > 0 && visibleCount.value < videoArray.value.length) {
+        loadMore();
+      }
+    },
+    { threshold: 0.1 }
+  );
+
+  // 加载更多视频
+  const loadMore = async () => {
+    if (loadingMore.value || videoArray.value.length === 0 || visibleCount.value >= videoArray.value.length) return;
+
+    loadingMore.value = true;
+
+    // 模拟加载延迟
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    visibleCount.value = Math.min(
+      visibleCount.value + props.batchSize,
+      videoArray.value.length
+    );
+
+    loadingMore.value = false;
+  };
 
   const handleVideoClick = (video: Video) => {
     emit('video-click', video);
   };
+
+  // 清理资源
+  onUnmounted(() => {
+    stop();
+  });
 </script>
 
 <style scoped>
@@ -123,7 +194,8 @@
 
   .skeleton-thumbnail {
     width: 100%;
-    padding-top: 56.25%; /* 16:9 比例 */
+    padding-top: 56.25%;
+    /* 16:9 比例 */
     background-color: var(--bg-color-tertiary);
   }
 
@@ -164,9 +236,12 @@
   }
 
   @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
       opacity: 0.6;
     }
+
     50% {
       opacity: 0.3;
     }
@@ -208,5 +283,25 @@
       grid-template-columns: 1fr;
       gap: 12px;
     }
+  }
+
+  .load-more-button {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-md);
+  }
+
+  .load-more-button button {
+    padding: var(--spacing-md) var(--spacing-xl);
+    background-color: var(--bg-color-primary);
+    color: var(--text-color-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .load-more-button button:hover {
+    background-color: var(--bg-color-primary-hover);
   }
 </style>

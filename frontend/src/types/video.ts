@@ -217,27 +217,27 @@ export interface VideoService {
   }>;
 }
 
-// 视频相关类型
-export interface Video {
+// 统一Video类型扩展
+export interface VideoWithThumbnail {
   id: string;
   title: string;
-  description?: string;
-  coverUrl?: string;
   thumbnailUrl: string;
-  videoUrl?: string;
   duration: number;
   views: number;
+  publishedAt: string;
+  description?: string;
+  videoUrl?: string;
   likes?: number;
   favorites?: number;
   comments?: number;
-  createdAt?: string;
-  publishedAt: string;
+  previewUrl?: string;
+  tags?: string[];
   author: {
     id: string;
     name: string;
+    username?: string;
     nickname?: string;
     avatar: string;
     verified?: boolean;
   };
-  tags?: string[];
 }
