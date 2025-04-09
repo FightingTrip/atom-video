@@ -1,18 +1,17 @@
 /**
- * @file Library.spec.ts
- * @description Library组件的单元测试用例
- * @author Atom Video Team
- * @date 2025-04-06
+ * @file LibraryComponent.spec.ts
+ * @description 视频库组件测试
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import Library from '../Library.vue';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createTestingPinia } from '@pinia/testing';
+import { createI18n } from 'vue-i18n';
+import LibraryComponent from '../LibraryComponent.vue';
 import { useVideoStore } from '@/stores/video';
 import { useAuthStore } from '@/stores/auth';
 
-describe('Library', () => {
+describe('LibraryComponent', () => {
   const mockVideos = [
     {
       id: '1',
@@ -63,7 +62,7 @@ describe('Library', () => {
   });
 
   it('未登录时显示登录提示', () => {
-    const wrapper = mount(Library, {
+    const wrapper = mount(LibraryComponent, {
       global: {
         plugins: [
           createTestingPinia({
@@ -85,7 +84,7 @@ describe('Library', () => {
     const videoStore = useVideoStore();
     vi.spyOn(videoStore, 'getLibraryVideos').mockResolvedValue(mockVideos);
 
-    const wrapper = mount(Library, {
+    const wrapper = mount(LibraryComponent, {
       global: {
         plugins: [
           createTestingPinia({
@@ -108,7 +107,7 @@ describe('Library', () => {
     const videoStore = useVideoStore();
     vi.spyOn(videoStore, 'toggleFavorite').mockResolvedValue();
 
-    const wrapper = mount(Library, {
+    const wrapper = mount(LibraryComponent, {
       global: {
         plugins: [
           createTestingPinia({
@@ -128,7 +127,7 @@ describe('Library', () => {
   });
 
   it('切换标签页', async () => {
-    const wrapper = mount(Library, {
+    const wrapper = mount(LibraryComponent, {
       global: {
         plugins: [
           createTestingPinia({
@@ -148,7 +147,7 @@ describe('Library', () => {
   });
 
   it('搜索视频', async () => {
-    const wrapper = mount(Library, {
+    const wrapper = mount(LibraryComponent, {
       global: {
         plugins: [
           createTestingPinia({

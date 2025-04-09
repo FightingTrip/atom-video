@@ -4,7 +4,7 @@ import { createTestingPinia } from '@pinia/testing';
 import { createRouter, createWebHistory } from 'vue-router';
 import Upload from '@/pages/video/Upload.vue';
 import VideoDetail from '@/pages/video/VideoDetail.vue';
-import VideoList from '@/pages/video/VideoList.vue';
+import VideoListComponent from '@/pages/video/VideoListComponent.vue';
 import { useVideoStore } from '@/stores/video';
 import { useAuthStore } from '@/stores/auth';
 
@@ -21,7 +21,7 @@ const router = createRouter({
     },
     {
       path: '/videos',
-      component: VideoList,
+      component: VideoListComponent,
     },
   ],
 });
@@ -178,7 +178,7 @@ describe('视频管理流程集成测试', () => {
     const videoStore = useVideoStore();
     vi.spyOn(videoStore, 'getUserVideos').mockResolvedValue([mockVideo]);
 
-    const wrapper = mount(VideoList, {
+    const wrapper = mount(VideoListComponent, {
       global: {
         plugins: [
           createTestingPinia({

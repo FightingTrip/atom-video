@@ -6,17 +6,19 @@
 
 <template>
   <n-config-provider :theme="theme" :theme-overrides="themeOverrides" :locale="locale" :date-locale="dateLocale">
-    <n-dialog-provider>
-      <n-notification-provider>
-        <n-message-provider>
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
-              <component :is="Component" />
-            </transition>
-          </router-view>
-        </n-message-provider>
-      </n-notification-provider>
-    </n-dialog-provider>
+    <n-loading-bar-provider>
+      <n-dialog-provider>
+        <n-notification-provider>
+          <n-message-provider>
+            <router-view v-slot="{ Component }">
+              <transition name="fade" mode="out-in">
+                <component :is="Component" />
+              </transition>
+            </router-view>
+          </n-message-provider>
+        </n-notification-provider>
+      </n-dialog-provider>
+    </n-loading-bar-provider>
   </n-config-provider>
 </template>
 
@@ -29,6 +31,7 @@
     NMessageProvider,
     NNotificationProvider,
     NDialogProvider,
+    NLoadingBarProvider,
     darkTheme,
     zhCN,
     dateZhCN

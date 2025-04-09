@@ -35,7 +35,7 @@
         <n-tab-pane name="all" tab="全部">
           <div class="video-list">
             <div v-for="video in filteredVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="filteredVideos.length === 0" description="暂无观看历史" />
           </div>
@@ -43,7 +43,7 @@
         <n-tab-pane name="today" tab="今天">
           <div class="video-list">
             <div v-for="video in todayVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="todayVideos.length === 0" description="今天暂无观看记录" />
           </div>
@@ -51,7 +51,7 @@
         <n-tab-pane name="week" tab="本周">
           <div class="video-list">
             <div v-for="video in weekVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="weekVideos.length === 0" description="本周暂无观看记录" />
           </div>
@@ -59,7 +59,7 @@
         <n-tab-pane name="earlier" tab="更早">
           <div class="video-list">
             <div v-for="video in earlierVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick(video)" />
+              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
             </div>
             <n-empty v-if="earlierVideos.length === 0" description="暂无更早观看记录" />
           </div>
@@ -80,7 +80,7 @@
   import { useRouter } from 'vue-router';
   import { NButton, NTabs, NTabPane, NPagination, NEmpty, useMessage } from 'naive-ui';
   import type { Video } from '@/types';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
   import { historyApi } from '@/mock/videos';
   import { useUserStore } from '@/stores/user';
 
@@ -190,6 +190,7 @@
     padding: 24px;
     max-width: 1200px;
     margin: 0 auto;
+    background-color: var(--bg-color);
   }
 
   .history-header {
@@ -200,42 +201,100 @@
   }
 
   .history-header h2 {
-    margin: 0;
-    font-size: 28px;
+    font-size: var(--text-xl);
     font-weight: 600;
     color: var(--text-color);
+    margin: 0;
   }
 
   .history-actions {
     display: flex;
-    gap: 16px;
+    gap: var(--spacing-md);
   }
 
   .history-content {
-    margin-bottom: 24px;
+    min-height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding: var(--spacing-lg);
   }
 
   .video-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 24px;
-    margin-top: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+  }
+
+  .video-card-wrapper {
+    transition: transform var(--transition-normal);
+  }
+
+  .video-card-wrapper:hover {
+    transform: scale(1.05);
   }
 
   .history-pagination {
+    margin-top: var(--spacing-xl);
     display: flex;
     justify-content: center;
-    margin-top: 24px;
   }
 
+  /* 暗色模式特定样式 */
+  :root.dark .history-container,
+  .dark-mode .history-container {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .history-header h2,
+  .dark-mode .history-header h2 {
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .history-content,
+  .dark-mode .history-content {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .video-card-wrapper,
+  .dark-mode .video-card-wrapper {
+    background-color: var(--bg-color-darker);
+  }
+
+  :root.dark .n-tabs-tab,
+  .dark-mode .n-tabs-tab {
+    color: var(--text-color-secondary);
+  }
+
+  :root.dark .n-tabs-tab--active,
+  .dark-mode .n-tabs-tab--active {
+    color: var(--text-color);
+  }
+
+  /* 响应式布局 */
   @media (max-width: 768px) {
     .history-container {
       padding: 16px;
     }
 
+    .history-content {
+      padding: var(--spacing-md);
+    }
+
     .video-list {
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--spacing-sm);
+    }
+
+    .history-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-md);
+    }
+
+    .history-actions {
+      width: 100%;
+      justify-content: space-between;
     }
   }
 </style>

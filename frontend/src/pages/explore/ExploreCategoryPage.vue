@@ -1,12 +1,12 @@
 <!-- 探索分类页面 -->
 <template>
   <div class="explore-category-page">
-    <ExploreCategory />
+    <ExploreCategoryComponent />
   </div>
 </template>
 
 <script setup lang="ts">
-  import ExploreCategory from '@/components/business/explore/ExploreCategory.vue';
+  import ExploreCategoryComponent from '@/components/business/explore/ExploreCategoryComponent.vue';
 </script>
 
 <style scoped>

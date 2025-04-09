@@ -40,6 +40,15 @@ export interface Video {
     followersCount?: number;
     followingCount?: number;
   };
+  videoUrl: string;
+  previewUrl: string;
+  coverUrl: string;
+  sources: {
+    url: string;
+    type: string;
+    label: string;
+    size: number;
+  }[];
 }
 
 // 生成视频数据
@@ -75,6 +84,17 @@ const generateMockVideos = (count: number): Video[] => {
         avatar: faker.image.avatar(),
         verified: faker.datatype.boolean(0.2),
       },
+      videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      previewUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      coverUrl: `https://picsum.photos/seed/${faker.string.alphanumeric(8)}/480/270`,
+      sources: [
+        {
+          url: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+          type: 'video/mp4',
+          label: '720p',
+          size: 720,
+        },
+      ],
     }));
 
     cachedVideos = videos;

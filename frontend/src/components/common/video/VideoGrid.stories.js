@@ -1,8 +1,8 @@
-import VideoGrid from './VideoGrid.vue';
+import VideoGridComponent from './VideoGridComponent.vue';
 
 export default {
-  title: 'Common/Video/VideoGrid',
-  component: VideoGrid,
+  title: 'Common/Video/VideoGridComponent',
+  component: VideoGridComponent,
   tags: ['autodocs'],
   argTypes: {
     videos: { control: 'object' },

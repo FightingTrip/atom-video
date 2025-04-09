@@ -2,7 +2,7 @@
 <template>
   <div class="video-play-layout">
     <div class="video-container">
-      <VideoPlayer :video-url="video?.videoUrl" :thumbnail-url="video?.thumbnailUrl" :title="video?.title"
+      <VideoPlayerComponent :video-url="video?.videoUrl" :thumbnail-url="video?.thumbnailUrl" :title="video?.title"
         :duration="video?.duration" @time-update="$emit('time-update', $event)" @ended="$emit('ended')" />
     </div>
 
@@ -19,7 +19,8 @@
 
 <script setup lang="ts">
   import type { IVideo } from '@atom-video/shared-types';
-  import VideoPlayer from './VideoPlayer.vue';
+  import { ref, onMounted, onUnmounted } from 'vue';
+  import VideoPlayerComponent from './VideoPlayerComponent.vue';
   import VideoInteraction from './VideoInteraction.vue';
   import VideoDescription from './VideoDescription.vue';
   import VideoResources from './VideoResources.vue';

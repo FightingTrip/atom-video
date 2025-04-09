@@ -1,3 +1,10 @@
+/**
+* @file UserProfileComponent.vue
+* @description 用户资料展示组件 - 业务组件，用于展示用户资料信息，不是页面组件
+* @author Atom Video Team
+* @date 2025-04-08
+*/
+
 <template>
   <div class="profile-container">
     <div class="profile-header">
@@ -10,7 +17,7 @@
         <h1 class="profile-name">{{ userProfile.nickname }}</h1>
         <p class="profile-username">@{{ userProfile.username }}</p>
         <p class="profile-bio">{{ userProfile.bio || '这个用户很懒，还没有填写个人简介' }}</p>
-        <div class="profile-stats">
+        <div class="user-stats">
           <div class="stat-item">
             <span class="stat-value">{{ userProfile.videoCount }}</span>
             <span class="stat-label">视频</span>
@@ -415,33 +422,45 @@
   }
 
   .profile-bio {
-    font-size: var(--text-md);
-    color: var(--text-primary);
-    margin: 0 0 var(--spacing-lg) 0;
-    line-height: 1.6;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    color: var(--text-color);
+    line-height: 1.5;
+    max-width: 80%;
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 8px 12px;
+    border-radius: 8px;
   }
 
-  .profile-stats {
+  [data-theme="dark"] .profile-bio,
+  .dark-mode .profile-bio {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .user-stats {
     display: flex;
-    gap: var(--spacing-xl);
-    margin-bottom: var(--spacing-lg);
+    justify-content: flex-start;
+    gap: 24px;
+    margin: 16px 0;
   }
 
   .stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 60px;
   }
 
   .stat-value {
-    font-size: var(--text-lg);
+    font-size: 18px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text-color);
   }
 
   .stat-label {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+    font-size: 14px;
+    color: var(--text-color-secondary);
+    margin-top: 4px;
   }
 
   .profile-actions {
@@ -452,30 +471,37 @@
     padding: 0 var(--spacing-lg) var(--spacing-lg);
   }
 
+  .favorites-tab {
+    min-height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding: var(--spacing-lg);
+  }
+
   .video-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: var(--spacing-md);
-    margin-top: var(--spacing-lg);
+    margin-top: var(--spacing-md);
   }
 
   .video-card {
-    border-radius: var(--radius-md);
+    background-color: var(--bg-color-secondary);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    cursor: pointer;
     transition: transform var(--transition-normal);
+    cursor: pointer;
   }
 
   .video-card:hover {
-    transform: translateY(-4px);
+    transform: scale(1.05);
   }
 
   .video-thumbnail {
     position: relative;
     width: 100%;
     padding-top: 56.25%;
-    /* 16:9 Aspect Ratio */
-    overflow: hidden;
+    /* 16:9 比例 */
   }
 
   .video-thumbnail img {
@@ -489,36 +515,36 @@
 
   .video-duration {
     position: absolute;
-    bottom: var(--spacing-xs);
-    right: var(--spacing-xs);
-    background-color: rgba(0, 0, 0, 0.7);
+    bottom: 8px;
+    right: 8px;
+    background-color: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 2px 4px;
+    padding: 2px 6px;
     border-radius: var(--radius-sm);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
   }
 
   .video-info {
-    padding: var(--spacing-sm) 0;
+    padding: var(--spacing-md);
   }
 
   .video-title {
-    font-size: var(--text-md);
+    font-size: var(--text-base);
     font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 var(--spacing-xs) 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--text-color);
+    margin-bottom: var(--spacing-sm);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .video-meta {
     display: flex;
-    gap: var(--spacing-xs);
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--text-color-secondary);
     font-size: var(--text-sm);
-    color: var(--text-secondary);
   }
 
   .about-tab {
@@ -564,8 +590,8 @@
   }
 
   .empty-text {
-    color: var(--text-secondary);
-    font-size: var(--text-md);
+    color: var(--text-color-secondary);
+    font-size: var(--text-base);
   }
 
   .load-more {
@@ -574,6 +600,33 @@
     margin-top: var(--spacing-lg);
   }
 
+  /* 暗色模式特定样式 */
+  :root.dark .favorites-tab,
+  .dark-mode .favorites-tab {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .video-card,
+  .dark-mode .video-card {
+    background-color: var(--bg-color-darker);
+  }
+
+  :root.dark .video-title,
+  .dark-mode .video-title {
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .video-meta,
+  .dark-mode .video-meta {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .empty-text,
+  .dark-mode .empty-text {
+    color: var(--text-color-secondary-dark);
+  }
+
+  /* 响应式布局 */
   @media (max-width: 768px) {
     .profile-header {
       margin-bottom: var(--spacing-md);
@@ -601,12 +654,25 @@
       font-size: var(--text-xl);
     }
 
-    .profile-stats {
+    .user-stats {
       gap: var(--spacing-lg);
     }
 
+    .favorites-tab {
+      padding: var(--spacing-md);
+    }
+
     .video-grid {
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--spacing-sm);
+    }
+
+    .video-title {
+      font-size: var(--text-sm);
+    }
+
+    .video-meta {
+      font-size: var(--text-xs);
     }
   }
 </style>

@@ -51,17 +51,17 @@
       <div class="sidebar-divider" v-if="!collapsed && isLoggedIn"></div>
 
       <!-- 订阅频道 - 需要登录 -->
-      <div class="sidebar-section" v-if="!collapsed && isLoggedIn && subscriptions.length > 0">
-        <div class="sidebar-heading">订阅</div>
+      <div class="sidebar-section" v-if="isLoggedIn">
+        <div class="sidebar-heading" v-if="!collapsed">频道</div>
         <div class="sidebar-item" v-for="channel in subscriptions" :key="channel.id">
           <router-link :to="`/channel/${channel.id}`" class="sidebar-link">
             <div class="sidebar-avatar">
               <n-avatar :src="channel.avatar" size="small" round />
             </div>
-            <span class="sidebar-text">{{ channel.name }}</span>
+            <span class="sidebar-text" v-if="!collapsed">{{ channel.name }}</span>
           </router-link>
         </div>
-        <div class="sidebar-item" v-if="hasMoreSubscriptions">
+        <div class="sidebar-item" v-if="hasMoreSubscriptions && !collapsed">
           <router-link to="/subscriptions" class="sidebar-link">
             <div class="sidebar-icon">
               <n-icon size="24">
@@ -74,11 +74,11 @@
       </div>
 
       <!-- 分隔线 -->
-      <div class="sidebar-divider" v-if="!collapsed && isLoggedIn && subscriptions.length > 0"></div>
+      <div class="sidebar-divider" v-if="!collapsed"></div>
 
       <!-- 探索 -->
-      <div class="sidebar-section" v-if="!collapsed">
-        <div class="sidebar-heading">探索</div>
+      <div class="sidebar-section">
+        <div class="sidebar-heading" v-if="!collapsed">探索</div>
         <div class="sidebar-item" v-for="item in exploreItems" :key="item.path"
           :class="{ active: isActive(item.path) }">
           <router-link :to="item.path" class="sidebar-link">
@@ -87,21 +87,21 @@
                 <component :is="item.icon" />
               </n-icon>
             </div>
-            <span class="sidebar-text">{{ item.name }}</span>
+            <span class="sidebar-text" v-if="!collapsed">{{ item.name }}</span>
           </router-link>
         </div>
       </div>
 
       <!-- 设置项在底部 -->
-      <div class="sidebar-section sidebar-footer" v-if="!collapsed">
-        <div class="sidebar-item">
-          <router-link to="/settings" class="sidebar-link">
+      <div class="sidebar-section sidebar-footer">
+        <div class="sidebar-item" :class="{ active: isActive('/user/settings') }">
+          <router-link to="/user/settings" class="sidebar-link">
             <div class="sidebar-icon">
               <n-icon size="24">
                 <SettingsOutline />
               </n-icon>
             </div>
-            <span class="sidebar-text">设置</span>
+            <span class="sidebar-text" v-if="!collapsed">设置</span>
           </router-link>
         </div>
       </div>
@@ -120,14 +120,13 @@
     TimeOutline,
     BookmarkOutline,
     ThumbsUpOutline,
-    HeartOutline,
     SettingsOutline,
     ChevronDown,
-    MusicalNotesOutline,
-    FilmOutline,
-    GameControllerOutline,
-    TrophyOutline,
-    NewspaperOutline
+    CodeOutline,
+    ServerOutline,
+    CloudOutline,
+    GitNetworkOutline,
+    LayersOutline
   } from '@vicons/ionicons5'
   import { useUserStore } from '@/stores/user'
   import { useAuthStore } from '@/stores/auth'
@@ -157,18 +156,17 @@
   // 收藏库菜单 - 需要登录
   const libraryItems = [
     { name: '历史记录', path: '/library/history', icon: TimeOutline },
-    { name: '收藏', path: '/library', icon: BookmarkOutline },
     { name: '稍后观看', path: '/library/watch-later', icon: BookmarkOutline },
     { name: '我喜欢的', path: '/library/liked', icon: ThumbsUpOutline }
   ]
 
-  // 探索菜单 - 更新为开发者相关类别
+  // 探索菜单 - 开发者相关类别
   const exploreItems = [
-    { name: '编程语言', path: '/explore/programming-languages', icon: MusicalNotesOutline },
-    { name: '框架技术', path: '/explore/frameworks', icon: FilmOutline },
-    { name: '云服务', path: '/explore/cloud-services', icon: GameControllerOutline },
-    { name: '算法与数据结构', path: '/explore/algorithms', icon: TrophyOutline },
-    { name: '系统架构', path: '/explore/architecture', icon: NewspaperOutline }
+    { name: '编程语言', path: '/explore/programming-languages', icon: CodeOutline },
+    { name: '框架技术', path: '/explore/frameworks', icon: LayersOutline },
+    { name: '云服务', path: '/explore/cloud-services', icon: CloudOutline },
+    { name: '算法与数据结构', path: '/explore/algorithms', icon: GitNetworkOutline },
+    { name: '系统架构', path: '/explore/architecture', icon: ServerOutline }
   ]
 
   // 订阅频道 - 模拟数据
@@ -180,7 +178,7 @@
       { id: '3', name: '技术分享', avatar: 'https://i.pravatar.cc/150?u=3' },
       { id: '4', name: '代码狂人', avatar: 'https://i.pravatar.cc/150?u=4' },
       { id: '5', name: '全栈工程师', avatar: 'https://i.pravatar.cc/150?u=5' }
-    ].slice(0, 5); // 限制显示数量
+    ].slice(0, props.collapsed ? 0 : 5); // 当侧边栏折叠时不显示
   })
 
   // 是否还有更多订阅
@@ -210,7 +208,7 @@
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
     overflow-x: hidden;
-    transition: width 0.3s;
+    transition: width 0.3s, background-color 0.3s;
     z-index: 20;
   }
 
@@ -232,13 +230,16 @@
   .sidebar-footer {
     margin-top: auto;
     padding-top: 12px;
+    border-top: 1px solid var(--border-color);
   }
 
   .sidebar-heading {
     padding: 8px 24px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-color-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .sidebar-divider {
@@ -250,6 +251,7 @@
   .sidebar-item {
     position: relative;
     height: 40px;
+    margin: 2px 0;
   }
 
   .sidebar-link {
@@ -259,12 +261,16 @@
     height: 100%;
     color: var(--text-color);
     text-decoration: none;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
+    border-radius: 0 20px 20px 0;
+    margin-right: 12px;
   }
 
   .sidebar-collapsed .sidebar-link {
     padding: 0;
     justify-content: center;
+    margin-right: 0;
+    border-radius: 0;
   }
 
   .sidebar-link:hover {
@@ -296,12 +302,38 @@
     flex-shrink: 0;
   }
 
+  .sidebar-collapsed .sidebar-avatar {
+    margin-right: 0;
+  }
+
   .sidebar-text {
     flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 14px;
+  }
+
+  /* 深色模式适配 */
+  :root.dark .sidebar,
+  .dark-mode .sidebar {
+    background-color: rgba(25, 25, 25, 0.95);
+    border-right-color: rgba(60, 60, 60, 0.5);
+  }
+
+  :root.dark .sidebar-footer,
+  .dark-mode .sidebar-footer {
+    border-top-color: rgba(60, 60, 60, 0.5);
+  }
+
+  :root.dark .sidebar-link:hover,
+  .dark-mode .sidebar-link:hover {
+    background-color: rgba(60, 60, 60, 0.4);
+  }
+
+  :root.dark .sidebar-item.active .sidebar-link,
+  .dark-mode .sidebar-item.active .sidebar-link {
+    background-color: rgba(60, 60, 60, 0.6);
   }
 
   /* 响应式样式 */

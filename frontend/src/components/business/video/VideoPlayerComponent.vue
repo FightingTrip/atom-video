@@ -1,29 +1,9 @@
-<!--
- * @description 视频播放器组件
- * @features
- * - 基础播放控制：播放、暂停、进度条、音量
- * - 画质切换：支持多清晰度切换
- * - 弹幕系统：支持发送和显示弹幕
- * - 快捷键：支持键盘快捷键控制
- * - 全屏控制：支持全屏和画中画模式
- * - 字幕支持：支持多语言字幕切换
- * - 播放历史记录：自动保存播放进度
- * @dependencies
- * - naive-ui: UI组件库
- * - @vueuse/core: 实用工具集
- * - video.js: 视频播放核心
- * @props
- * - src: 视频源地址
- * - poster: 视频封面
- * - autoplay: 是否自动播放
- * - controls: 是否显示控制栏
- * @emits
- * - play: 播放事件
- * - pause: 暂停事件
- * - ended: 播放结束事件
- * - timeupdate: 播放进度更新事件
- * - error: 错误事件
- -->
+/**
+* @file VideoPlayerComponent.vue
+* @description 视频播放器组件 - 核心视频播放功能的业务组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
 
 <template>
   <div class="video-player">
@@ -48,10 +28,10 @@
     <div v-else class="player-container">
       <vue-plyr ref="playerRef" :options="playerOptions" @ready="handleReady" @error="handleError"
         @timeupdate="handleTimeUpdate" @play="handlePlay" @pause="handlePause" @ended="handleEnded">
-        <video ref="videoRef" :src="video.url" :poster="video.coverUrl" :preload="'auto'" crossorigin playsinline>
-          <source v-for="source in video.sources" :key="source.url" :src="source.url" :type="source.type"
+        <video ref="videoRef" :src="videoSrc" :poster="posterSrc" :preload="'auto'" crossorigin playsinline>
+          <source v-for="source in videoSources" :key="source.url" :src="source.url" :type="source.type"
             :size="source.size" :label="source.label" />
-          <track v-for="subtitle in video.subtitles" :key="subtitle.url" :src="subtitle.url" :label="subtitle.label"
+          <track v-for="subtitle in videoSubtitles" :key="subtitle.url" :src="subtitle.url" :label="subtitle.label"
             :srclang="subtitle.srclang" :default="subtitle.default" kind="subtitles" />
         </video>
       </vue-plyr>
@@ -63,7 +43,7 @@
             <n-button quaternary :type="isDanmakuEnabled ? 'primary' : 'default'" @click="toggleDanmaku">
               <template #icon>
                 <n-icon>
-                  <ChatBubbleIcon />
+                  <ChatbubbleOutline />
                 </n-icon>
               </template>
               弹幕
@@ -71,7 +51,7 @@
             <n-button quaternary :type="isDanmakuInputVisible ? 'primary' : 'default'" @click="toggleDanmakuInput">
               <template #icon>
                 <n-icon>
-                  <SendIcon />
+                  <PaperPlaneOutline />
                 </n-icon>
               </template>
               发送
@@ -127,8 +107,8 @@
   import { NButton, NButtonGroup, NIcon, NInput, NSpin, NSelect, NTooltip } from 'naive-ui'
   import {
     AlertCircleOutline,
-    ChatBubbleIcon,
-    SendIcon,
+    ChatbubbleOutline,
+    PaperPlaneOutline,
     SettingsOutline
   } from '@vicons/ionicons5'
   import type { Video } from '@/types'
@@ -208,15 +188,54 @@
     )
   })
 
+  // 视频源URL，兼容不同的视频对象属性
+  const videoSrc = computed(() => {
+    return props.video.videoUrl || props.video.url || '';
+  })
+
+  // 封面图URL，兼容不同的视频对象属性
+  const posterSrc = computed(() => {
+    return props.video.coverUrl || props.video.thumbnail || '';
+  })
+
+  // 视频源列表，兼容不同的视频对象属性
+  const videoSources = computed(() => {
+    if (props.video.sources && props.video.sources.length > 0) {
+      return props.video.sources;
+    }
+
+    // 如果没有sources，但有videoUrl，创建一个默认source
+    if (props.video.videoUrl || props.video.url) {
+      return [{
+        url: props.video.videoUrl || props.video.url || '',
+        type: 'video/mp4',
+        label: '720p',
+        size: 720
+      }];
+    }
+
+    return [];
+  })
+
+  // 字幕列表，兼容不同的视频对象属性
+  const videoSubtitles = computed(() => {
+    return props.video.subtitles || [];
+  })
+
   // 方法
   const handleReady = () => {
     loading.value = false
-    // 从历史记录或props中恢复播放进度
-    const savedProgress = historyStore.getVideoProgress(props.video.id)
-    if (savedProgress && videoRef.value) {
-      videoRef.value.currentTime = savedProgress
-    } else if (props.currentTime && videoRef.value) {
-      videoRef.value.currentTime = props.currentTime
+
+    try {
+      // 从历史记录或props中恢复播放进度
+      const savedProgress = historyStore.getVideoProgress(props.video.id)
+      if (savedProgress && videoRef.value) {
+        videoRef.value.currentTime = savedProgress
+      } else if (props.currentTime && videoRef.value) {
+        videoRef.value.currentTime = props.currentTime
+      }
+    } catch (err) {
+      console.error('获取播放进度失败:', err)
     }
   }
 
@@ -228,7 +247,12 @@
   // 防抖更新播放历史
   const updateHistory = debounce((currentTime: number) => {
     if (props.video && props.video.id) {
-      historyStore.saveVideoProgress(props.video.id, currentTime)
+      try {
+        // 在本地保存视频进度，无论是否在线
+        historyStore.saveVideoProgress(props.video.id, currentTime);
+      } catch (err) {
+        console.error('保存播放进度失败:', err);
+      }
     }
   }, 1000)
 
@@ -364,7 +388,28 @@
 
     // 将视频添加到播放历史
     if (props.video && props.video.id) {
-      historyStore.addToHistory(props.video)
+      try {
+        // 检查是否处于离线模式
+        const isOfflineMode = localStorage.getItem('offline_mode') === 'true';
+
+        if (isOfflineMode) {
+          // 在离线模式下，仅保存到本地历史记录
+          const watchHistory = JSON.parse(localStorage.getItem('watch_history') || '[]');
+          const existingIndex = watchHistory.findIndex((v: any) => v.id === props.video.id);
+
+          if (existingIndex >= 0) {
+            watchHistory.splice(existingIndex, 1);
+          }
+
+          watchHistory.unshift(props.video);
+          localStorage.setItem('watch_history', JSON.stringify(watchHistory.slice(0, 30)));
+        } else {
+          // 正常模式下使用historyStore
+          historyStore.addToHistory(props.video);
+        }
+      } catch (err) {
+        console.error('添加到历史记录失败:', err);
+      }
     }
   })
 

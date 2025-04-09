@@ -1,15 +1,15 @@
 /**
- * @file Trending.test.ts
- * @description 热门视频组件测试
+ * @file TrendingComponent.test.ts
+ * @description 热门页面组件测试
  * @author Atom Video Team
- * @date 2025-04-06
+ * @date 2025-04-09
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 import { createI18n } from 'vue-i18n';
-import Trending from '../Trending.vue';
+import TrendingComponent from '../TrendingComponent.vue';
 import { useVideoStore } from '@/stores/video';
 
 // 创建测试用的 i18n 实例
@@ -67,7 +67,7 @@ const mockVideos = [
   },
 ];
 
-describe('Trending', () => {
+describe('TrendingComponent', () => {
   let wrapper: any;
 
   beforeEach(() => {
@@ -84,7 +84,7 @@ describe('Trending', () => {
     });
 
     // 挂载组件
-    wrapper = mount(Trending, {
+    wrapper = mount(TrendingComponent, {
       global: {
         plugins: [pinia, i18n],
       },
@@ -179,4 +179,4 @@ describe('Trending', () => {
       pageSize: 20,
     });
   });
-}); 
+});

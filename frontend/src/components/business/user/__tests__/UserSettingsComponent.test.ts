@@ -1,15 +1,15 @@
 /**
- * @file UserSettings.test.ts
+ * @file UserSettingsComponent.test.ts
  * @description 用户设置组件测试
  * @author Atom Video Team
- * @date 2025-04-06
+ * @date 2025-04-08
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
 import { createI18n } from 'vue-i18n';
-import UserSettings from '../UserSettings.vue';
+import UserSettingsComponent from '../UserSettingsComponent.vue';
 
 // 模拟 i18n
 const i18n = createI18n({
@@ -41,11 +41,11 @@ const mockUser = {
   },
 };
 
-describe('UserSettings', () => {
+describe('UserSettingsComponent', () => {
   let wrapper: any;
 
   beforeEach(() => {
-    wrapper = mount(UserSettings, {
+    wrapper = mount(UserSettingsComponent, {
       global: {
         plugins: [
           createTestingPinia({

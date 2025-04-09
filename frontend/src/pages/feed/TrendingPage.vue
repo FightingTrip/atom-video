@@ -1,8 +1,8 @@
 /**
 * @file TrendingPage.vue
-* @description 热门页面，使用 Trending 组件
+* @description 热门页面，使用 TrendingComponent 组件
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 */
 
 <template>

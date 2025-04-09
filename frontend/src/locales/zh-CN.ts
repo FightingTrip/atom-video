@@ -57,6 +57,9 @@ export default {
     dark: '深色',
     light: '浅色',
     auto: '自动',
+    languageChanged: '语言切换成功',
+    languageChangeFailed: '语言切换失败',
+    currentLanguage: '当前语言：{lang}',
   },
   video: {
     views: '{count} 次观看',

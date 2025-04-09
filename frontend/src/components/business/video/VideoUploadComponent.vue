@@ -1,3 +1,10 @@
+/**
+* @file VideoUploadComponent.vue
+* @description 视频上传组件 - 提供视频文件上传和信息填写功能的业务组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
+
 <!--
  * @description 视频上传组件
  * @features

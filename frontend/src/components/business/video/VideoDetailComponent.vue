@@ -1,8 +1,8 @@
 /**
-* @file VideoDetail.vue
-* @description 视频详情页面组件
+* @file VideoDetailComponent.vue
+* @description 视频详情组件 - 展示视频详细信息的业务组件
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 *
 * @features
 * - 视频播放：支持播放、暂停、进度控制、音量调节
@@ -36,8 +36,8 @@
 <template>
   <div class="video-detail">
     <!-- 视频播放器 -->
-    <video-player :video="video" :current-time="currentTime" @time-update="handleTimeUpdate" @play="handlePlay"
-      @pause="handlePause" @ended="handleEnded" />
+    <video-player-component :video="video" :current-time="currentTime" @time-update="handleTimeUpdate"
+      @play="handlePlay" @pause="handlePause" @ended="handleEnded" />
 
     <!-- 视频信息 -->
     <div class="video-info">
@@ -175,7 +175,7 @@
     Share,
     Chatbubble
   } from '@vicons/ionicons5'
-  import VideoPlayer from './VideoPlayer.vue'
+  import VideoPlayerComponent from './VideoPlayerComponent.vue'
   import type { Video, Comment } from '@/types'
   import { useAuthStore } from '@/stores/auth'
 
@@ -294,40 +294,122 @@
 
 <style scoped>
   .video-detail {
-    max-width: var(--container-lg);
+    max-width: 1200px;
     margin: 0 auto;
     padding: var(--spacing-lg);
-    background-color: var(--primary-bg);
-    color: var(--text-primary);
+    background-color: var(--bg-color);
+  }
+
+  .video-player-container {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    /* 16:9 比例 */
+    background-color: var(--bg-color-darker);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: var(--spacing-lg);
   }
 
   .video-info {
-    margin: var(--spacing-lg) 0;
-    padding: var(--spacing-lg);
-    background-color: var(--secondary-bg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-light);
+    margin-bottom: var(--spacing-xl);
   }
 
-  .title {
+  .video-title {
     font-size: var(--text-2xl);
     font-weight: 600;
+    color: var(--text-color);
     margin-bottom: var(--spacing-md);
-    color: var(--text-primary);
   }
 
-  .meta {
+  .video-meta {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: var(--spacing-lg);
+    color: var(--text-color-secondary);
+    font-size: var(--text-sm);
+  }
+
+  .video-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .video-description {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background-color: var(--bg-color-secondary);
+    border-radius: var(--radius-lg);
+    color: var(--text-color);
+    font-size: var(--text-base);
+    line-height: 1.6;
+  }
+
+  .video-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
     margin-top: var(--spacing-md);
   }
 
-  .stats {
-    display: flex;
-    gap: var(--spacing-md);
-    color: var(--text-secondary);
+  .tag {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--bg-color-tertiary);
+    color: var(--text-color-secondary);
+    border-radius: var(--radius-full);
     font-size: var(--text-sm);
+    transition: background-color 0.2s ease;
+  }
+
+  .tag:hover {
+    background-color: var(--hover-color);
+    color: var(--text-color);
+  }
+
+  /* 暗色模式特定样式 */
+  :root.dark .video-detail,
+  .dark-mode .video-detail {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .video-player-container,
+  .dark-mode .video-player-container {
+    background-color: var(--bg-color-darker);
+  }
+
+  :root.dark .video-title,
+  .dark-mode .video-title {
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .video-meta,
+  .dark-mode .video-meta {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .video-description,
+  .dark-mode .video-description {
+    background-color: var(--bg-color-darker);
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .tag,
+  .dark-mode .tag {
+    background-color: var(--bg-color-darker);
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .tag:hover,
+  .dark-mode .tag:hover {
+    background-color: var(--hover-color-dark);
+    color: var(--text-color-dark);
   }
 
   .author-info {
@@ -366,21 +448,6 @@
     gap: var(--spacing-lg);
     color: var(--text-secondary);
     font-size: var(--text-sm);
-  }
-
-  .description {
-    margin: var(--spacing-lg) 0;
-    padding: var(--spacing-lg);
-    background-color: var(--secondary-bg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-light);
-  }
-
-  .tags {
-    display: flex;
-    gap: var(--spacing-sm);
-    margin-top: var(--spacing-md);
-    flex-wrap: wrap;
   }
 
   .comments {

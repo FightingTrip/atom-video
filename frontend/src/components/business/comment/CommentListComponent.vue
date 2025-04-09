@@ -1,17 +1,9 @@
-<!--
- * @description 评论列表组件
- * @features
- * - 评论列表展示：支持多级评论嵌套
- * - 评论功能：发表评论、回复评论
- * - 互动功能：点赞评论
- * - 分页加载：支持无限滚动
- * - 响应式布局
- * - 主题适配
- * @dependencies
- * - naive-ui: UI组件库
- * - @vueuse/core: 实用工具集
- * - dayjs: 日期处理
- -->
+/**
+* @file CommentListComponent.vue
+* @description 评论列表组件 - 展示和管理评论的业务组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
 
 <template>
   <div class="comment-section">
@@ -272,38 +264,49 @@
 
 <style scoped>
   .comment-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+    background-color: var(--bg-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
   }
 
   .comment-input {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xl);
   }
 
-  .comment-textarea,
-  .reply-textarea {
+  .comment-textarea {
     width: 100%;
+    background-color: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    color: var(--text-color);
+    transition: border-color 0.2s ease;
+  }
+
+  .comment-textarea:focus {
+    border-color: var(--primary-color);
   }
 
   .input-footer {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    margin-top: var(--spacing-sm);
   }
 
   .input-tip {
+    color: var(--text-color-secondary);
     font-size: var(--text-sm);
-    color: var(--text-secondary);
   }
 
   .submit-button {
-    color: var(--text-inverse);
     background-color: var(--primary-color);
+    color: white;
     border: none;
-    transition: background-color var(--transition-normal);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-full);
+    font-weight: 500;
+    transition: background-color 0.2s ease;
   }
 
   .submit-button:hover:not(:disabled) {
@@ -311,20 +314,9 @@
   }
 
   .submit-button:disabled {
-    opacity: 0.5;
+    background-color: var(--bg-color-tertiary);
+    color: var(--text-color-secondary);
     cursor: not-allowed;
-  }
-
-  .cancel-button {
-    color: var(--text-secondary);
-    background-color: transparent;
-    border: 1px solid var(--border-light);
-    transition: all var(--transition-normal);
-  }
-
-  .cancel-button:hover {
-    color: var(--text-primary);
-    border-color: var(--border-dark);
   }
 
   .comment-list {
@@ -335,76 +327,119 @@
 
   .comment-item {
     display: flex;
-    flex-direction: column;
     gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--bg-color-secondary);
+    border-radius: var(--radius-lg);
+    transition: background-color 0.2s ease;
   }
 
-  .comment-content {
-    display: flex;
-    gap: var(--spacing-md);
+  .comment-item:hover {
+    background-color: var(--bg-color-tertiary);
   }
 
-  .user-avatar,
-  .user-avatar-small {
-    flex-shrink: 0;
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
     cursor: pointer;
   }
 
   .comment-main {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
+    flex: 1;
   }
 
-  .comment-header,
-  .reply-header {
+  .comment-header {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
   }
 
   .author-name {
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--text-color);
     cursor: pointer;
-    transition: color var(--transition-normal);
   }
 
-  .author-name:hover {
-    color: var(--primary-color);
-  }
-
-  .comment-time,
-  .reply-time {
+  .comment-time {
+    color: var(--text-color-secondary);
     font-size: var(--text-sm);
-    color: var(--text-secondary);
   }
 
-  .comment-text,
-  .reply-text {
-    font-size: var(--text-sm);
-    color: var(--text-primary);
-    white-space: pre-wrap;
-    line-height: 1.5;
+  .comment-text {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: var(--spacing-sm);
   }
 
-  .comment-actions,
-  .reply-actions {
+  .comment-actions {
     display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
   }
 
   .action-button {
-    color: var(--text-secondary);
-    background: none;
-    border: none;
-    transition: color var(--transition-normal);
+    color: var(--text-color-secondary);
+    font-size: var(--text-sm);
+    transition: color 0.2s ease;
   }
 
   .action-button:hover {
-    color: var(--text-primary);
+    color: var(--text-color);
+  }
+
+  /* 暗色模式特定样式 */
+  :root.dark .comment-section,
+  .dark-mode .comment-section {
+    background-color: var(--bg-color-dark);
+  }
+
+  :root.dark .comment-textarea,
+  .dark-mode .comment-textarea {
+    background-color: var(--bg-color-darker);
+    border-color: var(--border-color-dark);
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .input-tip,
+  .dark-mode .input-tip {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .comment-item,
+  .dark-mode .comment-item {
+    background-color: var(--bg-color-darker);
+  }
+
+  :root.dark .comment-item:hover,
+  .dark-mode .comment-item:hover {
+    background-color: var(--bg-color-darkest);
+  }
+
+  :root.dark .author-name,
+  .dark-mode .author-name {
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .comment-time,
+  .dark-mode .comment-time {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .comment-text,
+  .dark-mode .comment-text {
+    color: var(--text-color-dark);
+  }
+
+  :root.dark .action-button,
+  .dark-mode .action-button {
+    color: var(--text-color-secondary-dark);
+  }
+
+  :root.dark .action-button:hover,
+  .dark-mode .action-button:hover {
+    color: var(--text-color-dark);
   }
 
   .reply-input {

@@ -1,22 +1,9 @@
-<!--
- * @description 视频卡片组件
- * @features
- * - 视频信息展示：标题、作者、时长、播放量
- * - 封面展示：支持懒加载和加载失败处理
- * - 交互功能：点击跳转、悬停效果
- * - 预览功能：悬停时自动播放预览
- * - 响应式布局：适配不同屏幕尺寸
- * - 主题适配：支持亮色和暗色主题
- * @dependencies
- * - naive-ui: UI组件库
- * - @vueuse/core: 实用工具集
- * @props
- * - video: 视频信息对象
- * - loading: 是否显示加载状态
- * @emits
- * - click: 点击事件
- * - hover: 悬停事件
- -->
+/**
+* @file VideoCardComponent.vue
+* @description 视频卡片组件 - 展示视频预览信息的业务组件
+* @author Atom Video Team
+* @date 2025-04-09
+*/
 
 <template>
   <div class="video-card" @click="handleClick" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
@@ -27,7 +14,8 @@
         :src="video.previewUrl" poster=""></video>
 
       <!-- 封面图 -->
-      <img v-show="!isPlaying" :src="video.coverUrl" :alt="video.title" loading="lazy" @error="handleImageError" />
+      <img v-show="!isPlaying" :src="imageSrc" :alt="video.title" loading="lazy" @error="handleImageError"
+        fetchpriority="low" @load="handleImageLoaded" />
 
       <!-- 进度条 -->
       <div v-if="watchProgress > 0" class="progress-bar">
@@ -80,7 +68,7 @@
       <div class="meta">
         <div class="author" @click.stop="handleAuthorClick">
           <n-avatar round :size="24" :src="video.author.avatar" :fallback-src="fallbackAvatar" />
-          <span class="author-name">{{ video.author.nickname }}</span>
+          <span class="author-name">{{ authorName }}</span>
         </div>
         <div class="stats">
           <span class="views">{{ formatNumber(video.views) }} 次观看</span>
@@ -160,9 +148,38 @@
     { id: '3', name: '学习清单', videoCount: 5, selected: false }
   ])
 
+  // 预加载和延迟加载逻辑
+  onMounted(() => {
+    if (props.video.coverUrl) {
+      // 为缩略图添加预加载
+      const img = new Image();
+      img.src = props.video.coverUrl;
+    }
+  });
+
+  // 延迟加载图片
+  const imageSrc = computed(() => {
+    return props.video.coverUrl || fallbackAvatar.value;
+  });
+
+  // 图片加载状态
+  const imageLoaded = ref(false);
+  const imageLoading = ref(true);
+
+  const handleImageLoaded = () => {
+    imageLoaded.value = true;
+    imageLoading.value = false;
+  };
+
   // 计算属性
   const fallbackAvatar = computed(() => {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${props.video.author.id}`
+  })
+
+  // 作者名称，兼容不同的Video类型定义
+  const authorName = computed(() => {
+    const author = props.video.author as any; // 使用any类型临时绕过类型检查
+    return author.nickname || author.name || author.username || '未知用户';
   })
 
   // 播放进度
@@ -304,13 +321,15 @@
   .video-card {
     position: relative;
     width: 100%;
-    background-color: var(--card-bg);
+    background-color: var(--bg-color-secondary);
     border-radius: var(--radius-lg);
     overflow: hidden;
     cursor: pointer;
     transition: transform var(--transition-normal),
       box-shadow var(--transition-normal),
       background-color var(--transition-normal);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
 
   .video-card:hover {
@@ -318,12 +337,34 @@
     box-shadow: var(--shadow-lg);
   }
 
+  /* 优化深色模式下的视频卡片 */
+  :root.dark .video-card,
+  .dark-mode .video-card {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(80, 80, 80, 0.3);
+    background-color: rgba(40, 40, 40, 0.7);
+  }
+
+  :root.dark .video-card:hover,
+  .dark-mode .video-card:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    border-color: rgba(100, 100, 100, 0.5);
+  }
+
+  /* 标签增强样式 */
+  :root.dark .tags .n-tag,
+  .dark-mode .tags .n-tag {
+    background-color: rgba(60, 60, 60, 0.8);
+    color: rgba(230, 230, 230, 0.95);
+    border: 1px solid rgba(100, 100, 100, 0.3);
+  }
+
   .thumbnail {
     position: relative;
     width: 100%;
     padding-top: 56.25%;
     /* 16:9 比例 */
-    background-color: var(--secondary-bg);
+    background-color: var(--bg-color-tertiary);
     overflow: hidden;
   }
 
@@ -358,8 +399,8 @@
     padding: 2px 4px;
     background-color: rgba(0, 0, 0, 0.8);
     border-radius: var(--radius-sm);
-    font-size: var(--text-sm);
-    color: var(--text-inverse);
+    font-size: var(--font-size-sm);
+    color: var(--text-color-inverse);
     z-index: 2;
   }
 
@@ -395,7 +436,7 @@
   }
 
   .play-icon {
-    color: var(--text-inverse);
+    color: var(--text-color-inverse);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   }
 
@@ -410,13 +451,14 @@
 
   .info {
     padding: var(--spacing-md);
-    background-color: var(--card-bg);
+    background-color: transparent;
+    /* 修改为透明，继承卡片背景色 */
     transition: background-color var(--transition-normal);
   }
 
   .title {
     margin: 0;
-    font-size: var(--text-base);
+    font-size: var(--font-size-base);
     font-weight: 600;
     color: var(--text-color);
     line-height: 1.4;
@@ -440,8 +482,8 @@
   }
 
   .author-name {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    color: var(--text-color-secondary);
   }
 
   .author:hover .author-name {
@@ -452,8 +494,8 @@
   .stats {
     display: flex;
     gap: var(--spacing-sm);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    color: var(--text-color-secondary);
   }
 
   .tags {
@@ -484,7 +526,7 @@
     }
 
     .title {
-      font-size: var(--text-sm);
+      font-size: var(--font-size-sm);
     }
 
     .meta {
@@ -499,26 +541,14 @@
     }
   }
 
-  /* 确保所有文本颜色适应主题 */
-  [data-theme="dark"] .video-card {
-    background-color: var(--card-bg);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  }
-
-  [data-theme="dark"] .info {
-    background-color: var(--card-bg);
-  }
-
-  [data-theme="dark"] .title {
+  /* 深色模式优化 */
+  :root.dark .title,
+  .dark-mode .title {
     color: var(--text-color);
   }
 
-  [data-theme="dark"] .author-name,
-  [data-theme="dark"] .stats {
-    color: var(--text-secondary);
-  }
-
-  [data-theme="dark"] .video-card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+  :root.dark .info,
+  .dark-mode .info {
+    background-color: transparent;
   }
 </style>

@@ -4,7 +4,7 @@ import { createTestingPinia } from '@pinia/testing';
 import { createRouter, createWebHistory } from 'vue-router';
 import Home from '@/pages/feed/Home.vue';
 import VideoDetail from '@/pages/video/VideoDetail.vue';
-import UserProfile from '@/pages/user/Profile.vue';
+import UserProfileComponent from '@/components/business/user/UserProfileComponent.vue';
 import { useVideoStore } from '@/stores/video';
 import { useUserStore } from '@/stores/user';
 import { useAuthStore } from '@/stores/auth';
@@ -22,7 +22,7 @@ const router = createRouter({
     },
     {
       path: '/user/:id',
-      component: UserProfile,
+      component: UserProfileComponent,
     },
   ],
 });
@@ -97,7 +97,7 @@ describe('用户交互流程集成测试', () => {
     const userStore = useUserStore();
     vi.spyOn(userStore, 'toggleFollow').mockResolvedValue();
 
-    const wrapper = mount(UserProfile, {
+    const wrapper = mount(UserProfileComponent, {
       props: {
         id: '1',
       },
@@ -151,7 +151,7 @@ describe('用户交互流程集成测试', () => {
     vi.spyOn(userStore, 'getUserInfo').mockResolvedValue(mockUser);
     vi.spyOn(userStore, 'getUserVideos').mockResolvedValue([mockVideo]);
 
-    const wrapper = mount(UserProfile, {
+    const wrapper = mount(UserProfileComponent, {
       props: {
         id: '1',
       },
@@ -186,7 +186,7 @@ describe('用户交互流程集成测试', () => {
     };
     vi.spyOn(userStore, 'getUserStats').mockResolvedValue(mockStats);
 
-    const wrapper = mount(UserProfile, {
+    const wrapper = mount(UserProfileComponent, {
       props: {
         id: '1',
       },

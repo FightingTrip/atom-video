@@ -29,7 +29,7 @@
         <template v-else>
           <div v-if="publishedVideos.length > 0" class="video-grid">
             <div v-for="video in publishedVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="handleVideoClick" />
+              <VideoCardComponent :video="video" @click="handleVideoClick" />
               <div class="video-actions">
                 <n-button-group>
                   <n-button size="small" @click="editVideo(video)">编辑</n-button>
@@ -50,7 +50,7 @@
         <template v-else>
           <div v-if="draftVideos.length > 0" class="video-grid">
             <div v-for="video in draftVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCard :video="video" @click="editVideo(video)" />
+              <VideoCardComponent :video="video" @click="editVideo(video)" />
               <div class="video-actions">
                 <n-button-group>
                   <n-button size="small" type="primary" @click="publishDraft(video)">发布</n-button>
@@ -125,7 +125,7 @@
     useMessage
   } from 'naive-ui';
   import { AddCircleOutline } from '@vicons/ionicons5';
-  import VideoCard from '@/components/business/video/VideoCard.vue';
+  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
   import { videoService } from '@/services/video/videoService';
   import { useUserStore } from '@/stores/user';
   import type { Video } from '@/types';

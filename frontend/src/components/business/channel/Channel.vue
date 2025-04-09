@@ -37,7 +37,7 @@
               <el-option label="最受欢迎" value="popular" />
             </el-select>
           </div>
-          <VideoList :videos="filteredVideos" @video-click="handleVideoClick" />
+          <VideoListComponent :videos="filteredVideos" @video-click="handleVideoClick" />
         </el-tab-pane>
         <el-tab-pane label="播放列表" name="playlists">
           <div class="playlist-grid">
@@ -93,7 +93,7 @@
   import { ref, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import type { IVideo } from '@atom-video/shared-types';
-  import VideoList from '@/components/business/video/VideoList.vue';
+  import VideoListComponent from '@/components/business/video/VideoListComponent.vue';
   import { mockVideos } from '@/mock/video';
 
   const route = useRoute();

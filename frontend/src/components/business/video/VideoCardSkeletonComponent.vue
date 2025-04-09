@@ -1,12 +1,8 @@
 /**
-* @file VideoCardSkeleton.vue
-* @description 视频卡片的骨架屏组件，用于视频列表加载时的占位显示
-* @features
-* - 支持网格和列表布局
-* - 响应式设计
-* - 暗色主题支持
+* @file VideoCardSkeletonComponent.vue
+* @description 视频卡片骨架屏组件 - 用于显示加载状态的骨架屏
 * @author Atom Video Team
-* @date 2025-04-06
+* @date 2025-04-09
 */
 
 <!--

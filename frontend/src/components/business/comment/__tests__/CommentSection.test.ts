@@ -1,13 +1,13 @@
 /**
- * @file CommentSection.test.ts
- * @description CommentSection 组件的测试用例
- * @author Atom Video Team
- * @date 2025-04-06
+ * @file CommentSectionComponent.test.ts
+ * @description 评论区组件测试
  */
 
 import { mount } from '@vue/test-utils';
-import { describe, it, expect } from 'vitest';
-import CommentSection from '../CommentSection.vue';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { createTestingPinia } from '@pinia/testing';
+import { createI18n } from 'vue-i18n';
+import CommentSectionComponent from '../CommentSectionComponent.vue';
 
 // 模拟评论数据
 const mockComments = [
@@ -38,9 +38,9 @@ const mockComments = [
   },
 ];
 
-describe('CommentSection', () => {
+describe('CommentSectionComponent', () => {
   it('应该正确渲染评论区域', () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
@@ -54,7 +54,7 @@ describe('CommentSection', () => {
   });
 
   it('应该显示加载状态', () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: [],
         loading: true,
@@ -67,7 +67,7 @@ describe('CommentSection', () => {
 
   it('应该显示错误状态', () => {
     const errorMessage = '加载失败，请重试';
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: [],
         loading: false,
@@ -79,7 +79,7 @@ describe('CommentSection', () => {
   });
 
   it('应该正确渲染评论列表', () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
@@ -94,7 +94,7 @@ describe('CommentSection', () => {
   });
 
   it('应该正确渲染回复列表', () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
@@ -109,7 +109,7 @@ describe('CommentSection', () => {
   });
 
   it('应该正确处理评论提交', async () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
@@ -124,7 +124,7 @@ describe('CommentSection', () => {
   });
 
   it('应该正确处理回复提交', async () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
@@ -139,7 +139,7 @@ describe('CommentSection', () => {
   });
 
   it('应该正确处理评论点赞', async () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
@@ -153,7 +153,7 @@ describe('CommentSection', () => {
   });
 
   it('应该正确处理回复点赞', async () => {
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
@@ -171,7 +171,7 @@ describe('CommentSection', () => {
     global.innerWidth = 500;
     global.dispatchEvent(new Event('resize'));
 
-    const wrapper = mount(CommentSection, {
+    const wrapper = mount(CommentSectionComponent, {
       props: {
         comments: mockComments,
         loading: false,
