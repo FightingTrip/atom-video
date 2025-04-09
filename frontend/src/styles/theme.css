@@ -23,7 +23,7 @@ body {
 /* 定义深色模式变量 */
 :root {
   /* 轻量模式变量 */
-  --primary-bg: #ffffff;
+  --primary-bg: #fff;
   --secondary-bg: #f8f9fa;
   --tertiary-bg: #f1f3f5;
   
@@ -44,9 +44,9 @@ body {
   --scrollbar-thumb-hover: #868e96;
   
   /* 卡片特定变量 */
-  --card-bg: #ffffff;
-  --card-info-bg: #ffffff;
-  --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --card-bg: #fff;
+  --card-info-bg: #fff;
+  --card-hover-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%);
   --card-border: #e9ecef;
 }
 
@@ -75,8 +75,18 @@ body {
   /* 卡片特定变量 */
   --card-bg: #1f1f23;
   --card-info-bg: #1f1f23;
-  --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --card-hover-shadow: 0 10px 15px -3px rgb(0 0 0 / 50%);
   --card-border: #292930;
+  
+  /* 视频详情页面特定变量 */
+  --video-detail-bg: #121212;
+  --video-player-bg: #000;
+  --related-videos-bg: #1f1f23;
+  --related-videos-border: #292930;
+  --video-info-bg: #1f1f23;
+  --empty-state-bg: #1f1f23;
+  --empty-state-icon: #495057;
+  --empty-state-text: #adb5bd;
 }
 
 /* 滚动条样式 */
@@ -106,7 +116,7 @@ body {
 
 .fade-enter-from,
 .fade-leave-to {
-  opacity: 0;
+  opacity: 0%;
 }
 
 /* 通用过渡效果 */
@@ -347,4 +357,45 @@ body {
 
 .scrollbar-thumb-hover {
   background-color: var(--border-dark);
+}
+
+/* 视频页面元素 */
+.video-page-bg {
+  background-color: var(--video-detail-bg);
+}
+
+.related-videos-container {
+  background-color: var(--related-videos-bg);
+  border: 1px solid var(--related-videos-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.related-title {
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  background-color: var(--empty-state-bg);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.empty-state-icon {
+  color: var(--empty-state-icon);
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state-text {
+  color: var(--empty-state-text);
+  font-size: var(--font-size-sm);
 }

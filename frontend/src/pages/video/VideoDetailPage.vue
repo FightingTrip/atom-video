@@ -37,19 +37,36 @@
 
     <div v-else-if="video" class="video-content">
       <div class="primary-column">
-        <VideoPlayerComponent :video="video" v-if="video" class="video-player" />
-        <VideoDetailComponent :video="video" :current-time="savedProgress" :is-liked="isLiked"
-          :is-favorited="isFavorited" :is-subscribed="isSubscribed" :offline-mode="isOfflineMode"
-          @time-update="handleTimeUpdate" @like="handleLike" @favorite="handleFavorite" @subscribe="handleSubscribe"
-          @comment="handleComment" @load-more-comments="loadMoreComments" class="video-detail" />
+        <VideoPlayerComponent :video="video" :current-time="savedProgress" @time-update="handleTimeUpdate"
+          @play="handlePlay" @pause="handlePause" @ended="handleEnded" class="video-player" />
+
+        <VideoDetailComponent :video="video" :is-liked="isLiked" :is-favorited="isFavorited"
+          :is-subscribed="isSubscribed" :offline-mode="isOfflineMode" @like="handleLike" @favorite="handleFavorite"
+          @subscribe="handleSubscribe" @comment="handleComment" @load-more-comments="loadMoreComments"
+          class="video-detail" />
       </div>
       <div class="secondary-column">
         <div class="related-videos">
           <h3 class="related-title">推荐视频</h3>
-          <!-- 这里可以加入推荐视频组件 -->
-          <n-skeleton v-if="!relatedVideos.length" text :repeat="5" />
+
+          <!-- 推荐视频加载状态 -->
+          <template v-if="!relatedVideos.length">
+            <!-- 骨架屏加载效果 -->
+            <n-skeleton v-if="loading" text :repeat="5" />
+
+            <!-- 无推荐视频时的空状态 -->
+            <div v-else class="empty-state">
+              <n-icon size="48">
+                <VideocamOutline />
+              </n-icon>
+              <p>暂无推荐视频</p>
+            </div>
+          </template>
+
+          <!-- 推荐视频列表 -->
           <div v-else class="video-suggestions">
-            <!-- 推荐视频内容 -->
+            <video-card-small v-for="video in relatedVideos" :key="video.id" :video="video"
+              @click="$router.push(`/video/${video.id}`)" />
           </div>
         </div>
       </div>
@@ -61,7 +78,7 @@
   import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { NCard, NSpace, NSpin, NButton, NIcon, NAlert, NSkeleton, useMessage } from 'naive-ui';
-  import { WarningOutline, CloudOfflineOutline } from '@vicons/ionicons5';
+  import { WarningOutline, CloudOfflineOutline, VideocamOutline } from '@vicons/ionicons5';
   import { videoService } from '@/services/video';
   import { useHistoryStore } from '@/stores/history';
   import { useUserStore } from '@/stores/user';
@@ -69,6 +86,7 @@
   import { checkAndEnableOfflineMode, isOfflineMode as checkOfflineMode, checkNetworkAndReconnect } from '@/services/api/errorHandler';
   import VideoPlayerComponent from '@/components/business/video/VideoPlayerComponent.vue';
   import VideoDetailComponent from '@/components/business/video/VideoDetailComponent.vue';
+  import VideoCardSmall from '@/components/common/video/VideoCardSmall.vue';
   import CommentListComponent from '@/components/business/comment/CommentListComponent.vue';
   import type { Video, VideoInteraction, Comment } from '@/types';
 
@@ -336,12 +354,39 @@
   const handleTimeUpdate = (time: number) => {
     if (video.value) {
       try {
-        // 无论是否在线都保存进度
+        // 本地保存播放进度
         historyStore.saveVideoProgress(video.value.id, time);
+
+        // 如果不是离线模式，同时保存到服务器
+        if (!isOfflineMode.value && time % 5 < 1) { // 每5秒左右同步一次进度
+          // 使用刚才添加的服务器端历史记录保存方法
+          videoService.saveWatchHistory(video.value.id, time).catch(err => {
+            console.warn('[VideoDetailPage] 同步播放进度到服务器失败:', err);
+            // 失败时不需要显示给用户，因为本地已保存
+          });
+        }
       } catch (err) {
-        console.error('保存播放进度失败:', err);
+        console.error('[VideoDetailPage] 保存播放进度失败:', err);
       }
     }
+  };
+
+  // 处理播放开始事件
+  const handlePlay = () => {
+    console.log('视频开始播放');
+    // 如果需要可以在这里添加更多逻辑
+  };
+
+  // 处理暂停事件
+  const handlePause = () => {
+    console.log('视频已暂停');
+    // 如果需要可以在这里添加更多逻辑
+  };
+
+  // 处理播放结束事件
+  const handleEnded = () => {
+    console.log('视频播放结束');
+    // 如果需要可以在这里添加逻辑，例如自动播放下一个视频等
   };
 
   // 执行需要登录权限的操作
@@ -487,31 +532,55 @@
     });
   };
 
-  // 路由参数变化时重新获取数据
-  watch(() => route.params.id, (newId, oldId) => {
-    if (newId !== oldId) {
-      fetchVideoData();
-    }
-  });
+  // 在组件挂载时获取视频数据
+  onMounted(async () => {
+    console.log('[VideoDetailPage] 组件开始挂载');
 
-  onMounted(() => {
-    fetchVideoData();
+    // 先检查是否有videoId
+    const videoId = route.params.id;
+    if (!videoId) {
+      router.push('/');
+      return;
+    }
+
+    // 检查是否处于mock模式
+    const isMock = isMockMode;
+    console.log(`[VideoDetailPage] 当前模式: ${isMock ? 'Mock模式' : '正常模式'}`);
+
+    // 检查网络状态
+    if (!navigator.onLine && !isMock) {
+      console.warn('[VideoDetailPage] 网络离线，将使用离线模式');
+      localStorage.setItem('offline_mode', 'true');
+    }
+
+    // 获取视频数据
+    await fetchVideoData();
+
+    // 路由参数变化时重新加载数据
+    watch(() => route.params.id, () => {
+      // 只有当路由ID实际变化时才重新获取
+      if (route.params.id !== videoId) {
+        console.log('[VideoDetailPage] 视频ID变化，重新加载数据');
+        fetchVideoData();
+      }
+    });
 
     // 如果处于模拟数据模式，加载推荐视频
-    if (isMockMode) {
-      const videoId = route.params.id as string;
-      if (videoId) {
-        videoService.getRecommendedVideos(videoId)
+    if (isMock) {
+      const currentVideoId = route.params.id as string;
+      if (currentVideoId) {
+        console.log('[VideoDetailPage] 加载模拟推荐视频');
+        videoService.getRecommendedVideos(currentVideoId)
           .then(res => {
             if (res.success && res.data) {
               relatedVideos.value = res.data;
             }
           })
-          .catch(err => console.error('加载推荐视频失败:', err));
+          .catch(err => console.error('[VideoDetailPage] 加载推荐视频失败:', err));
       }
     }
 
-    console.log('[VideoDetailPage] 组件已挂载');
+    console.log('[VideoDetailPage] 组件已挂载完成');
 
     // 如果处于离线模式，尝试定时检测网络
     if (isOfflineMode.value && networkRetryTimer.value === null) {
@@ -533,13 +602,16 @@
     max-width: 1280px;
     margin: 0 auto;
     padding: 16px;
-    color: var(--text-color-base);
+    color: var(--text-primary);
+    background-color: var(--primary-bg);
+    transition: background-color var(--transition-normal), color var(--transition-normal);
   }
 
   .offline-alert {
     margin-bottom: 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     background-color: #fff7e6;
+    /* 保持警告色不变 */
     border: 1px solid #ffe58f;
     padding: 12px 16px;
     display: flex;
@@ -563,8 +635,10 @@
 
   .loading-card,
   .error-card {
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     margin-bottom: 16px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-medium);
   }
 
   .video-content {
@@ -580,29 +654,66 @@
   .secondary-column {
     width: 320px;
     flex-shrink: 0;
+    transition: background-color var(--transition-normal), border-color var(--transition-normal);
   }
 
   .video-player {
     margin-bottom: 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
+    background-color: var(--video-player-bg);
   }
 
   .video-detail {
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-medium);
   }
 
   .related-videos {
-    background-color: var(--color-bg-surface, #ffffff);
-    border-radius: 8px;
+    background-color: var(--related-videos-bg);
+    border: 1px solid var(--related-videos-border);
+    border-radius: var(--radius-lg);
     padding: 16px;
+    transition: background-color var(--transition-normal), border-color var(--transition-normal);
+    height: 100%;
   }
 
   .related-title {
     font-size: 16px;
     font-weight: 600;
     margin: 0 0 16px;
-    color: var(--color-text-primary);
+    color: var(--text-primary);
+  }
+
+  /* 添加空状态样式 */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background-color: var(--empty-state-bg);
+    border-radius: var(--radius-lg);
+    text-align: center;
+    height: 200px;
+  }
+
+  .empty-state .n-icon {
+    color: var(--empty-state-icon);
+    margin-bottom: 16px;
+  }
+
+  .empty-state p {
+    color: var(--empty-state-text);
+    font-size: 14px;
+  }
+
+  /* 推荐视频列表样式 */
+  .video-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   @media (max-width: 1100px) {

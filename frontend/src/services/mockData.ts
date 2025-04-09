@@ -11,37 +11,56 @@ import type { Video, Comment, User, VideoInteraction } from '@/types';
  * 获取模拟视频数据
  */
 export const getMockVideo = (videoId: string): Video => {
-  // 默认视频URL列表（公共可访问的示例视频）
+  // 更新为更可靠的视频URL列表
   const sampleVideoUrls = [
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4',
+    'https://vjs.zencdn.net/v/oceans.mp4', // 海洋视频
+    'https://media.w3.org/2010/05/sintel/trailer_hd.mp4', // Sintel预告片
+    'https://media.w3.org/2010/05/bunny/movie.mp4', // Big Buck Bunny
+    'https://vjs.zencdn.net/v/elephantsdream.mp4', // Elephants Dream
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
   ];
 
   // 基于videoId确定一个稳定的视频URL（相同ID总是返回相同视频）
   const videoIndex = parseInt(videoId.replace(/\D/g, '0')) % sampleVideoUrls.length;
   const selectedVideoUrl = sampleVideoUrls[videoIndex];
 
+  const videoTitles = [
+    '海洋奇观 - 深海探索纪录片',
+    '幻境 - 动画短片',
+    '奇妙森林冒险',
+    '梦境大象',
+    '城市生活 - 现代都市景观',
+    '大自然的奥秘 - 野生动物探索',
+    '科技与未来 - 创新纪录片',
+  ];
+
+  const videoDesc = [
+    '这是一段关于海洋生物和深海探索的纪录片片段，展示了海洋的神秘与美丽。',
+    '这是一部获奖动画短片的预告，讲述了一个关于梦想与现实的奇幻故事。',
+    '跟随我们的镜头进入神秘的森林世界，探索大自然的奇妙与和谐。',
+    '这部动画片讲述了大象在梦境世界中的奇幻冒险，充满想象力与创意。',
+    '现代都市的快节奏生活，高楼大厦与繁华街道，城市生活的方方面面。',
+    '自然界中野生动物的生存智慧与适应能力，令人惊叹的生态系统平衡。',
+    '探索最新科技发展与未来趋势，了解创新如何改变我们的生活方式。',
+  ];
+
+  // 根据视频索引匹配标题和描述
+  const title = videoTitles[videoIndex] || '测试视频 - ' + videoId;
+  const description = videoDesc[videoIndex] || '这是一个模拟视频，用于测试视频播放界面效果。';
+
+  // 根据视频URL生成封面图
+  const thumbnail = `https://picsum.photos/seed/${videoId}/640/360`;
+
   return {
     id: videoId,
-    title: '测试视频 - ' + videoId,
-    description:
-      '这是一个模拟视频，用于测试视频播放界面效果。实际项目中，这里将显示从后端获取的真实视频数据。这个视频包含了各种测试场景，用于确保视频播放器的功能正常工作，比如全屏播放、音量控制、播放速度调整等。',
-    thumbnail: `https://picsum.photos/seed/${videoId}/480/270`,
-    coverUrl: `https://picsum.photos/seed/${videoId}/480/270`,
-    // 确保始终有视频URL
+    title,
+    description,
+    thumbnail,
+    coverUrl: thumbnail,
     videoUrl: selectedVideoUrl,
-    // 确保有有效的源列表
+    // 为每个视频提供多个清晰度选项
     sources: [
       {
         url: selectedVideoUrl,
@@ -82,7 +101,7 @@ export const getMockVideo = (videoId: string): Video => {
     },
     // 添加可能需要的其他字段
     url: selectedVideoUrl, // 兼容某些组件可能使用的url字段
-    previewUrl: selectedVideoUrl, // 视频预览
+    previewUrl: thumbnail, // 视频预览
     downloadUrl: selectedVideoUrl, // 下载链接
   };
 };
@@ -135,29 +154,69 @@ export const getMockUser = (): User => {
  * 获取模拟推荐视频列表
  */
 export const getMockRecommendedVideos = (videoId: string, count: number = 5): Video[] => {
+  // 更可靠的视频源列表
+  const videoSources = [
+    'https://vjs.zencdn.net/v/oceans.mp4',
+    'https://media.w3.org/2010/05/sintel/trailer_hd.mp4',
+    'https://media.w3.org/2010/05/bunny/movie.mp4',
+    'https://vjs.zencdn.net/v/elephantsdream.mp4',
+  ];
+
+  // 有趣的标题列表
+  const titles = [
+    '海洋生物探索',
+    '数字艺术展示',
+    '自然奇观系列',
+    '创意动画短片',
+    '城市风光记录',
+    '科技发展纪实',
+    '动物世界探秘',
+    '音乐视觉盛宴',
+    '旅行与文化',
+    '创意短片集锦',
+  ];
+
   return Array(count)
     .fill(0)
-    .map((_, i) => ({
-      id: `rec-${i}`,
-      title: `推荐视频 ${i + 1}`,
-      description: '这是一个推荐视频示例。',
-      thumbnail: `https://picsum.photos/seed/rec${i}/480/270`,
-      duration: 30 + Math.floor(Math.random() * 300),
-      views: 100 + Math.floor(Math.random() * 10000),
-      likes: 10 + Math.floor(Math.random() * 1000),
-      favorites: 5 + Math.floor(Math.random() * 500),
-      comments: 2 + Math.floor(Math.random() * 100),
-      createdAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 86400000).toISOString(),
-      tags: ['推荐', '相关视频'],
-      videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      coverUrl: `https://picsum.photos/seed/rec${i}/480/270`,
-      author: {
-        id: `author-rec-${i}`,
-        nickname: `创作者 ${i + 1}`,
-        avatar: `https://i.pravatar.cc/150?u=auth${i}`,
-        verified: Math.random() > 0.7,
-      },
-    }));
+    .map((_, i) => {
+      const videoSource = videoSources[i % videoSources.length];
+      const randomTitle = titles[Math.floor(Math.random() * titles.length)];
+      return {
+        id: `rec-${i}`,
+        title: `${randomTitle} ${i + 1}`,
+        description: '探索创意与技术的无限可能，发现视觉艺术的独特魅力。',
+        thumbnail: `https://picsum.photos/seed/rec${i}/480/270`,
+        duration: 30 + Math.floor(Math.random() * 300),
+        views: 100 + Math.floor(Math.random() * 10000),
+        likes: 10 + Math.floor(Math.random() * 1000),
+        favorites: 5 + Math.floor(Math.random() * 500),
+        comments: 2 + Math.floor(Math.random() * 100),
+        createdAt: new Date(Date.now() - Math.floor(Math.random() * 30) * 86400000).toISOString(),
+        tags: ['推荐', '相关视频'],
+        videoUrl: videoSource,
+        coverUrl: `https://picsum.photos/seed/rec${i}/480/270`,
+        sources: [
+          {
+            url: videoSource,
+            type: 'video/mp4',
+            label: '720p',
+            size: 720,
+          },
+          {
+            url: videoSource,
+            type: 'video/mp4',
+            label: '480p',
+            size: 480,
+          },
+        ],
+        author: {
+          id: `author-rec-${i}`,
+          nickname: `创作者 ${i + 1}`,
+          avatar: `https://i.pravatar.cc/150?u=auth${i}`,
+          verified: Math.random() > 0.7,
+        },
+      };
+    });
 };
 
 /**

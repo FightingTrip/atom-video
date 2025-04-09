@@ -4,6 +4,14 @@ import { handleApiError, checkAndEnableOfflineMode } from './errorHandler';
 
 // 检查是否为离线模式
 const isOfflineMode = (): boolean => {
+  // 首先检查浏览器网络状态
+  if (!navigator.onLine) {
+    // 自动设置离线模式
+    localStorage.setItem('offline_mode', 'true');
+    return true;
+  }
+
+  // 然后检查localStorage中的标记
   return localStorage.getItem('offline_mode') === 'true';
 };
 
@@ -37,16 +45,21 @@ export const apiClient = createApiClient();
 export const apiRequest = async <T>(request: Promise<T>): Promise<T> => {
   // 如果离线模式，抛出错误
   if (isOfflineMode()) {
+    console.warn('[API] 当前处于离线模式，API请求被阻止');
     // 延迟再拒绝 promise，给错误显示增加一点延迟
     await new Promise(resolve => setTimeout(resolve, 300));
-    throw new Error('当前处于离线模式，请稍后再试');
+    throw new Error('当前处于离线模式，网络请求不可用');
   }
 
   try {
     return await request;
   } catch (error) {
     // 检查是否需要进入离线模式
-    checkAndEnableOfflineMode(error);
+    const offline = checkAndEnableOfflineMode(error);
+    if (offline) {
+      console.warn('[API] 网络错误触发进入离线模式');
+      throw new Error('网络连接问题，已切换到离线模式');
+    }
     throw handleApiError(error);
   }
 };

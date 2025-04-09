@@ -39,10 +39,6 @@
 */
 <template>
   <div class="video-detail">
-    <!-- 视频播放器 -->
-    <video-player-component :video="video" :current-time="currentTime" @time-update="handleTimeUpdate"
-      @play="handlePlay" @pause="handlePause" @ended="handleEnded" />
-
     <!-- 视频信息 -->
     <div class="video-info">
       <h1 class="title">{{ video.title }}</h1>
@@ -113,10 +109,24 @@
 
     <!-- 视频互动区 -->
     <div class="video-actions">
-      <n-tooltip v-for="(action, index) in actionButtons" :key="index" :trigger="action.disabled ? 'hover' : 'none'"
-        placement="bottom" :content="action.disabled ? action.tooltip : ''">
-        <n-button class="action-button" :class="{ active: action.active }" :disabled="action.disabled" ghost
-          @click="action.click">
+      <template v-for="(action, index) in actionButtons" :key="index">
+        <!-- 对于禁用的按钮使用tooltip提示 -->
+        <n-tooltip v-if="action.disabled" trigger="hover" placement="bottom" :content="action.tooltip">
+          <n-button class="action-button" :class="{ active: action.active }" :disabled="action.disabled" ghost
+            @click="action.click">
+            <template #icon>
+              <n-icon size="20">
+                <component
+                  :is="action.active ? action.activeIcon ? action.activeIcon() : action.icon() : action.icon()" />
+              </n-icon>
+            </template>
+            {{ action.text }}
+            <span v-if="action.count" class="count">({{ action.count }})</span>
+          </n-button>
+        </n-tooltip>
+
+        <!-- 对于未禁用的按钮直接显示，不需要tooltip -->
+        <n-button v-else class="action-button" :class="{ active: action.active }" ghost @click="action.click">
           <template #icon>
             <n-icon size="20">
               <component
@@ -126,7 +136,7 @@
           {{ action.text }}
           <span v-if="action.count" class="count">({{ action.count }})</span>
         </n-button>
-      </n-tooltip>
+      </template>
     </div>
 
     <!-- 离线模式状态提示 -->
@@ -211,19 +221,33 @@
     DownloadOutline,
     CloudOfflineOutline
   } from '@vicons/ionicons5'
-  import VideoPlayerComponent from './VideoPlayerComponent.vue'
   import type { Video, Comment, PropType } from '@/types'
   import { useAuthStore } from '@/stores/auth'
-  import { formatNumber, formatDate as formatDateUtil } from '@/utils/format'
+  import { formatNumber as importedFormatNumber, formatDate as formatDateUtil } from '@/utils/format'
+
+  // 确保formatNumber函数在组件内可用，防止导入失败或无法访问
+  const formatNumber = (num: number): string => {
+    if (typeof importedFormatNumber === 'function') {
+      try {
+        return importedFormatNumber(num);
+      } catch (error) {
+        console.warn('导入的formatNumber函数调用失败，使用内部实现', error);
+      }
+    }
+    // 内部实现作为备份
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
 
   const props = defineProps({
     video: {
       type: Object as PropType<Video>,
       required: true
-    },
-    currentTime: {
-      type: Number,
-      default: 0
     },
     isLiked: {
       type: Boolean,
@@ -244,10 +268,6 @@
   })
 
   const emit = defineEmits<{
-    (e: 'time-update', time: number): void
-    (e: 'play'): void
-    (e: 'pause'): void
-    (e: 'ended'): void
     (e: 'like'): void
     (e: 'favorite'): void
     (e: 'subscribe'): void
@@ -257,7 +277,6 @@
 
   // 状态
   const authStore = useAuthStore()
-  const currentTime = ref(props.currentTime || 0)
   const commentText = ref('')
   const comments = ref<Comment[]>([])
   const loadingMore = ref(false)
@@ -273,23 +292,6 @@
   })
 
   // 方法
-  const handleTimeUpdate = (time: number) => {
-    currentTime.value = time
-    emit('time-update', time)
-  }
-
-  const handlePlay = () => {
-    emit('play')
-  }
-
-  const handlePause = () => {
-    emit('pause')
-  }
-
-  const handleEnded = () => {
-    emit('ended')
-  }
-
   const handleLike = () => {
     emit('like')
   }
@@ -400,17 +402,6 @@
     background-color: var(--bg-color);
   }
 
-  .video-player-container {
-    position: relative;
-    width: 100%;
-    padding-top: 56.25%;
-    /* 16:9 比例 */
-    background-color: var(--bg-color-darker);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    margin-bottom: var(--spacing-lg);
-  }
-
   .video-info {
     margin-bottom: var(--spacing-xl);
   }
@@ -477,11 +468,6 @@
   :root.dark .video-detail,
   .dark-mode .video-detail {
     background-color: var(--bg-color-dark);
-  }
-
-  :root.dark .video-player-container,
-  .dark-mode .video-player-container {
-    background-color: var(--bg-color-darker);
   }
 
   :root.dark .video-title,

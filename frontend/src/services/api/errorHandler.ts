@@ -8,6 +8,13 @@ export function checkAndEnableOfflineMode(error: unknown): boolean {
     return true;
   }
 
+  // 检查浏览器网络状态
+  if (!navigator.onLine) {
+    localStorage.setItem('offline_mode', 'true');
+    console.warn('[API] 浏览器报告网络离线，已切换到离线模式');
+    return true;
+  }
+
   // 检查是否是网络相关错误
   if (error instanceof AxiosError) {
     if (
@@ -76,23 +83,46 @@ export function isOfflineMode(): boolean {
 
 // 尝试自动检测网络连接并刷新
 export async function checkNetworkAndReconnect(): Promise<boolean> {
+  // 先检查浏览器的online状态
+  if (!navigator.onLine) {
+    console.warn('[API] 浏览器报告网络仍然离线');
+    return false;
+  }
+
   try {
     // 设置一个短超时
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-    const response = await fetch('/api/ping', { signal: controller.signal });
+    // 尝试一个简单的请求来检测服务器连接性
+    const response = await fetch('/api/ping', {
+      signal: controller.signal,
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+      // 添加随机参数避免缓存
+      cache: 'no-store',
+    }).catch(error => {
+      console.warn('[API] 网络连接测试请求失败:', error);
+      return null;
+    });
+
     clearTimeout(timeoutId);
 
-    if (response.ok) {
+    if (response && response.ok) {
       // 网络恢复，清除离线模式标志
       localStorage.removeItem('offline_mode');
+      console.log('[API] 网络连接已恢复');
       return true;
     }
+
+    console.warn('[API] 网络连接测试失败，服务器响应异常');
     return false;
   } catch (err) {
     // 网络仍然不可用
-    console.warn('网络连接检测失败:', err);
+    console.warn('[API] 网络连接检测失败:', err);
     return false;
   }
 }

@@ -21,10 +21,11 @@ export const videoService = {
     if (isMockMode) {
       // 在mock模式下返回模拟数据，并增加一定的延迟以模拟网络请求
       try {
+        console.log('[VideoService] 使用模拟模式获取视频:', videoId);
         await mockDelay(500);
         return createMockResponse(getMockVideo(videoId));
       } catch (error) {
-        console.error('获取模拟视频失败:', error);
+        console.error('[VideoService] 获取模拟视频失败:', error);
         // 即使模拟数据出错也尝试返回基本的视频对象
         return createMockResponse(getMockVideo(videoId));
       }
@@ -32,9 +33,26 @@ export const videoService = {
 
     // 真实API调用
     try {
-      return await api.get(`/videos/${videoId}`);
+      console.log('[VideoService] 从API获取视频:', videoId);
+      const response = await api.get(`/videos/${videoId}`);
+      console.log('[VideoService] API返回视频数据:', response.success);
+      return response;
     } catch (error) {
-      console.error('获取视频详情失败:', error);
+      console.error('[VideoService] 获取视频详情失败:', error);
+
+      // 检查是否是网络错误
+      const isNetworkError =
+        error instanceof Error &&
+        (error.message.includes('Network Error') ||
+          error.message.includes('Failed to fetch') ||
+          error.message.includes('ERR_CONNECTION_REFUSED'));
+
+      if (isNetworkError) {
+        console.warn('[VideoService] 检测到网络错误，切换到模拟数据');
+        // 使用模拟数据并告知用户
+        return createMockResponse(getMockVideo(videoId), false, '网络连接问题，显示离线内容');
+      }
+
       // 在真实API失败时，如果配置允许，仍然使用模拟数据作为回退
       return createMockResponse(getMockVideo(videoId), false, '获取视频失败，使用备用数据');
     }
@@ -194,15 +212,60 @@ export const videoService = {
    */
   updateVideoViews: async (videoId: string): Promise<ApiResponse<any>> => {
     if (isMockMode) {
+      console.log('[VideoService] 模拟模式更新播放量:', videoId);
       await mockDelay(100);
       return createMockResponse({ success: true });
     }
 
     try {
-      return await api.post(`/videos/${videoId}/views`);
+      console.log('[VideoService] 更新视频播放量:', videoId);
+      // 设置更短的超时，因为这是非关键请求
+      const response = await api.post(`/videos/${videoId}/views`, null, {
+        timeout: 5000,
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+      });
+      return response;
     } catch (error) {
-      console.error('更新视频播放量失败:', error);
-      return createMockResponse(null, false, '更新播放量失败');
+      // 由于这不是关键操作，我们可以静默处理错误，不影响主要体验
+      console.warn('[VideoService] 更新视频播放量失败:', error);
+      // 返回成功响应，允许用户继续使用
+      return createMockResponse({ success: true, silent: true }, true, '');
+    }
+  },
+
+  /**
+   * 保存观看历史记录
+   */
+  saveWatchHistory: async (videoId: string, progress: number): Promise<ApiResponse<any>> => {
+    if (isMockMode) {
+      console.log('[VideoService] 模拟模式保存观看历史:', videoId, progress);
+      await mockDelay(100);
+      return createMockResponse({ success: true });
+    }
+
+    try {
+      console.log('[VideoService] 保存观看历史:', videoId, progress);
+      // 设置更短的超时，因为这是非关键请求
+      const response = await api.post(
+        `/history/watch/${videoId}`,
+        { progress },
+        {
+          timeout: 5000,
+          headers: {
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+        }
+      );
+      return response;
+    } catch (error) {
+      // 由于这不是关键操作，我们可以静默处理错误，不影响主要体验
+      console.warn('[VideoService] 保存观看历史失败:', error);
+      // 返回成功响应，允许用户继续使用
+      return createMockResponse({ success: true, silent: true }, true, '');
     }
   },
 };
