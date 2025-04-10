@@ -79,7 +79,7 @@ export const useHistoryStore = defineStore('history', () => {
 
   // 添加视频到观看历史
   const addToWatchHistory = async (videoId: string): Promise<void> => {
-    // 如果处于离线模式或上一次请求失败，不再发送请求
+    // 如果处于离线模式，不发送请求
     if (localStorage.getItem('offline_mode') === 'true') {
       return;
     }
@@ -87,7 +87,13 @@ export const useHistoryStore = defineStore('history', () => {
     try {
       loading.value = true;
       error.value = null;
-      await api.post(`/history/watch/${videoId}`);
+
+      // 设置请求超时
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      await api.post(`/history/watch/${videoId}`, {}, { signal: controller.signal });
+      clearTimeout(timeoutId);
     } catch (err) {
       error.value = err instanceof Error ? err.message : '添加视频失败';
 
@@ -96,7 +102,8 @@ export const useHistoryStore = defineStore('history', () => {
         err instanceof Error &&
         (err.message.includes('Network Error') ||
           err.message.includes('Failed to fetch') ||
-          err.message.includes('ERR_CONNECTION_REFUSED'))
+          err.message.includes('ERR_CONNECTION_REFUSED') ||
+          err.name === 'AbortError')
       ) {
         // 设置离线模式标记，避免后续重复请求
         localStorage.setItem('offline_mode', 'true');
@@ -216,6 +223,18 @@ export const useHistoryStore = defineStore('history', () => {
     // 如果在线且未进入离线模式，则同时调用后端API记录观看历史
     const isOfflineMode = localStorage.getItem('offline_mode') === 'true';
     if (!isOfflineMode) {
+      // 添加防抖，避免短时间内重复调用API
+      const now = Date.now();
+      const lastCall = parseInt(localStorage.getItem(`last_history_call_${video.id}`) || '0');
+
+      // 如果距离上次调用不足30秒，则不重复调用
+      if (now - lastCall < 30000) {
+        return;
+      }
+
+      // 记录本次调用时间
+      localStorage.setItem(`last_history_call_${video.id}`, now.toString());
+
       // 调用API，但不等待结果
       addToWatchHistory(video.id).catch(() => {
         // 错误处理已在addToWatchHistory内部完成

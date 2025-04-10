@@ -187,3 +187,12 @@ export interface Category {
   id: string;
   name: string;
 }
+
+/**
+ * 视频互动状态接口
+ */
+export interface VideoInteraction {
+  isLiked: boolean;
+  isFavorited: boolean;
+  isSubscribed: boolean;
+}

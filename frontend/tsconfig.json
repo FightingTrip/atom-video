@@ -11,7 +11,7 @@
     "sourceMap": true,
     "noEmitOnError": true,
     "target": "ES2022",
-    "types": ["vite/client", "vitest/globals", "vue/ref-macros"]
+    "types": ["vite/client", "vitest/globals"]
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
   "exclude": ["node_modules", "dist"],

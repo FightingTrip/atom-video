@@ -21,6 +21,10 @@
 * @props
 * - video: 视频信息对象
 * - currentTime: 当前播放时间（可选）
+* - isLiked: 是否已点赞（可选）
+* - isFavorited: 是否已收藏（可选）
+* - isSubscribed: 是否已关注（可选）
+* - offlineMode: 是否离线模式（可选）
 *
 * @emits
 * - time-update: 播放时间更新
@@ -35,10 +39,6 @@
 */
 <template>
   <div class="video-detail">
-    <!-- 视频播放器 -->
-    <video-player-component :video="video" :current-time="currentTime" @time-update="handleTimeUpdate"
-      @play="handlePlay" @pause="handlePause" @ended="handleEnded" />
-
     <!-- 视频信息 -->
     <div class="video-info">
       <h1 class="title">{{ video.title }}</h1>
@@ -107,6 +107,46 @@
       </div>
     </div>
 
+    <!-- 视频互动区 -->
+    <div class="video-actions">
+      <template v-for="(action, index) in actionButtons" :key="index">
+        <!-- 对于禁用的按钮使用tooltip提示 -->
+        <n-tooltip v-if="action.disabled" trigger="hover" placement="bottom" :content="action.tooltip">
+          <n-button class="action-button" :class="{ active: action.active }" :disabled="action.disabled" ghost
+            @click="action.click">
+            <template #icon>
+              <n-icon size="20">
+                <component
+                  :is="action.active ? action.activeIcon ? action.activeIcon() : action.icon() : action.icon()" />
+              </n-icon>
+            </template>
+            {{ action.text }}
+            <span v-if="action.count" class="count">({{ action.count }})</span>
+          </n-button>
+        </n-tooltip>
+
+        <!-- 对于未禁用的按钮直接显示，不需要tooltip -->
+        <n-button v-else class="action-button" :class="{ active: action.active }" ghost @click="action.click">
+          <template #icon>
+            <n-icon size="20">
+              <component
+                :is="action.active ? action.activeIcon ? action.activeIcon() : action.icon() : action.icon()" />
+            </n-icon>
+          </template>
+          {{ action.text }}
+          <span v-if="action.count" class="count">({{ action.count }})</span>
+        </n-button>
+      </template>
+    </div>
+
+    <!-- 离线模式状态提示 -->
+    <div v-if="offlineMode" class="offline-notice">
+      <n-icon color="#f0a020">
+        <CloudOfflineOutline />
+      </n-icon>
+      <span>离线模式下，互动功能将在本地模拟，不会同步到服务器</span>
+    </div>
+
     <!-- 评论区 -->
     <div class="comments">
       <h2 class="comments-title">
@@ -167,28 +207,67 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
-  import { NButton, NButtonGroup, NIcon, NInput, NAvatar, NTag } from 'naive-ui'
+  import { ref, computed, h } from 'vue'
+  import { NButton, NButtonGroup, NIcon, NInput, NAvatar, NTag, NTooltip } from 'naive-ui'
   import {
     ThumbsUp,
     Bookmark,
     Share,
-    Chatbubble
+    Chatbubble,
+    ThumbsUpOutline,
+    HeartOutline,
+    Heart,
+    ShareSocialOutline,
+    DownloadOutline,
+    CloudOfflineOutline
   } from '@vicons/ionicons5'
-  import VideoPlayerComponent from './VideoPlayerComponent.vue'
-  import type { Video, Comment } from '@/types'
+  import type { Video, Comment, PropType } from '@/types'
   import { useAuthStore } from '@/stores/auth'
+  import { formatNumber as importedFormatNumber, formatDate as formatDateUtil } from '@/utils/format'
 
-  const props = defineProps<{
-    video: Video
-    currentTime?: number
-  }>()
+  // 确保formatNumber函数在组件内可用，防止导入失败或无法访问
+  const formatNumber = (num: number): string => {
+    if (typeof importedFormatNumber === 'function') {
+      try {
+        return importedFormatNumber(num);
+      } catch (error) {
+        console.warn('导入的formatNumber函数调用失败，使用内部实现', error);
+      }
+    }
+    // 内部实现作为备份
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  const props = defineProps({
+    video: {
+      type: Object as PropType<Video>,
+      required: true
+    },
+    isLiked: {
+      type: Boolean,
+      default: false
+    },
+    isFavorited: {
+      type: Boolean,
+      default: false
+    },
+    isSubscribed: {
+      type: Boolean,
+      default: false
+    },
+    offlineMode: {
+      type: Boolean,
+      default: false
+    }
+  })
 
   const emit = defineEmits<{
-    (e: 'time-update', time: number): void
-    (e: 'play'): void
-    (e: 'pause'): void
-    (e: 'ended'): void
     (e: 'like'): void
     (e: 'favorite'): void
     (e: 'subscribe'): void
@@ -198,10 +277,6 @@
 
   // 状态
   const authStore = useAuthStore()
-  const currentTime = ref(props.currentTime || 0)
-  const isLiked = ref(false)
-  const isFavorited = ref(false)
-  const isSubscribed = ref(false)
   const commentText = ref('')
   const comments = ref<Comment[]>([])
   const loadingMore = ref(false)
@@ -217,35 +292,15 @@
   })
 
   // 方法
-  const handleTimeUpdate = (time: number) => {
-    currentTime.value = time
-    emit('time-update', time)
-  }
-
-  const handlePlay = () => {
-    emit('play')
-  }
-
-  const handlePause = () => {
-    emit('pause')
-  }
-
-  const handleEnded = () => {
-    emit('ended')
-  }
-
   const handleLike = () => {
-    isLiked.value = !isLiked.value
     emit('like')
   }
 
   const handleFavorite = () => {
-    isFavorited.value = !isFavorited.value
     emit('favorite')
   }
 
   const handleSubscribe = () => {
-    isSubscribed.value = !isSubscribed.value
     emit('subscribe')
   }
 
@@ -260,13 +315,6 @@
     loadingMore.value = true
     await emit('load-more-comments')
     loadingMore.value = false
-  }
-
-  const formatNumber = (num: number) => {
-    if (num >= 10000) {
-      return (num / 10000).toFixed(1) + 'w'
-    }
-    return num.toString()
   }
 
   const formatDate = (date: string) => {
@@ -290,6 +338,60 @@
   const getFallbackAvatar = (id: string) => {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`
   }
+
+  // 显示分享模态框
+  const showShareModal = ref(() => {
+    // 实现分享功能
+    alert('分享功能暂未实现');
+  })
+
+  // 下载视频
+  const handleDownload = () => {
+    // 实现下载功能
+    alert('下载功能暂未实现');
+  }
+
+  // 交互按钮
+  const actionButtons = [
+    {
+      icon: () => h(ThumbsUpOutline),
+      activeIcon: () => h(ThumbsUp),
+      text: '点赞',
+      active: props.isLiked,
+      count: computed(() => formatNumber(props.video.likes)),
+      click: () => emit('like'),
+      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isLiked ? '取消点赞' : '点赞')),
+      disabled: false
+    },
+    {
+      icon: () => h(HeartOutline),
+      activeIcon: () => h(Heart),
+      text: '收藏',
+      active: props.isFavorited,
+      count: computed(() => formatNumber(props.video.favorites)),
+      click: () => emit('favorite'),
+      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isFavorited ? '取消收藏' : '收藏')),
+      disabled: false
+    },
+    {
+      icon: () => h(ShareSocialOutline),
+      text: '分享',
+      active: false,
+      count: null,
+      click: () => showShareModal.value(),
+      tooltip: '分享视频',
+      disabled: props.offlineMode // 离线模式下禁用分享
+    },
+    {
+      icon: () => h(DownloadOutline),
+      text: '下载',
+      active: false,
+      count: null,
+      click: handleDownload,
+      tooltip: props.offlineMode ? '离线模式下无法下载' : '下载视频',
+      disabled: props.offlineMode // 离线模式下禁用下载
+    }
+  ]
 </script>
 
 <style scoped>
@@ -298,17 +400,6 @@
     margin: 0 auto;
     padding: var(--spacing-lg);
     background-color: var(--bg-color);
-  }
-
-  .video-player-container {
-    position: relative;
-    width: 100%;
-    padding-top: 56.25%;
-    /* 16:9 比例 */
-    background-color: var(--bg-color-darker);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    margin-bottom: var(--spacing-lg);
   }
 
   .video-info {
@@ -377,11 +468,6 @@
   :root.dark .video-detail,
   .dark-mode .video-detail {
     background-color: var(--bg-color-dark);
-  }
-
-  :root.dark .video-player-container,
-  .dark-mode .video-player-container {
-    background-color: var(--bg-color-darker);
   }
 
   :root.dark .video-title,
@@ -517,6 +603,47 @@
     display: flex;
     justify-content: center;
     margin-top: var(--spacing-lg);
+  }
+
+  .video-actions {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+  }
+
+  .action-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 18px;
+    transition: all 0.2s;
+  }
+
+  .action-button.active {
+    color: var(--primary-color, #1890ff);
+    background-color: var(--primary-color-light, #e6f7ff);
+  }
+
+  .action-button:hover:not(:disabled) {
+    background-color: var(--color-bg-hover, #f5f5f5);
+  }
+
+  .action-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .offline-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 8px 12px;
+    background-color: var(--warning-color-light, #fff7e6);
+    border-radius: 4px;
+    color: var(--warning-color, #faad14);
+    font-size: 0.9em;
   }
 
   @media (max-width: 768px) {

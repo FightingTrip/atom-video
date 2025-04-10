@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useThemeStore } from '@/stores/theme'
   import { useUserStore } from '@/stores/user'
   import {
@@ -49,10 +49,26 @@
   const locale = ref(zhCN)
   const dateLocale = ref(dateZhCN)
 
+  // 在document根元素上设置深色模式类
+  watch(() => themeStore.isDark, (isDark) => {
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, { immediate: true })
+
   onMounted(async () => {
     try {
       // 初始化主题
       themeStore.initTheme()
+
+      // 立即应用主题类
+      if (themeStore.isDark) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
 
       // 初始化用户
       await userStore.initUser()

@@ -273,33 +273,38 @@
         <p class="section-description">自定义网站的显示方式</p>
 
         <n-form class="settings-form">
-          <n-form-item label="主题">
-            <n-radio-group v-model:value="appearanceSettings.theme" name="theme">
-              <n-space>
-                <n-radio value="light">
-                  浅色
-                </n-radio>
-                <n-radio value="dark">
-                  深色
-                </n-radio>
-                <n-radio value="system">
-                  跟随系统
-                </n-radio>
-              </n-space>
-            </n-radio-group>
-          </n-form-item>
+          <div class="appearance-settings">
+            <h3 class="settings-section-title">{{ $t('settings.appearance') }}</h3>
 
-          <n-form-item label="字体大小">
-            <n-slider v-model:value="appearanceSettings.fontSize" :min="12" :max="20" :step="1" :marks="{
-              12: '小',
-              16: '中',
-              20: '大'
-            }" style="max-width: 300px" />
-          </n-form-item>
+            <div class="form-group">
+              <label for="theme" class="form-label">{{ $t('settings.theme') }}</label>
+              <select id="theme" v-model="appearanceSettings.theme" class="form-select"
+                @change="saveAppearanceSettings">
+                <option value="system">{{ $t('settings.systemTheme') }}</option>
+                <option value="light">{{ $t('settings.lightTheme') }}</option>
+                <option value="dark">{{ $t('settings.darkTheme') }}</option>
+              </select>
+            </div>
 
-          <div class="form-actions">
-            <n-button @click="resetAppearance">取消</n-button>
-            <n-button type="primary" @click="saveAppearanceSettings">保存设置</n-button>
+            <div class="form-group">
+              <label for="fontSize" class="form-label">{{ $t('settings.fontSize') }}</label>
+              <select id="fontSize" v-model="appearanceSettings.fontSize" class="form-select"
+                @change="saveAppearanceSettings">
+                <option value="small">{{ $t('settings.small') }}</option>
+                <option value="medium">{{ $t('settings.medium') }}</option>
+                <option value="large">{{ $t('settings.large') }}</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="language" class="form-label">{{ $t('settings.language') }}</label>
+              <LanguageSelectorComponent class="settings-language-selector" />
+            </div>
+
+            <div class="settings-actions">
+              <n-button @click="resetAppearance">取消</n-button>
+              <n-button type="primary" @click="saveAppearanceSettings">保存设置</n-button>
+            </div>
           </div>
         </n-form>
       </div>
@@ -327,6 +332,7 @@
     NRadio,
     NSlider
   } from 'naive-ui';
+  import LanguageSelectorComponent from '@/components/business/user/LanguageSelectorComponent.vue';
 
   // 设置部分列表
   const sections = [
@@ -872,5 +878,17 @@
     .cover-preview {
       width: 100%;
     }
+  }
+
+  .settings-language-selector {
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .settings-language-selector :deep(.selector-trigger) {
+    width: 100%;
+    justify-content: space-between;
+    padding: 0.625rem 0.75rem;
+    height: 38px;
   }
 </style>
