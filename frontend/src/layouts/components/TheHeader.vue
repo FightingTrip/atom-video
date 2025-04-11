@@ -60,6 +60,21 @@
           </router-link>
         </div>
 
+        <!-- 管理后台入口 -->
+        <div class="header-icon-btn" v-if="isAdmin">
+          <router-link to="/admin/dashboard" class="icon-link admin-link">
+            <n-icon size="24">
+              <ShieldOutline />
+            </n-icon>
+            <n-tooltip trigger="hover" placement="bottom">
+              <template #trigger>
+                <span class="admin-icon-text">管理</span>
+              </template>
+              进入管理后台
+            </n-tooltip>
+          </router-link>
+        </div>
+
         <!-- 夜间模式切换 -->
         <div class="header-icon-btn" @click="toggleTheme">
           <n-icon size="24">
@@ -93,7 +108,7 @@
 <script setup lang="ts">
   import { ref, computed, h } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
-  import { NInput, NIcon, NDropdown, NAvatar, NButton } from 'naive-ui'
+  import { NInput, NIcon, NDropdown, NAvatar, NButton, NTooltip } from 'naive-ui'
   import {
     MenuOutline,
     SearchOutline,
@@ -106,7 +121,8 @@
     PersonCircleOutline,
     HeartOutline,
     BookmarkOutline,
-    TimeOutline
+    TimeOutline,
+    ShieldOutline
   } from '@vicons/ionicons5'
   import { useUserStore } from '@/stores/user'
   import { useAuthStore } from '@/stores/auth'
@@ -131,45 +147,68 @@
   const isLoggedIn = computed(() => authStore.isAuthenticated)
 
   // 用户头像
-  const userAvatar = computed(() => userStore.avatarUrl || 'https://i.pravatar.cc/150?img=1')
+  const userAvatar = computed(() => {
+    if (userStore.currentUser?.avatar) {
+      return userStore.currentUser.avatar;
+    }
+    return 'https://i.pravatar.cc/150?img=1';
+  });
 
   // 用户菜单选项
-  const userMenuOptions = [
-    {
-      label: '个人中心',
-      key: 'profile',
-      icon: () => h(NIcon, null, { default: () => h(PersonCircleOutline) })
-    },
-    {
-      label: '我的视频',
-      key: 'videos',
-      icon: () => h(NIcon, null, { default: () => h(VideocamOutline) })
-    },
-    {
-      label: '收藏',
-      key: 'favorites',
-      icon: () => h(NIcon, null, { default: () => h(BookmarkOutline) })
-    },
-    {
-      label: '历史记录',
-      key: 'history',
-      icon: () => h(NIcon, null, { default: () => h(TimeOutline) })
-    },
-    {
-      label: '设置',
-      key: 'settings',
-      icon: () => h(NIcon, null, { default: () => h(SettingsOutline) })
-    },
-    {
-      type: 'divider',
-      key: 'd1'
-    },
-    {
-      label: '退出登录',
-      key: 'logout',
-      icon: () => h(NIcon, null, { default: () => h(LogOutOutline) })
+  const userMenuOptions = computed(() => {
+    const baseOptions = [
+      {
+        label: '个人中心',
+        key: 'profile',
+        icon: () => h(NIcon, null, { default: () => h(PersonCircleOutline) })
+      },
+      {
+        label: '我的视频',
+        key: 'videos',
+        icon: () => h(NIcon, null, { default: () => h(VideocamOutline) })
+      },
+      {
+        label: '收藏',
+        key: 'favorites',
+        icon: () => h(NIcon, null, { default: () => h(BookmarkOutline) })
+      },
+      {
+        label: '历史记录',
+        key: 'history',
+        icon: () => h(NIcon, null, { default: () => h(TimeOutline) })
+      },
+      {
+        label: '设置',
+        key: 'settings',
+        icon: () => h(NIcon, null, { default: () => h(SettingsOutline) })
+      }
+    ]
+
+    // 如果是管理员，添加管理后台入口
+    if (authStore.isAdmin) {
+      baseOptions.push({
+        label: '管理后台',
+        key: 'admin',
+        icon: () => h(NIcon, null, { default: () => h(ShieldOutline) })
+      })
     }
-  ]
+
+    // 添加分隔线和登出选项
+    baseOptions.push(
+      {
+        label: '──────────',
+        key: 'd1',
+        icon: () => h('div'),
+      },
+      {
+        label: '退出登录',
+        key: 'logout',
+        icon: () => h(NIcon, null, { default: () => h(LogOutOutline) })
+      }
+    )
+
+    return baseOptions
+  })
 
   // 处理搜索
   const handleSearch = () => {
@@ -196,20 +235,23 @@
     try {
       switch (key) {
         case 'profile':
-          await router.push(`/user/${userStore.userId}`)
-          break
+          await router.push(`/user/${userStore.currentUser?.id || 'profile'}`);
+          break;
         case 'videos':
           await router.push('/video/list')
-          break
+          break;
         case 'favorites':
           await router.push('/library')
-          break
+          break;
         case 'history':
           await router.push('/library/history')
-          break
+          break;
         case 'settings':
           await router.push('/user/settings')
-          break
+          break;
+        case 'admin':
+          await router.push('/admin/dashboard')
+          break;
         case 'logout':
           await authStore.logout()
           await router.push('/')
@@ -224,6 +266,9 @@
   const handleLogin = () => {
     router.push('/auth/login')
   }
+
+  // 管理员状态
+  const isAdmin = computed(() => authStore.isAdmin)
 </script>
 
 <style scoped>
@@ -373,6 +418,26 @@
     height: 100%;
   }
 
+  .admin-link {
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    border-radius: 18px;
+    padding: 0 8px;
+    gap: 4px;
+    width: auto;
+    transition: background-color 0.3s ease;
+  }
+
+  .admin-link:hover {
+    background-color: rgba(var(--primary-color-rgb), 0.2);
+  }
+
+  .admin-icon-text {
+    font-size: 14px;
+    font-weight: 500;
+    margin-left: 4px;
+    display: inline-block;
+  }
+
   .user-area {
     margin-left: 8px;
   }
@@ -404,6 +469,16 @@
 
     .logo-text {
       display: none;
+    }
+
+    .admin-icon-text {
+      display: none;
+    }
+
+    .admin-link {
+      padding: 0;
+      width: 100%;
+      border-radius: 50%;
     }
   }
 

@@ -62,7 +62,9 @@
               <n-radio-button value="month">本月</n-radio-button>
             </n-radio-group>
           </div>
-          <div class="chart-container" ref="userTrendsChart"></div>
+          <div class="chart-placeholder">
+            <n-empty description="用户活跃趋势图表" />
+          </div>
         </n-card>
       </n-grid-item>
 
@@ -99,10 +101,14 @@
     <n-card title="内容分布统计" class="content-stats-card">
       <n-grid cols="1 m:2" :x-gap="16" :y-gap="16">
         <n-grid-item>
-          <div class="chart-container" ref="categoryChart"></div>
+          <div class="chart-placeholder">
+            <n-empty description="分类分布图表" />
+          </div>
         </n-grid-item>
         <n-grid-item>
-          <div class="chart-container" ref="tagChart"></div>
+          <div class="chart-placeholder">
+            <n-empty description="标签分布图表" />
+          </div>
         </n-grid-item>
       </n-grid>
     </n-card>
@@ -170,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
   NButton, 
   NButtonGroup, 
@@ -187,7 +193,8 @@ import {
   NRadioButton,
   NTabs,
   NTabPane,
-  NTable
+  NTable,
+  NEmpty
 } from 'naive-ui'
 import { 
   PeopleOutline, 
@@ -205,27 +212,9 @@ import {
   AlertCircleOutline,
   EyeOutline
 } from '@vicons/ionicons5'
-import * as echarts from 'echarts/core'
-import { BarChart, LineChart, PieChart } from 'echarts/charts'
-import {
-  TitleComponent,
-  TooltipComponent,
-  GridComponent,
-  LegendComponent
-} from 'echarts/components'
-import { CanvasRenderer } from 'echarts/renderers'
 
-// 注册必须的组件
-echarts.use([
-  TitleComponent,
-  TooltipComponent,
-  GridComponent,
-  LegendComponent,
-  LineChart,
-  BarChart,
-  PieChart,
-  CanvasRenderer
-])
+// 使用ref创建响应式变量
+const timeRange = ref('week')
 
 // 统计数据
 const statistics = ref([
@@ -249,7 +238,7 @@ const statistics = ref([
     key: 'interactions',
     title: '互动总数',
     value: '84,521',
-    change: -2.3,
+    change: 8.2,
     icon: HeartOutline,
     class: 'interaction-stat'
   },
@@ -257,52 +246,63 @@ const statistics = ref([
     key: 'comments',
     title: '评论总数',
     value: '31,275',
-    change: 8.7,
+    change: -3.6,
     icon: ChatbubbleOutline,
     class: 'comment-stat'
   }
 ])
 
+// 获取趋势样式
+function getTrendClass(change: number) {
+  return change > 0 ? 'trend-up' : 'trend-down'
+}
+
+// 格式化趋势数据
+function formatTrend(change: number) {
+  const prefix = change > 0 ? '+' : ''
+  return `${prefix}${change.toFixed(1)}%`
+}
+
 // 近期活动
 const activities = ref([
   {
-    id: 1,
+    id: '1',
+    type: '注册',
     title: '新用户注册',
     description: '用户 John Doe 完成了注册',
-    type: '用户',
     time: '10分钟前',
     avatar: 'https://i.pravatar.cc/100?img=1'
   },
   {
-    id: 2,
+    id: '2',
+    type: '上传',
     title: '视频上传',
     description: 'Alice 上传了新视频"Vue 3.0 深入解析"',
-    type: '内容',
     time: '30分钟前',
     avatar: 'https://i.pravatar.cc/100?img=2'
   },
   {
-    id: 3,
-    title: '举报处理',
-    description: '管理员处理了一条内容投诉',
-    type: '管理',
-    time: '2小时前',
+    id: '3',
+    type: '举报',
+    title: '内容举报',
+    description: '用户举报了一条不当评论',
+    time: '1小时前',
     avatar: 'https://i.pravatar.cc/100?img=3'
   },
   {
-    id: 4,
-    title: '评论标记',
-    description: '系统自动标记了一条可能违规的评论',
-    type: '系统',
-    time: '4小时前',
+    id: '4',
+    type: '订阅',
+    title: '频道订阅',
+    description: 'Bob 订阅了 Tech Channel 频道',
+    time: '2小时前',
     avatar: 'https://i.pravatar.cc/100?img=4'
   },
   {
-    id: 5,
-    title: '创作者认证',
-    description: 'Bob 申请了创作者认证',
-    type: '认证',
-    time: '1天前',
+    id: '5',
+    type: '评论',
+    title: '新评论',
+    description: 'Charlie 在视频"JavaScript教程"下发表了评论',
+    time: '3小时前',
     avatar: 'https://i.pravatar.cc/100?img=5'
   }
 ])
@@ -310,313 +310,90 @@ const activities = ref([
 // 待审核视频
 const pendingVideos = ref([
   {
-    id: 1,
-    title: 'TypeScript高级类型讲解',
-    uploader: 'Alice',
-    uploadTime: '2025-04-10 14:30'
+    id: '1',
+    title: 'Vue 3.0 完全指南',
+    uploader: 'TechGuru',
+    uploadTime: '今天 08:30'
   },
   {
-    id: 2,
-    title: 'React Hooks深入解析',
-    uploader: 'Bob',
-    uploadTime: '2025-04-10 11:15'
+    id: '2',
+    title: 'React vs Vue 深度对比',
+    uploader: 'CodeMaster',
+    uploadTime: '今天 10:15'
   },
   {
-    id: 3,
-    title: 'Vue 3.0性能优化技巧',
-    uploader: 'Charlie',
-    uploadTime: '2025-04-09 18:45'
+    id: '3',
+    title: 'TypeScript 高级技巧',
+    uploader: 'JSNinja',
+    uploadTime: '昨天 16:45'
   }
 ])
 
 // 待处理举报
 const pendingReports = ref([
   {
-    id: 1,
-    content: '视频"JavaScript基础"中包含不当内容',
-    type: '内容不当',
-    time: '2025-04-10 16:20'
+    id: '1',
+    content: '视频含有不当内容',
+    type: '违规内容',
+    time: '今天 09:45'
   },
   {
-    id: 2,
-    content: '用户"BadUser"的评论有侮辱性言论',
-    type: '骚扰',
-    time: '2025-04-10 10:05'
+    id: '2',
+    content: '评论存在侮辱言论',
+    type: '骚扰行为',
+    time: '今天 11:30'
   },
   {
-    id: 3,
-    content: '视频"数据结构"疑似抄袭',
-    type: '版权',
-    time: '2025-04-09 22:15'
+    id: '3',
+    content: '用户多次发布垃圾信息',
+    type: '垃圾信息',
+    time: '昨天 14:20'
   }
 ])
 
-// 时间范围选择
-const timeRange = ref('week')
-
-// 图表引用
-const userTrendsChart = ref<HTMLElement | null>(null)
-const categoryChart = ref<HTMLElement | null>(null)
-const tagChart = ref<HTMLElement | null>(null)
-
-// 渲染区
-let userTrendsChartInstance: echarts.ECharts | null = null
-let categoryChartInstance: echarts.ECharts | null = null
-let tagChartInstance: echarts.ECharts | null = null
-
-// 格式化趋势
-const formatTrend = (change: number) => {
-  return `${change > 0 ? '+' : ''}${change.toFixed(1)}%`
-}
-
-// 获取趋势样式类
-const getTrendClass = (change: number) => {
-  return change > 0 ? 'trend-up' : 'trend-down'
-}
-
 // 获取活动标签类型
-const getActivityTagType = (type: string) => {
+function getActivityTagType(type: string) {
   const typeMap: Record<string, string> = {
-    '用户': 'success',
-    '内容': 'info',
-    '管理': 'warning',
-    '系统': 'default',
-    '认证': 'primary'
+    '注册': 'success',
+    '上传': 'info',
+    '举报': 'warning',
+    '订阅': 'success',
+    '评论': 'info'
   }
   return typeMap[type] || 'default'
 }
 
-// 获取举报标签类型
-const getReportTagType = (type: string) => {
+// 获取举报类型标签
+function getReportTagType(type: string) {
   const typeMap: Record<string, string> = {
-    '内容不当': 'warning',
-    '骚扰': 'error',
-    '版权': 'info'
+    '违规内容': 'error',
+    '骚扰行为': 'warning',
+    '垃圾信息': 'info'
   }
   return typeMap[type] || 'default'
 }
 
 // 刷新数据
-const refreshData = () => {
+function refreshData() {
   console.log('刷新数据')
-  // TODO: 调用API获取最新数据
+  // 实际应用中，这里应该调用API获取最新数据
 }
 
-// 导出报表
-const exportData = () => {
-  console.log('导出报表')
-  // TODO: 导出报表功能
+// 导出数据
+function exportData() {
+  console.log('导出数据')
+  // 实际应用中，这里应该处理数据导出逻辑
 }
 
-// 初始化用户趋势图表
-const initUserTrendsChart = () => {
-  if (!userTrendsChart.value) return
-  
-  userTrendsChartInstance = echarts.init(userTrendsChart.value)
-  
-  const option = {
-    title: {
-      text: '平台用户活跃度趋势',
-      textStyle: {
-        fontSize: 14
-      }
-    },
-    tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: ['活跃用户', '新增用户', '视频观看']
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        name: '活跃用户',
-        type: 'line',
-        data: [450, 482, 531, 654, 830, 940, 1200],
-        smooth: true,
-        lineStyle: {
-          width: 3
-        }
-      },
-      {
-        name: '新增用户',
-        type: 'line',
-        data: [30, 42, 51, 54, 83, 94, 120],
-        smooth: true,
-        lineStyle: {
-          width: 3
-        }
-      },
-      {
-        name: '视频观看',
-        type: 'line',
-        data: [1200, 1582, 1631, 1854, 2030, 2640, 3200],
-        smooth: true,
-        lineStyle: {
-          width: 3
-        }
-      }
-    ]
-  }
-  
-  userTrendsChartInstance.setOption(option)
-}
-
-// 初始化分类图表
-const initCategoryChart = () => {
-  if (!categoryChart.value) return
-  
-  categoryChartInstance = echarts.init(categoryChart.value)
-  
-  const option = {
-    title: {
-      text: '视频分类占比',
-      textStyle: {
-        fontSize: 14
-      }
-    },
-    tooltip: {
-      trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      data: ['前端', '后端', '移动开发', '数据库', '人工智能', '其他']
-    },
-    series: [
-      {
-        name: '视频分类',
-        type: 'pie',
-        radius: ['50%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: '15',
-            fontWeight: 'bold'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: [
-          { value: 1048, name: '前端' },
-          { value: 735, name: '后端' },
-          { value: 580, name: '移动开发' },
-          { value: 484, name: '数据库' },
-          { value: 300, name: '人工智能' },
-          { value: 200, name: '其他' }
-        ]
-      }
-    ]
-  }
-  
-  categoryChartInstance.setOption(option)
-}
-
-// 初始化标签图表
-const initTagChart = () => {
-  if (!tagChart.value) return
-  
-  tagChartInstance = echarts.init(tagChart.value)
-  
-  const option = {
-    title: {
-      text: '热门标签统计',
-      textStyle: {
-        fontSize: 14
-      }
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value'
-    },
-    yAxis: {
-      type: 'category',
-      data: ['Vue', 'React', 'TypeScript', 'JavaScript', 'Node.js', 'Python', 'Docker']
-    },
-    series: [
-      {
-        name: '视频数量',
-        type: 'bar',
-        data: [420, 380, 370, 320, 280, 240, 190]
-      }
-    ]
-  }
-  
-  tagChartInstance.setOption(option)
-}
-
-// 初始化所有图表
-const initCharts = () => {
-  initUserTrendsChart()
-  initCategoryChart()
-  initTagChart()
-}
-
-// 窗口大小变化时重绘图表
-const handleResize = () => {
-  userTrendsChartInstance?.resize()
-  categoryChartInstance?.resize()
-  tagChartInstance?.resize()
-}
-
-// 组件挂载时初始化图表
+// 组件挂载时的处理
 onMounted(() => {
-  // 需要延迟一下，确保DOM已经渲染完成
-  setTimeout(() => {
-    initCharts()
-    window.addEventListener('resize', handleResize)
-  }, 100)
-})
-
-// 组件卸载时销毁图表实例
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize)
-  userTrendsChartInstance?.dispose()
-  categoryChartInstance?.dispose()
-  tagChartInstance?.dispose()
+  console.log('管理仪表盘页面已加载')
 })
 </script>
 
 <style scoped>
 .admin-dashboard {
-  width: 100%;
+  padding-bottom: 24px;
 }
 
 .dashboard-header {
@@ -627,19 +404,13 @@ onBeforeUnmount(() => {
 }
 
 .dashboard-title {
-  margin: 0;
-  font-size: 1.75rem;
+  font-size: 24px;
   font-weight: 500;
+  margin: 0;
 }
 
 .stat-card {
   height: 100%;
-  transition: all 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .stat-wrapper {
@@ -648,32 +419,33 @@ onBeforeUnmount(() => {
 }
 
 .stat-icon {
-  padding: 12px;
-  border-radius: 50%;
-  margin-right: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-right: 16px;
 }
 
 .user-stat .stat-icon {
-  background-color: rgba(24, 144, 255, 0.1);
-  color: #1890ff;
+  background-color: rgba(64, 158, 255, 0.1);
+  color: #409eff;
 }
 
 .video-stat .stat-icon {
-  background-color: rgba(82, 196, 26, 0.1);
-  color: #52c41a;
+  background-color: rgba(103, 194, 58, 0.1);
+  color: #67c23a;
 }
 
 .interaction-stat .stat-icon {
-  background-color: rgba(250, 84, 28, 0.1);
-  color: #fa541c;
+  background-color: rgba(230, 162, 60, 0.1);
+  color: #e6a23c;
 }
 
 .comment-stat .stat-icon {
-  background-color: rgba(47, 84, 235, 0.1);
-  color: #2f54eb;
+  background-color: rgba(245, 108, 108, 0.1);
+  color: #f56c6c;
 }
 
 .stat-content {
@@ -688,34 +460,27 @@ onBeforeUnmount(() => {
 
 .stat-value {
   font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 4px;
+  font-weight: 500;
+  margin-bottom: 8px;
 }
 
 .stat-trend {
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .trend-up {
-  color: #52c41a;
+  color: #67c23a;
 }
 
 .trend-down {
-  color: #ff4d4f;
+  color: #f56c6c;
 }
 
 .dashboard-main {
   margin-top: 24px;
-}
-
-.chart-card,
-.activity-card,
-.content-stats-card,
-.tasks-card {
-  height: 100%;
   margin-bottom: 24px;
 }
 
@@ -725,28 +490,33 @@ onBeforeUnmount(() => {
   margin-bottom: 16px;
 }
 
-.chart-container {
+.chart-placeholder {
   height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content-stats-card {
+  margin-bottom: 24px;
+}
+
+.activity-card {
+  height: 100%;
 }
 
 .activity-list {
-  max-height: 320px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
 .activity-footer {
+  margin-top: 12px;
   text-align: center;
-  margin-top: 16px;
 }
 
-@media (max-width: 1200px) {
-  .chart-container {
-    height: 250px;
-  }
-  
-  .activity-list {
-    max-height: 250px;
-  }
+.tasks-card {
+  margin-bottom: 24px;
 }
 
 @media (max-width: 768px) {
@@ -756,8 +526,14 @@ onBeforeUnmount(() => {
     gap: 16px;
   }
   
-  .chart-container {
-    height: 200px;
+  .stat-wrapper {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .stat-icon {
+    margin-right: 0;
+    margin-bottom: 12px;
   }
 }
 </style> 
