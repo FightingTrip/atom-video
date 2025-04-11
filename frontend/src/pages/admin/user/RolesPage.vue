@@ -289,6 +289,7 @@
     { key: 'user:edit', label: '编辑用户', description: '允许编辑用户资料', category: 'user', checked: false },
     { key: 'user:delete', label: '删除用户', description: '允许删除用户', category: 'user', checked: false },
     { key: 'user:ban', label: '禁用用户', description: '允许禁用或解禁用户', category: 'user', checked: false },
+    { key: 'creator:approve', label: '创作者审核', description: '允许审核创作者认证申请', category: 'user', checked: false },
     { key: 'role:manage', label: '管理角色', description: '允许管理角色和权限', category: 'user', checked: false },
 
     // 内容管理权限
@@ -298,6 +299,7 @@
     { key: 'content:delete', label: '删除内容', description: '允许删除任何用户的视频或评论', category: 'content', checked: false },
     { key: 'category:manage', label: '管理分类', description: '允许管理视频分类', category: 'content', checked: false },
     { key: 'tag:manage', label: '管理标签', description: '允许管理视频标签', category: 'content', checked: false },
+    { key: 'report:handle', label: '处理举报', description: '允许处理内容和用户举报', category: 'content', checked: false },
 
     // 系统管理权限
     { key: 'system:view', label: '查看系统设置', description: '允许查看系统设置', category: 'system', checked: false },
@@ -315,6 +317,12 @@
     // 日志管理权限
     { key: 'log:view', label: '查看日志', description: '允许查看系统日志', category: 'log', checked: false },
     { key: 'log:export', label: '导出日志', description: '允许导出系统日志', category: 'log', checked: false },
+
+    // 创作者权限
+    { key: 'creator:upload', label: '上传视频', description: '允许上传视频内容', category: 'content', checked: false },
+    { key: 'creator:manage', label: '管理自己的内容', description: '允许管理自己上传的视频', category: 'content', checked: false },
+    { key: 'creator:comment', label: '管理评论区', description: '允许管理视频评论区', category: 'content', checked: false },
+    { key: 'creator:analytics', label: '查看数据分析', description: '允许查看自己内容的数据分析', category: 'dashboard', checked: false },
   ])
 
   // 创建角色表单状态
@@ -358,9 +366,9 @@
   function getRoleType(code: string) {
     const typeMap: Record<string, 'default' | 'primary' | 'info' | 'success' | 'warning'> = {
       'ADMIN': 'primary',
-      'MODERATOR': 'success',
-      'CREATOR': 'info',
-      'USER': 'default'
+      'CREATOR': 'success',
+      'USER': 'info',
+      'GUEST': 'default'
     }
     return typeMap[code] || 'warning'
   }
@@ -622,40 +630,36 @@
         },
         {
           id: 'role-2',
-          name: '内容审核员',
-          code: 'MODERATOR',
-          description: '负责审核网站内容，包括视频和评论',
-          userCount: 8,
-          createdAt: '2025-01-15',
-          permissions: [
-            'dashboard:view',
-            'content:view',
-            'content:approve',
-            'content:edit',
-            'content:delete',
-            'log:view'
-          ],
-          isSystem: false
-        },
-        {
-          id: 'role-3',
           name: '创作者',
           code: 'CREATOR',
           description: '视频创作者角色，可以上传和管理自己的内容',
           userCount: 216,
           createdAt: '2025-01-20',
           permissions: [
-            'dashboard:view',
+            'creator:upload',
+            'creator:manage',
+            'creator:comment',
+            'creator:analytics',
             'content:view'
           ],
-          isSystem: false
+          isSystem: true
         },
         {
-          id: 'role-4',
+          id: 'role-3',
           name: '普通用户',
           code: 'USER',
           description: '基础用户角色，可以观看视频和发表评论',
           userCount: 12532,
+          createdAt: '2025-01-01',
+          permissions: [],
+          isSystem: true
+        },
+        {
+          id: 'role-4',
+          name: '游客',
+          code: 'GUEST',
+          description: '未登录用户，仅用于权限检查，不存储在数据库中',
+          userCount: 0,
           createdAt: '2025-01-01',
           permissions: [],
           isSystem: true
