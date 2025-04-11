@@ -22,6 +22,9 @@
             <n-form-item label="网站描述" path="siteDescription">
               <n-input v-model:value="basicSettings.siteDescription" type="textarea" placeholder="输入网站描述" />
             </n-form-item>
+            <n-form-item label="网站域名" path="siteDomain" required>
+              <n-input v-model:value="basicSettings.siteDomain" placeholder="输入网站域名，如 example.com" />
+            </n-form-item>
             <n-form-item label="网站Logo" path="siteLogo">
               <n-upload action="/api/upload" :default-file-list="logoFileList" list-type="image-card" :max="1">
                 上传Logo
@@ -37,6 +40,100 @@
             </n-form-item>
             <n-form-item label="备案信息" path="siteICP">
               <n-input v-model:value="basicSettings.siteICP" placeholder="输入备案信息" />
+            </n-form-item>
+            <n-form-item label="版权信息" path="siteCopyright">
+              <n-input v-model:value="basicSettings.siteCopyright" placeholder="输入版权信息，如 © 2024 Atom Video" />
+            </n-form-item>
+          </n-form>
+        </n-tab-pane>
+        <n-tab-pane name="contact" tab="联系信息">
+          <n-form ref="contactForm" :model="contactSettings" label-placement="left" label-width="120px">
+            <n-form-item label="联系邮箱" path="contactEmail">
+              <n-input v-model:value="contactSettings.contactEmail" placeholder="输入联系邮箱" />
+            </n-form-item>
+            <n-form-item label="客服电话" path="contactPhone">
+              <n-input v-model:value="contactSettings.contactPhone" placeholder="输入客服电话" />
+            </n-form-item>
+            <n-form-item label="公司地址" path="companyAddress">
+              <n-input v-model:value="contactSettings.companyAddress" type="textarea" placeholder="输入公司地址" />
+            </n-form-item>
+            <n-form-item label="工作时间" path="workingHours">
+              <n-input v-model:value="contactSettings.workingHours" placeholder="输入工作时间，如 周一至周五 9:00-18:00" />
+            </n-form-item>
+
+            <n-divider>社交媒体链接</n-divider>
+
+            <n-form-item v-for="(social, index) in contactSettings.socialMedia" :key="index">
+              <n-input-group>
+                <n-select v-model:value="social.platform" :options="socialPlatformOptions" style="width: 120px" />
+                <n-input v-model:value="social.url" placeholder="输入链接地址" />
+                <n-button quaternary circle type="error" @click="removeSocialMedia(index)">
+                  <template #icon>
+                    <n-icon>
+                      <CloseCircleOutline />
+                    </n-icon>
+                  </template>
+                </n-button>
+              </n-input-group>
+            </n-form-item>
+
+            <n-form-item>
+              <n-button @click="addSocialMedia">
+                <template #icon>
+                  <n-icon>
+                    <AddOutline />
+                  </n-icon>
+                </template>
+                添加社交媒体
+              </n-button>
+            </n-form-item>
+          </n-form>
+        </n-tab-pane>
+        <n-tab-pane name="seo" tab="SEO设置">
+          <n-form ref="seoForm" :model="seoSettings" label-placement="left" label-width="140px">
+            <n-form-item label="Meta标题" path="metaTitle">
+              <n-input v-model:value="seoSettings.metaTitle" placeholder="输入Meta标题" />
+              <template #help>
+                默认使用网站名称。自定义Meta标题可以提高SEO效果。
+              </template>
+            </n-form-item>
+            <n-form-item label="Meta描述" path="metaDescription">
+              <n-input v-model:value="seoSettings.metaDescription" type="textarea" placeholder="输入Meta描述" />
+              <template #help>
+                默认使用网站描述。建议在160个字符以内。
+              </template>
+            </n-form-item>
+            <n-form-item label="规范链接" path="canonicalUrl">
+              <n-input v-model:value="seoSettings.canonicalUrl" placeholder="输入规范链接，如 https://example.com" />
+              <template #help>
+                设置网站的规范URL，避免重复内容问题。
+              </template>
+            </n-form-item>
+            <n-form-item label="robots.txt" path="robotsTxt">
+              <n-input v-model:value="seoSettings.robotsTxt" type="textarea" placeholder="输入robots.txt内容" :rows="5" />
+              <template #help>
+                控制搜索引擎爬虫的抓取行为。
+              </template>
+            </n-form-item>
+            <n-form-item label="站点地图URL" path="sitemapUrl">
+              <n-input v-model:value="seoSettings.sitemapUrl" placeholder="输入站点地图URL" />
+              <template #help>
+                XML站点地图URL，帮助搜索引擎抓取网站内容。
+              </template>
+            </n-form-item>
+            <n-form-item label="结构化数据" path="structuredData">
+              <n-switch v-model:value="seoSettings.structuredData.enabled" />
+              <template #help>
+                启用JSON-LD结构化数据，提升搜索结果展示效果。
+              </template>
+            </n-form-item>
+            <n-form-item label="社交分享图片" path="ogImage">
+              <n-upload action="/api/upload" :default-file-list="ogImageFileList" list-type="image-card" :max="1">
+                上传图片
+              </n-upload>
+              <template #help>
+                当网站内容分享到社交媒体时显示的图片，推荐尺寸1200x630像素。
+              </template>
             </n-form-item>
           </n-form>
         </n-tab-pane>
@@ -182,20 +279,29 @@
     NDynamicTags,
     NSpace,
     NButton,
+    NInputGroup,
+    NDivider,
+    NIcon,
     FormInst,
     FormRules,
     UploadFileInfo,
     useMessage
   } from 'naive-ui'
+  import {
+    AddOutline,
+    CloseCircleOutline
+  } from '@vicons/ionicons5'
 
   // 消息提示
   const message = useMessage()
 
   // 表单引用
   const basicForm = ref<FormInst | null>(null)
+  const contactForm = ref<FormInst | null>(null)
   const contentForm = ref<FormInst | null>(null)
   const userForm = ref<FormInst | null>(null)
   const securityForm = ref<FormInst | null>(null)
+  const seoForm = ref<FormInst | null>(null)
 
   // 保存状态
   const isSaving = ref(false)
@@ -207,7 +313,9 @@
     siteLogo: '',
     siteFavicon: '',
     siteKeywords: ['视频', '分享', '创作'],
-    siteICP: ''
+    siteICP: '',
+    siteDomain: '',
+    siteCopyright: ''
   })
 
   // 基本设置验证规则
@@ -218,6 +326,10 @@
     ],
     siteDescription: [
       { max: 200, message: '网站描述不能超过200个字符', trigger: 'blur' }
+    ],
+    siteDomain: [
+      { required: true, message: '请输入网站域名', trigger: 'blur' },
+      { pattern: /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/, message: '请输入有效的域名', trigger: 'blur' }
     ]
   }
 
@@ -286,6 +398,57 @@
     enableTwoFactor: false
   })
 
+  // 联系信息设置
+  const contactSettings = reactive({
+    contactEmail: '',
+    contactPhone: '',
+    companyAddress: '',
+    workingHours: '',
+    socialMedia: [
+      { platform: 'twitter', url: '' }
+    ]
+  })
+
+  // 社交媒体平台选项
+  const socialPlatformOptions = [
+    { label: 'Twitter', value: 'twitter' },
+    { label: 'Facebook', value: 'facebook' },
+    { label: 'Instagram', value: 'instagram' },
+    { label: 'YouTube', value: 'youtube' },
+    { label: 'LinkedIn', value: 'linkedin' },
+    { label: 'GitHub', value: 'github' },
+    { label: '微博', value: 'weibo' },
+    { label: '微信', value: 'wechat' },
+    { label: '抖音', value: 'tiktok' },
+    { label: '知乎', value: 'zhihu' }
+  ]
+
+  // 添加社交媒体
+  const addSocialMedia = () => {
+    contactSettings.socialMedia.push({ platform: 'twitter', url: '' })
+  }
+
+  // 删除社交媒体
+  const removeSocialMedia = (index: number) => {
+    contactSettings.socialMedia.splice(index, 1)
+  }
+
+  // SEO设置
+  const seoSettings = reactive({
+    metaTitle: '',
+    metaDescription: '',
+    canonicalUrl: '',
+    robotsTxt: 'User-agent: *\nAllow: /',
+    sitemapUrl: '',
+    structuredData: {
+      enabled: false,
+      type: 'WebSite'
+    }
+  })
+
+  // 社交分享图片文件列表
+  const ogImageFileList = ref<UploadFileInfo[]>([])
+
   // 重置表单
   const resetForm = () => {
     // 显示确认对话框
@@ -297,11 +460,33 @@
   // 保存设置
   const saveSettings = async () => {
     try {
-      // 验证基本设置表单
+      // 验证所有表单
       await new Promise<void>((resolve, reject) => {
         basicForm.value?.validate(errors => {
           if (errors) {
             reject(new Error('基本设置验证失败'))
+          } else {
+            resolve()
+          }
+        })
+      })
+
+      // 验证联系信息表单
+      await new Promise<void>((resolve, reject) => {
+        contactForm.value?.validate(errors => {
+          if (errors) {
+            reject(new Error('联系信息验证失败'))
+          } else {
+            resolve()
+          }
+        })
+      })
+
+      // 验证SEO设置表单
+      await new Promise<void>((resolve, reject) => {
+        seoForm.value?.validate(errors => {
+          if (errors) {
+            reject(new Error('SEO设置验证失败'))
           } else {
             resolve()
           }
@@ -316,9 +501,11 @@
       // 构建设置对象
       const settings = {
         basic: basicSettings,
+        contact: contactSettings,
         content: contentSettings,
         user: userSettings,
-        security: securitySettings
+        security: securitySettings,
+        seo: seoSettings
       }
 
       // 保存到后端（模拟）
@@ -347,7 +534,30 @@
           siteLogo: '/api/images/logo.png',
           siteFavicon: '/api/images/favicon.ico',
           siteKeywords: ['视频', '分享', '创作'],
-          siteICP: ''
+          siteICP: '',
+          siteDomain: 'example.com',
+          siteCopyright: '© 2024 Atom Video'
+        },
+        contact: {
+          contactEmail: 'contact@example.com',
+          contactPhone: '400-123-4567',
+          companyAddress: '北京市海淀区中关村大街1号',
+          workingHours: '周一至周五 9:00-18:00',
+          socialMedia: [
+            { platform: 'twitter', url: 'https://twitter.com/atomvideo' },
+            { platform: 'github', url: 'https://github.com/atomvideo' }
+          ]
+        },
+        seo: {
+          metaTitle: 'Atom Video - 高质量视频分享平台',
+          metaDescription: '发现、观看和分享高质量的技术视频，提升你的专业技能',
+          canonicalUrl: 'https://example.com',
+          robotsTxt: 'User-agent: *\nAllow: /',
+          sitemapUrl: 'https://example.com/sitemap.xml',
+          structuredData: {
+            enabled: true,
+            type: 'WebSite'
+          }
         },
         content: {
           allowedVideoFormats: ['mp4', 'mov', 'avi'],
@@ -377,9 +587,42 @@
 
       // 更新表单数据
       Object.assign(basicSettings, data.basic)
+      Object.assign(contactSettings, data.contact)
+      Object.assign(seoSettings, data.seo)
       Object.assign(contentSettings, data.content)
       Object.assign(userSettings, data.user)
       Object.assign(securitySettings, data.security)
+
+      // 更新文件列表
+      logoFileList.value = [
+        {
+          id: 'logo',
+          name: 'logo.png',
+          status: 'finished',
+          url: data.basic.siteLogo
+        }
+      ]
+
+      faviconFileList.value = [
+        {
+          id: 'favicon',
+          name: 'favicon.ico',
+          status: 'finished',
+          url: data.basic.siteFavicon
+        }
+      ]
+
+      // 设置OG图片
+      if (data.seo.ogImage) {
+        ogImageFileList.value = [
+          {
+            id: 'ogImage',
+            name: 'og-image.png',
+            status: 'finished',
+            url: data.seo.ogImage
+          }
+        ]
+      }
 
     } catch (error) {
       console.error('获取设置失败:', error)
