@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { RouteRecordRaw } from 'vue-router';
+// 导入管理员路由
+import adminRoutes from './modules/admin';
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -155,6 +157,8 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // 添加管理员路由
+  ...adminRoutes,
 ];
 
 // 创建路由实例
@@ -200,6 +204,16 @@ router.beforeEach((to, from, next) => {
     console.log('[Router] 重定向到首页，因为用户已登录');
     next('/');
     return;
+  }
+
+  // 检查角色权限
+  if (to.meta.roles && to.meta.roles.length > 0) {
+    const userRole = authStore.userRole;
+    if (!userRole || !to.meta.roles.includes(userRole)) {
+      console.log('[Router] 无权访问此页面，需要角色:', to.meta.roles, '当前角色:', userRole);
+      next({ name: 'not-found' });
+      return;
+    }
   }
 
   // 继续路由处理
