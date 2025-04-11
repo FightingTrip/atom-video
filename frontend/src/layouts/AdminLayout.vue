@@ -88,9 +88,14 @@
       <div class="admin-content">
         <!-- 面包屑导航 -->
         <div class="breadcrumb-container">
-          <n-breadcrumb>
-            <n-breadcrumb-item v-for="item in breadcrumbItems" :key="item.path">
-              <router-link :to="item.path">{{ item.title }}</router-link>
+          <n-breadcrumb separator="/">
+            <n-breadcrumb-item v-for="(item, index) in breadcrumbItems" :key="item.path">
+              <router-link :to="item.path" class="breadcrumb-link">
+                <n-icon size="16" class="breadcrumb-icon">
+                  <component :is="getBreadcrumbIcon(item.title, index)" />
+                </n-icon>
+                <span>{{ item.title }}</span>
+              </router-link>
             </n-breadcrumb-item>
           </n-breadcrumb>
         </div>
@@ -398,6 +403,26 @@
   onBeforeUnmount(() => {
     window.removeEventListener('resize', handleResize)
   })
+
+  // 获取面包屑图标
+  const getBreadcrumbIcon = (title: string, index: number) => {
+    if (index === 0) {
+      return HomeOutline
+    } else if (title === '管理后台') {
+      return HomeOutline
+    } else if (title === '仪表盘') {
+      return BarChartOutline
+    } else if (title === '内容管理') {
+      return VideocamOutline
+    } else if (title === '用户管理') {
+      return PeopleOutline
+    } else if (title === '举报处理') {
+      return ShieldOutline
+    } else if (title === '系统设置') {
+      return SettingsOutline
+    }
+    return DocumentTextOutline
+  }
 </script>
 
 <style scoped>
@@ -532,7 +557,27 @@
 
   .breadcrumb-container {
     margin-bottom: 16px;
-    padding: 8px 0;
+    padding: 12px 16px;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .breadcrumb-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-color-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .breadcrumb-link:hover {
+    color: var(--primary-color);
+  }
+
+  .breadcrumb-icon {
+    margin-right: 4px;
   }
 
   .content-area {
