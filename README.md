@@ -174,6 +174,7 @@ pnpm dev:backend
 详细文档请参考 [docs](./docs) 目录：
 
 - [环境搭建指南](./docs/development/setup.md)
+- [测试账号指南](./docs/development/test-accounts.md)
 - [Git 工作流程](./docs/development/git-workflow.md)
 - [编码规范](./docs/development/coding-standards.md)
 - [API 文档](./docs/api/README.md)

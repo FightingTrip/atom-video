@@ -172,6 +172,7 @@ docs/
 ├── development/          # 开发相关文档
 │   ├── README.md        # 开发概述
 │   ├── setup.md         # 环境搭建指南
+│   ├── test-accounts.md # 测试账号指南
 │   ├── git-workflow.md  # Git 工作流程
 │   ├── coding-standards.md # 编码规范
 │   ├── testing.md       # 测试指南

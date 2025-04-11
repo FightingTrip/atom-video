@@ -127,6 +127,30 @@ pnpm dev
 pnpm dev:mock
 ```
 
+### 测试账号
+
+平台提供了多种测试账号，方便在开发环境中测试不同用户角色和权限：
+
+#### 管理员账号
+```
+账号: admin@atomvideo.com
+密码: Admin@123
+```
+
+#### 创作者账号
+```
+账号: creator@atomvideo.com
+密码: Password123
+```
+
+#### 普通用户账号
+```
+账号: user@atomvideo.com
+密码: Password123
+```
+
+更多详情请参考[测试账号指南](../docs/development/test-accounts.md)。
+
 ### 构建生产版本
 
 ```bash
