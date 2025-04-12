@@ -187,7 +187,7 @@
     font-size: 20px;
     font-weight: 600;
     margin: 0;
-    color: #e6edf3;
+    color: var(--text-primary, #e6edf3);
     position: relative;
     display: inline-block;
   }
@@ -199,7 +199,7 @@
     bottom: -8px;
     height: 3px;
     width: 40px;
-    background: linear-gradient(90deg, #58a6ff 0%, #388bfd 100%);
+    background: linear-gradient(90deg, var(--primary-color, #58a6ff) 0%, var(--primary-color-light, #388bfd) 100%);
     border-radius: 3px;
   }
 
@@ -221,8 +221,8 @@
   .stat-card {
     text-align: center;
     position: relative;
-    background: rgba(22, 27, 34, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-secondary, rgba(22, 27, 34, 0.6));
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
     backdrop-filter: blur(8px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
@@ -244,7 +244,7 @@
   .stat-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    background: rgba(36, 41, 47, 0.7);
+    background: var(--bg-card-hover, rgba(36, 41, 47, 0.7));
   }
 
   .stat-card.refreshing {
@@ -385,5 +385,34 @@
     .stat-value {
       font-size: 28px;
     }
+  }
+
+  /* 浅色模式样式覆盖 */
+  :root:not(.dark) .stats-title {
+    color: var(--text-primary, #24292e);
+  }
+
+  :root:not(.dark) .stat-card {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  :root:not(.dark) .stat-card:hover {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  :root:not(.dark) .stat-label,
+  :root:not(.dark) .stat-value {
+    color: var(--text-primary, #24292e);
+  }
+
+  :root:not(.dark) .stat-sublabel {
+    color: var(--text-secondary, rgba(36, 41, 46, 0.7));
+  }
+
+  :root:not(.dark) .sidebar-divider {
+    background-color: rgba(0, 0, 0, 0.08);
   }
 </style>

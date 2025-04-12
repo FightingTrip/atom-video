@@ -14,15 +14,17 @@ export interface User {
 export interface Comment {
   id: string;
   content: string;
-  likes: number;
   createdAt: string;
-  author: Author;
-  isLiked: boolean;
-  replyCount: number;
-  replies: Reply[];
+  // UI相关字段
   videoTitle: string;
-  status: string;
+  status?: string;
   user: User;
+  // 可选字段，用于后端存储
+  likes?: number;
+  author?: Author;
+  isLiked?: boolean;
+  replyCount?: number;
+  replies?: Reply[];
 }
 
 /**

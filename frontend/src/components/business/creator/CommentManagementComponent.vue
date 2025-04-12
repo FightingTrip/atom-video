@@ -40,7 +40,7 @@
   };
 
   // 评论列表
-  const comments = ref<Comment[]>([
+  const comments = ref<any[]>([
     {
       id: '1',
       content: '这个教程太棒了，学到了很多东西！',
@@ -132,13 +132,13 @@
           '已审核': { type: 'success', icon: 'check-circle' },
           '待审核': { type: 'warning', icon: 'time' }
         };
-        const status = statusMap[row.status] || { type: 'default', icon: 'information-circle' };
+        const status = row.status && statusMap[row.status] || { type: 'default', icon: 'information-circle' };
 
         return h(NTag, {
           type: status.type,
           size: 'small',
           round: true
-        }, { default: () => row.status });
+        }, { default: () => row.status || '未知状态' });
       }
     },
     {
