@@ -2,6 +2,18 @@
 
 本文档包含 Atom Video 项目的开发相关指南和规范。
 
+## 开发相关文档
+
+我们提供了以下开发相关文档，帮助您更好地参与项目开发：
+
+1. [环境搭建指南](./setup.md) - 详细的环境配置步骤
+2. [测试账号指南](./test-accounts.md) - 开发测试账号列表及使用方法
+3. [Git 工作流程](./git-workflow.md) - 分支管理和提交规范
+4. [编码规范](./coding-standards.md) - 代码风格和最佳实践
+5. [测试指南](./testing.md) - 单元测试和集成测试指南
+6. [贡献指南](./contributing.md) - 如何贡献代码到项目
+7. [Monorepo 工作流程](./monorepo-workflow.md) - Monorepo 相关命令和实践
+
 ## 开发环境要求
 
 - Node.js 18.x

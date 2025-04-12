@@ -12,6 +12,11 @@ Atom Video 平台包含以下核心功能：
 - 评论与互动功能
 - 内容推荐系统
 - 用户订阅与通知
+- 管理员后台系统
+  - 内容管理（视频、评论、标签）
+  - 用户管理
+  - 系统设置（站点配置、SEO设置）
+  - 数据分析
 
 ## 技术栈
 
@@ -172,6 +177,7 @@ docs/
 ├── development/          # 开发相关文档
 │   ├── README.md        # 开发概述
 │   ├── setup.md         # 环境搭建指南
+│   ├── test-accounts.md # 测试账号指南
 │   ├── git-workflow.md  # Git 工作流程
 │   ├── coding-standards.md # 编码规范
 │   ├── testing.md       # 测试指南

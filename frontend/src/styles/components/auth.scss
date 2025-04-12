@@ -1,0 +1,45 @@
+/**
+ * 认证相关组件样式
+ */
+
+/* 测试账号相关 */
+.toggle-test-accounts-btn {
+  background-color: #333;
+  color: #fff;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.toggle-test-accounts-btn:hover {
+  background-color: #444;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .test-accounts-container {
+    padding: 10px;
+  }
+  
+  .accounts-table {
+    font-size: 0.8rem;
+  }
+  
+  .accounts-table-cell {
+    padding: 8px 4px;
+  }
+  
+  .role-badge {
+    padding: 2px 4px;
+    font-size: 0.7rem;
+  }
+  
+  .quick-login-btn {
+    padding: 2px 4px;
+    font-size: 0.7rem;
+  }
+} 

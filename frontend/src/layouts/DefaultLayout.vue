@@ -110,9 +110,14 @@
     flex-direction: column;
     min-height: 100vh;
     height: 100%;
-    background-color: var(--bg-color-secondary);
+    background-color: var(--bg-dark, #0d1117);
     position: relative;
     overflow: hidden;
+  }
+
+  /* 浅色模式下的容器背景 */
+  :root:not(.dark) .layout-container {
+    background-color: #f6f8fa;
   }
 
   .main-container {
@@ -132,12 +137,18 @@
     /* 与侧边栏宽度匹配 */
     width: calc(100% - 240px);
     transition: margin-left 0.3s, width 0.3s, background-color 0.3s;
-    background-color: var(--content-bg);
-    color: var(--text-color);
+    background-color: var(--bg-dark, #0d1117);
+    color: var(--text-primary, #e6edf3);
+  }
+
+  /* 浅色模式内容区域 */
+  :root:not(.dark) .content-area {
+    background-color: var(--studio-bg, linear-gradient(180deg, #f6f8fa 0%, #ffffff 100%));
+    color: var(--text-primary, #24292e);
   }
 
   .content-area[data-theme="dark"] {
-    background-color: var(--content-bg);
+    background-color: var(--bg-dark, #0d1117);
   }
 
   .sidebar-collapsed .content-area {

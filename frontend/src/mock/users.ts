@@ -64,16 +64,30 @@ export const mockUsers: User[] = [
   },
   {
     id: '2',
-    username: 'demo',
-    email: 'demo@example.com',
+    username: 'creator',
+    email: 'creator@example.com',
     avatar: 'https://i.pravatar.cc/150?img=2',
     isVerified: true,
   },
   {
     id: '3',
+    username: 'user',
+    email: 'user@example.com',
+    avatar: 'https://i.pravatar.cc/150?img=3',
+    isVerified: true,
+  },
+  {
+    id: '4',
+    username: 'demo',
+    email: 'demo@example.com',
+    avatar: 'https://i.pravatar.cc/150?img=4',
+    isVerified: true,
+  },
+  {
+    id: '5',
     username: 'test',
     email: 'test@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=3',
+    avatar: 'https://i.pravatar.cc/150?img=5',
     isVerified: true,
   },
 ];
@@ -81,11 +95,13 @@ export const mockUsers: User[] = [
 // 模拟的用户密码映射 (在实际应用中密码会加密保存)
 const userPasswords = {
   'admin@example.com': 'admin123',
+  'creator@example.com': 'creator123',
+  'user@example.com': 'user123',
   'demo@example.com': 'demo123',
   'test@example.com': 'test123',
   'admin@atomvideo.com': 'Admin@123',
-  'user@atomvideo.com': 'Password123',
   'creator@atomvideo.com': 'Password123',
+  'user@atomvideo.com': 'Password123',
 };
 
 // 模拟token存储

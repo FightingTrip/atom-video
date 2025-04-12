@@ -15,10 +15,10 @@ import config from '../config/env';
  * 用户角色枚举类型
  */
 export enum UserRole {
-  ADMIN = 'ADMIN',
-  MODERATOR = 'MODERATOR',
-  CREATOR = 'CREATOR',
-  USER = 'USER',
+  ADMIN = 'ADMIN', // 管理员
+  CREATOR = 'CREATOR', // 创作者
+  USER = 'USER', // 普通用户
+  GUEST = 'GUEST', // 游客（未登录用户）
 }
 
 // 扩展Express的命名空间来包含用户类型
@@ -101,6 +101,21 @@ export const optionalAuthJwt = async (req: Request, res: Response, next: NextFun
 };
 
 /**
+ * 游客访问中间件
+ * 允许未登录用户以游客身份访问公开资源
+ */
+export const allowGuest = (req: Request, res: Response, next: NextFunction) => {
+  // 如果用户未登录，添加游客身份
+  if (!req.user) {
+    req.user = {
+      id: 'guest',
+      role: UserRole.GUEST,
+    } as Express.User;
+  }
+  next();
+};
+
+/**
  * 角色授权中间件
  * 验证用户是否具有指定的角色权限
  * @param roles 允许的角色数组
@@ -161,5 +176,79 @@ export const authorizeResourceOwner = (
     } catch (error) {
       next(new ForbiddenError('无法验证资源所有权'));
     }
+  };
+};
+
+/**
+ * 权限配置，用于定义不同角色的权限
+ */
+export const rolePermissions = {
+  [UserRole.ADMIN]: [
+    // 管理员拥有所有权限
+    'all',
+  ],
+  [UserRole.CREATOR]: [
+    // 创作者权限
+    'creator:upload',
+    'creator:manage',
+    'creator:comment',
+    'creator:analytics',
+    'content:view',
+  ],
+  [UserRole.USER]: [
+    // 普通用户权限
+    'user:comment',
+    'user:like',
+    'user:favorite',
+    'user:subscribe',
+  ],
+  [UserRole.GUEST]: [
+    // 游客权限
+    'content:view:public',
+    'creator:view:profile',
+  ],
+};
+
+/**
+ * 检查用户是否具有特定权限
+ * @param permission 权限标识符
+ */
+export const hasPermission = (req: Request, permission: string): boolean => {
+  if (!req.user) return false;
+
+  const role = req.user.role as UserRole;
+
+  // 管理员拥有所有权限
+  if (role === UserRole.ADMIN) return true;
+
+  // 检查角色是否具有该权限
+  return rolePermissions[role]?.includes(permission) || false;
+};
+
+/**
+ * 权限授权中间件
+ * 验证用户是否具有特定权限
+ * @param permissions 所需的权限数组
+ */
+export const authorizePermissions = (permissions: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    // 确保用户已通过认证
+    if (!req.user) {
+      return ApiResponse.unauthorized(res, '需要登录才能访问');
+    }
+
+    // 管理员始终具有所有权限
+    if (req.user.role === UserRole.ADMIN) {
+      return next();
+    }
+
+    // 检查用户是否具有任一所需权限
+    const hasAnyPermission = permissions.some(permission => hasPermission(req, permission));
+
+    if (!hasAnyPermission) {
+      return ApiResponse.forbidden(res, '无权访问该资源');
+    }
+
+    next();
   };
 };

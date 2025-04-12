@@ -1,6 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { RouteRecordRaw } from 'vue-router';
+// 导入管理员路由
+import adminRoutes from './modules/admin';
+// 导入权限守卫
+import { permissionGuard } from './guards/permission';
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -118,6 +122,27 @@ const routes: RouteRecordRaw[] = [
           requiresAuth: false,
         },
       },
+      // 权限演示页面
+      {
+        path: '/permission-demo',
+        name: 'permission-demo',
+        component: () => import('@/pages/feed/PermissionDemoPage.vue'),
+        meta: {
+          title: '权限演示 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      // 创作者中心路由
+      {
+        path: '/creator/studio',
+        name: 'creator-studio',
+        component: () => import('@/pages/creator/StudioPage.vue'),
+        meta: {
+          title: '创作者工作室 - Atom Video',
+          requiresAuth: true,
+          roles: ['ADMIN', 'CREATOR'],
+        },
+      },
       // 404页面
       {
         path: '/:pathMatch(.*)*',
@@ -155,6 +180,8 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // 添加管理员路由
+  ...adminRoutes,
 ];
 
 // 创建路由实例
@@ -164,7 +191,7 @@ const router = createRouter({
 });
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
   console.log('[Router] beforeEach', {
@@ -200,6 +227,11 @@ router.beforeEach((to, from, next) => {
     console.log('[Router] 重定向到首页，因为用户已登录');
     next('/');
     return;
+  }
+
+  // 使用权限守卫检查角色权限
+  if (to.meta.roles && to.meta.roles.length > 0) {
+    return permissionGuard(to, from, next);
   }
 
   // 继续路由处理

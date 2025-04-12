@@ -17,10 +17,10 @@ datasource db {
 // User related models
 // =========================================
 enum UserRole {
-  ADMIN
-  MODERATOR
-  CREATOR
-  VIEWER
+  ADMIN // 管理员
+  CREATOR // 已认证创作者
+  USER // 普通用户
+  GUEST // 游客（仅用于权限检查，数据库中不存储）
 }
 
 enum ExperienceLevel {
@@ -38,7 +38,7 @@ model User {
   name         String?
   bio          String?  @db.Text
   avatarUrl    String?
-  role         UserRole @default(VIEWER)
+  role         UserRole @default(USER)
   isVerified   Boolean  @default(false)
 
   // 开发者特有属性

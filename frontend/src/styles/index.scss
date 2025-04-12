@@ -21,6 +21,9 @@
 /* 导入工具类 */
 @import 'utils.css';
 
+/* 导入认证样式 */
+@import './components/auth.scss';
+
 /* 全局样式 */
 body {
   font-family: 'Inter', sans-serif;

@@ -21,8 +21,28 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 计算属性
   const isAuthenticated = computed(() => !!token.value || demoMode.value);
-  const isAdmin = computed(() => user.value?.username === 'admin');
+  const isAdmin = computed(() => userRole.value === 'ADMIN');
+  const isCreator = computed(() => userRole.value === 'CREATOR' || isAdmin.value);
   const username = computed(() => user.value?.username || '游客');
+  const userRole = computed(() => {
+    // 开发环境下，如果是demo模式，且用户名是admin，则作为管理员
+    if (demoMode.value && user.value?.username === 'admin') {
+      return 'ADMIN';
+    }
+
+    // 如果用户名是admin@atomvideo.com或username是admin，则作为管理员
+    if (user.value?.email === 'admin@atomvideo.com' || user.value?.username === 'admin') {
+      return 'ADMIN';
+    }
+
+    // 如果用户名是creator@atomvideo.com或username是creator，则作为创作者
+    if (user.value?.email === 'creator@atomvideo.com' || user.value?.username === 'creator') {
+      return 'CREATOR';
+    }
+
+    // 默认为普通用户
+    return 'USER';
+  });
 
   // 操作
   function setToken(newToken: string | null) {
@@ -53,7 +73,13 @@ export const useAuthStore = defineStore('auth', () => {
           username: email || 'demo',
           email: `${email || 'demo'}@example.com`,
           avatar: `https://i.pravatar.cc/150?img=1`,
-          isVerified: true,
+          verified: true,
+          nickname: email || 'Demo User',
+          bio: '',
+          subscribers: 0,
+          subscribing: 0,
+          totalViews: 0,
+          joinedAt: new Date().toISOString(),
         });
         demoMode.value = true;
         toast.success('演示模式登录成功');
@@ -69,6 +95,9 @@ export const useAuthStore = defineStore('auth', () => {
           setUser(response.data.user);
           demoMode.value = false;
           toast.success('登录成功');
+          // 调试信息：记录当前用户角色
+          console.log('[AuthStore] 登录成功，当前用户:', response.data.user);
+          console.log('[AuthStore] 用户角色:', userRole.value);
           return true;
         } else {
           // 确保错误信息不为undefined
@@ -192,7 +221,9 @@ export const useAuthStore = defineStore('auth', () => {
     // 计算属性
     isAuthenticated,
     isAdmin,
+    isCreator,
     username,
+    userRole,
 
     // 操作
     login,

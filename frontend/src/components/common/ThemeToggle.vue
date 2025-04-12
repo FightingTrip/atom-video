@@ -1,66 +1,76 @@
 <template>
-  <button class="theme-toggle-btn" @click="toggleTheme" :title="isDark ? '切换到亮色模式' : '切换到暗色模式'">
-    <div class="icon-container">
-      <div v-if="isDark" class="sun-icon">
-        <i class="fas fa-sun"></i>
-      </div>
-      <div v-else class="moon-icon">
-        <i class="fas fa-moon"></i>
-      </div>
-    </div>
-  </button>
+  <div class="theme-toggle">
+    <n-tooltip :show-arrow="false">
+      <template #trigger>
+        <n-button size="small" text circle @click="toggleTheme" class="theme-button">
+          <n-icon size="20" class="theme-icon">
+            <component :is="isDarkMode ? SunnyOutline : MoonOutline" />
+          </n-icon>
+        </n-button>
+      </template>
+      {{ isDarkMode ? '切换到亮色模式' : '切换到暗色模式' }}
+    </n-tooltip>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue';
-  import { useThemeStore } from '@/stores/theme';
+  import { ref, onMounted } from 'vue';
+  import { NButton, NIcon, NTooltip } from 'naive-ui';
+  import { SunnyOutline, MoonOutline } from '@vicons/ionicons5';
 
-  const themeStore = useThemeStore();
-  const isDark = computed(() => themeStore.isDark);
+  const isDarkMode = ref(false);
 
+  // 在组件挂载时检查当前主题
+  onMounted(() => {
+    // 检查本地存储中的主题设置
+    const savedTheme = localStorage.getItem('theme');
+    // 检查系统首选颜色方案
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // 如果有保存的主题，使用保存的主题，否则使用系统首选
+    isDarkMode.value = savedTheme === 'dark' || (!savedTheme && prefersDark);
+
+    // 应用当前主题
+    applyTheme();
+  });
+
+  // 切换主题
   const toggleTheme = () => {
-    themeStore.toggleTheme();
+    isDarkMode.value = !isDarkMode.value;
+    applyTheme();
+    localStorage.setItem('theme', isDarkMode.value ? 'dark' : 'light');
+  };
+
+  // 应用主题到DOM
+  const applyTheme = () => {
+    if (isDarkMode.value) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 </script>
 
 <style scoped>
-  .theme-toggle-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+  .theme-toggle {
+    margin-left: 8px;
   }
 
-  .theme-toggle-btn:hover {
-    background-color: rgba(128, 128, 128, 0.1);
+  .theme-button {
+    opacity: 0.8;
+    transition: all 0.3s ease;
   }
 
-  .icon-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
+  .theme-button:hover {
+    opacity: 1;
+    transform: rotate(15deg);
   }
 
-  .sun-icon {
-    color: #fbbf24;
+  .theme-icon {
+    color: var(--text-primary, rgba(230, 237, 243, 0.9));
   }
 
-  .moon-icon {
-    color: #6b7280;
-  }
-
-  .dark .theme-toggle-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .dark .moon-icon {
-    color: #d1d5db;
+  :root:not(.dark) .theme-icon {
+    color: var(--text-primary, #24292e);
   }
 </style>

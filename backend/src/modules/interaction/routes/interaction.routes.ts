@@ -7,7 +7,13 @@
 
 import { Router } from 'express';
 import { InteractionController } from '../controllers/interaction.controller';
-import { authenticate } from '../../common/middleware/auth.middleware';
+import {
+  authenticate,
+  allowGuest,
+  authorizeRoles,
+  authorizePermissions,
+  UserRole,
+} from '../../common/middleware/auth.middleware';
 import { validateRequest } from '../../common/utils/validation';
 import Joi from 'joi';
 
@@ -32,15 +38,15 @@ const createCommentSchema = Joi.object({
     'string.empty': '评论内容不能为空',
     'string.min': '评论内容不能为空',
     'string.max': '评论内容最多1000个字符',
-    'any.required': '评论内容是必填项'
+    'any.required': '评论内容是必填项',
   }),
   videoId: Joi.string().uuid().required().messages({
     'string.guid': '视频ID必须是有效的UUID',
-    'any.required': '视频ID是必填项'
+    'any.required': '视频ID是必填项',
   }),
   parentId: Joi.string().uuid().allow(null, '').messages({
-    'string.guid': '父评论ID必须是有效的UUID'
-  })
+    'string.guid': '父评论ID必须是有效的UUID',
+  }),
 });
 
 const updateCommentSchema = Joi.object({
@@ -48,19 +54,20 @@ const updateCommentSchema = Joi.object({
     'string.empty': '评论内容不能为空',
     'string.min': '评论内容不能为空',
     'string.max': '评论内容最多1000个字符',
-    'any.required': '评论内容是必填项'
-  })
+    'any.required': '评论内容是必填项',
+  }),
 });
 
 const paginationSchema = Joi.object({
   limit: Joi.number().integer().min(1).max(100).default(20),
-  offset: Joi.number().integer().min(0).default(0)
+  offset: Joi.number().integer().min(0).default(0),
 });
 
 // 点赞相关路由
 router.post(
   '/videos/:videoId/like',
   authenticate,
+  authorizeRoles([UserRole.USER, UserRole.CREATOR, UserRole.ADMIN]),
   validateRequest({ params: videoIdSchema }),
   interactionController.likeVideo.bind(interactionController)
 );
@@ -68,6 +75,7 @@ router.post(
 router.delete(
   '/videos/:videoId/like',
   authenticate,
+  authorizeRoles([UserRole.USER, UserRole.CREATOR, UserRole.ADMIN]),
   validateRequest({ params: videoIdSchema }),
   interactionController.unlikeVideo.bind(interactionController)
 );
@@ -90,18 +98,24 @@ router.get(
 router.post(
   '/comments',
   authenticate,
+  authorizeRoles([UserRole.USER, UserRole.CREATOR, UserRole.ADMIN]),
+  authorizePermissions(['user:comment']),
   validateRequest({ body: createCommentSchema }),
   interactionController.createComment.bind(interactionController)
 );
 
 router.get(
   '/videos/:videoId/comments',
-  validateRequest({ params: videoIdSchema, query: Joi.object({
-    parentId: Joi.string().uuid().allow(null, ''),
-    limit: Joi.number().integer().min(1).max(100).default(20),
-    offset: Joi.number().integer().min(0).default(0),
-    sort: Joi.string().valid('newest', 'oldest', 'popular').default('newest')
-  }) }),
+  allowGuest, // 允许游客查看评论
+  validateRequest({
+    params: videoIdSchema,
+    query: Joi.object({
+      parentId: Joi.string().uuid().allow(null, ''),
+      limit: Joi.number().integer().min(1).max(100).default(20),
+      offset: Joi.number().integer().min(0).default(0),
+      sort: Joi.string().valid('newest', 'oldest', 'popular').default('newest'),
+    }),
+  }),
   interactionController.getVideoComments.bind(interactionController)
 );
 
@@ -122,6 +136,7 @@ router.delete(
 router.post(
   '/comments/:commentId/like',
   authenticate,
+  authorizeRoles([UserRole.USER, UserRole.CREATOR, UserRole.ADMIN]),
   validateRequest({ params: commentIdSchema }),
   interactionController.likeComment.bind(interactionController)
 );
@@ -129,6 +144,7 @@ router.post(
 router.delete(
   '/comments/:commentId/like',
   authenticate,
+  authorizeRoles([UserRole.USER, UserRole.CREATOR, UserRole.ADMIN]),
   validateRequest({ params: commentIdSchema }),
   interactionController.unlikeComment.bind(interactionController)
 );
@@ -137,6 +153,7 @@ router.delete(
 router.post(
   '/videos/:videoId/save',
   authenticate,
+  authorizeRoles([UserRole.USER, UserRole.CREATOR, UserRole.ADMIN]),
   validateRequest({ params: videoIdSchema }),
   interactionController.saveVideo.bind(interactionController)
 );
@@ -144,6 +161,7 @@ router.post(
 router.delete(
   '/videos/:videoId/save',
   authenticate,
+  authorizeRoles([UserRole.USER, UserRole.CREATOR, UserRole.ADMIN]),
   validateRequest({ params: videoIdSchema }),
   interactionController.unsaveVideo.bind(interactionController)
 );
@@ -162,4 +180,4 @@ router.get(
   interactionController.getSavedVideos.bind(interactionController)
 );
 
-export const interactionRoutes = router; 
+export const interactionRoutes = router;

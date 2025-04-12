@@ -117,7 +117,7 @@ export class InteractionController {
 
       const userId = req.user.id;
       const { commentId } = req.params;
-      const isAdmin = req.user.role === UserRole.ADMIN || req.user.role === UserRole.MODERATOR;
+      const isAdmin = req.user.role === UserRole.ADMIN;
 
       await this.interactionService.deleteComment(commentId, userId, isAdmin);
       ApiResponse.success(res, null, '评论删除成功');

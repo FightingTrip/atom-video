@@ -204,12 +204,18 @@
     left: 0;
     width: 240px;
     height: calc(100vh - 56px);
-    background-color: var(--bg-color);
-    border-right: 1px solid var(--border-color);
+    background-color: var(--bg-dark, #0d1117);
+    border-right: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
     overflow-y: auto;
     overflow-x: hidden;
     transition: width 0.3s, background-color 0.3s;
     z-index: 20;
+  }
+
+  /* 浅色模式下的侧边栏样式 */
+  :root:not(.dark) .sidebar {
+    background-color: var(--bg-card, rgba(255, 255, 255, 0.9));
+    border-right: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
   }
 
   .sidebar-collapsed {

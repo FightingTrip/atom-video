@@ -21,13 +21,17 @@ const createTagSchema = Joi.object({
     'string.empty': '标签名不能为空',
     'string.min': '标签名至少需要2个字符',
     'string.max': '标签名不能超过50个字符',
-    'any.required': '标签名是必填项'
+    'any.required': '标签名是必填项',
   }),
-  slug: Joi.string().min(2).max(50).pattern(/^[a-z0-9-]+$/).message({
-    'string.min': 'Slug至少需要2个字符',
-    'string.max': 'Slug不能超过50个字符',
-    'string.pattern.base': 'Slug只能包含小写字母、数字和连字符'
-  })
+  slug: Joi.string()
+    .min(2)
+    .max(50)
+    .pattern(/^[a-z0-9-]+$/)
+    .message({
+      'string.min': 'Slug至少需要2个字符',
+      'string.max': 'Slug不能超过50个字符',
+      'string.pattern.base': 'Slug只能包含小写字母、数字和连字符',
+    }),
 });
 
 // 标签更新校验规则
@@ -35,22 +39,28 @@ const updateTagSchema = Joi.object({
   name: Joi.string().min(2).max(50).message({
     'string.empty': '标签名不能为空',
     'string.min': '标签名至少需要2个字符',
-    'string.max': '标签名不能超过50个字符'
+    'string.max': '标签名不能超过50个字符',
   }),
-  slug: Joi.string().min(2).max(50).pattern(/^[a-z0-9-]+$/).message({
-    'string.min': 'Slug至少需要2个字符',
-    'string.max': 'Slug不能超过50个字符',
-    'string.pattern.base': 'Slug只能包含小写字母、数字和连字符'
-  })
-}).min(1).message('至少需要提供一个更新字段');
+  slug: Joi.string()
+    .min(2)
+    .max(50)
+    .pattern(/^[a-z0-9-]+$/)
+    .message({
+      'string.min': 'Slug至少需要2个字符',
+      'string.max': 'Slug不能超过50个字符',
+      'string.pattern.base': 'Slug只能包含小写字母、数字和连字符',
+    }),
+})
+  .min(1)
+  .message('至少需要提供一个更新字段');
 
 // ID校验规则
 const idSchema = Joi.object({
   id: Joi.string().required().uuid().message({
     'string.empty': 'ID不能为空',
     'string.guid': 'ID必须是有效的UUID格式',
-    'any.required': 'ID是必填项'
-  })
+    'any.required': 'ID是必填项',
+  }),
 });
 
 // 查询参数校验规则
@@ -59,7 +69,7 @@ const querySchema = Joi.object({
   sort: Joi.string().valid('name', 'createdAt', 'count'),
   order: Joi.string().valid('asc', 'desc'),
   limit: Joi.number().integer().min(1).max(100),
-  offset: Joi.number().integer().min(0)
+  offset: Joi.number().integer().min(0),
 });
 
 // 公开路由 - 不需要认证
@@ -87,7 +97,7 @@ router.get('/video/:videoId', tagController.getTagsByVideoId.bind(tagController)
 router.post(
   '/',
   authenticate,
-  authorize([UserRole.ADMIN, UserRole.MODERATOR]),
+  authorize(UserRole.ADMIN),
   validateRequest({ body: createTagSchema }),
   tagController.createTag.bind(tagController)
 );
@@ -96,7 +106,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  authorize([UserRole.ADMIN, UserRole.MODERATOR]),
+  authorize(UserRole.ADMIN),
   validateRequest({ params: idSchema, body: updateTagSchema }),
   tagController.updateTag.bind(tagController)
 );
@@ -105,9 +115,9 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  authorize([UserRole.ADMIN, UserRole.MODERATOR]),
+  authorize(UserRole.ADMIN),
   validateRequest({ params: idSchema }),
   tagController.deleteTag.bind(tagController)
 );
 
-export const tagRoutes = router; 
+export const tagRoutes = router;
