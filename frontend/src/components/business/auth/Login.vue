@@ -25,6 +25,7 @@
   import { useMessage, NModal } from 'naive-ui'
   import { useI18n } from 'vue-i18n'
   import { useAuthStore } from '@/stores/auth'
+  import LoginTestAccountsComponent from './LoginTestAccountsComponent.vue'
 
   const { t } = useI18n()
   const router = useRouter()
@@ -46,6 +47,9 @@
   const verificationCodeSent = ref(false)
   const countdown = ref(0)
   const countdownTimer = ref<number | null>(null)
+
+  // 测试账号状态
+  const showTestAccounts = ref(false)
 
   // 监听弹窗关闭，重置状态
   watch(showForgotPassword, (newVal) => {
@@ -334,6 +338,16 @@
       <!-- 服务条款和隐私政策 -->
       <div class="terms-privacy">
         <a href="#">Terms of Service</a>
+      </div>
+
+      <!-- 测试账号表 -->
+      <login-test-accounts-component v-if="showTestAccounts" />
+
+      <!-- 切换测试账号显示 -->
+      <div class="test-accounts-toggle">
+        <button @click="showTestAccounts = !showTestAccounts" class="toggle-test-accounts-btn">
+          {{ showTestAccounts ? '隐藏测试账号' : '显示测试账号' }}
+        </button>
       </div>
     </div>
   </div>
@@ -870,5 +884,25 @@
   .done-button {
     width: 100%;
     max-width: 200px;
+  }
+
+  /* 测试账号样式 */
+  .test-accounts-toggle {
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .toggle-test-accounts-btn {
+    padding: 10px 20px;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .toggle-test-accounts-btn:hover {
+    background-color: #2563eb;
   }
 </style>

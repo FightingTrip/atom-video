@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/auth';
 import { RouteRecordRaw } from 'vue-router';
 // 导入管理员路由
 import adminRoutes from './modules/admin';
+// 导入权限守卫
+import { permissionGuard } from './guards/permission';
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -120,6 +122,27 @@ const routes: RouteRecordRaw[] = [
           requiresAuth: false,
         },
       },
+      // 权限演示页面
+      {
+        path: '/permission-demo',
+        name: 'permission-demo',
+        component: () => import('@/pages/feed/PermissionDemoPage.vue'),
+        meta: {
+          title: '权限演示 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      // 创作者中心路由
+      {
+        path: '/creator/studio',
+        name: 'creator-studio',
+        component: () => import('@/pages/creator/StudioPage.vue'),
+        meta: {
+          title: '创作者工作室 - Atom Video',
+          requiresAuth: true,
+          roles: ['ADMIN', 'CREATOR'],
+        },
+      },
       // 404页面
       {
         path: '/:pathMatch(.*)*',
@@ -168,7 +191,7 @@ const router = createRouter({
 });
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
   console.log('[Router] beforeEach', {
@@ -206,14 +229,9 @@ router.beforeEach((to, from, next) => {
     return;
   }
 
-  // 检查角色权限
+  // 使用权限守卫检查角色权限
   if (to.meta.roles && to.meta.roles.length > 0) {
-    const userRole = authStore.userRole;
-    if (!userRole || !to.meta.roles.includes(userRole)) {
-      console.log('[Router] 无权访问此页面，需要角色:', to.meta.roles, '当前角色:', userRole);
-      next({ name: 'not-found' });
-      return;
-    }
+    return permissionGuard(to, from, next);
   }
 
   // 继续路由处理

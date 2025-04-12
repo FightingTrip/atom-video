@@ -51,6 +51,21 @@
 
       <!-- 右侧用户区域 -->
       <div class="header-right">
+        <!-- 创作者中心入口 -->
+        <div class="header-icon-btn" v-if="isCreator || isAdmin">
+          <router-link to="/creator/studio" class="icon-link creator-link">
+            <n-icon size="24">
+              <CreateOutline />
+            </n-icon>
+            <n-tooltip trigger="hover" placement="bottom">
+              <template #trigger>
+                <span class="creator-icon-text">创作</span>
+              </template>
+              进入创作中心
+            </n-tooltip>
+          </router-link>
+        </div>
+
         <!-- 上传按钮 -->
         <div class="header-icon-btn" v-if="isLoggedIn">
           <router-link to="/video/upload" class="icon-link">
@@ -122,7 +137,8 @@
     HeartOutline,
     BookmarkOutline,
     TimeOutline,
-    ShieldOutline
+    ShieldOutline,
+    CreateOutline
   } from '@vicons/ionicons5'
   import { useUserStore } from '@/stores/user'
   import { useAuthStore } from '@/stores/auth'
@@ -183,6 +199,15 @@
         icon: () => h(NIcon, null, { default: () => h(SettingsOutline) })
       }
     ]
+
+    // 如果是创作者或管理员，添加创作者中心入口
+    if (authStore.isCreator) {
+      baseOptions.push({
+        label: '创作者中心',
+        key: 'creator',
+        icon: () => h(NIcon, null, { default: () => h(CreateOutline) })
+      })
+    }
 
     // 如果是管理员，添加管理后台入口
     if (authStore.isAdmin) {
@@ -249,6 +274,9 @@
         case 'settings':
           await router.push('/user/settings')
           break;
+        case 'creator':
+          await router.push('/creator/studio')
+          break;
         case 'admin':
           await router.push('/admin/dashboard')
           break;
@@ -269,6 +297,9 @@
 
   // 管理员状态
   const isAdmin = computed(() => authStore.isAdmin)
+
+  // 创作者状态
+  const isCreator = computed(() => authStore.isCreator)
 </script>
 
 <style scoped>
@@ -431,6 +462,26 @@
     background-color: rgba(var(--primary-color-rgb), 0.2);
   }
 
+  .creator-link {
+    background-color: rgba(33, 150, 243, 0.1);
+    border-radius: 18px;
+    padding: 0 8px;
+    gap: 4px;
+    width: auto;
+    transition: background-color 0.3s ease;
+  }
+
+  .creator-link:hover {
+    background-color: rgba(33, 150, 243, 0.2);
+  }
+
+  .creator-icon-text {
+    font-size: 14px;
+    font-weight: 500;
+    margin-left: 4px;
+    display: inline-block;
+  }
+
   .admin-icon-text {
     font-size: 14px;
     font-weight: 500;
@@ -471,11 +522,13 @@
       display: none;
     }
 
-    .admin-icon-text {
+    .admin-icon-text,
+    .creator-icon-text {
       display: none;
     }
 
-    .admin-link {
+    .admin-link,
+    .creator-link {
       padding: 0;
       width: 100%;
       border-radius: 50%;

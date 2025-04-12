@@ -10,6 +10,7 @@ import App from './App.vue';
 import router from './router';
 import i18n from './plugins/i18n';
 import setupNaiveUI from './plugins/naive-ui';
+import { vPermission, vPermissionBtn } from './directives/permission';
 
 // 导入样式 - 统一使用样式入口文件
 import '@/styles/index.scss';
@@ -28,6 +29,10 @@ app.use(pinia);
 app.use(router);
 app.use(i18n);
 setupNaiveUI(app);
+
+// 注册全局指令
+app.directive('permission', vPermission);
+app.directive('permission-btn', vPermissionBtn);
 
 // 全局错误处理
 app.config.errorHandler = (err, instance, info) => {

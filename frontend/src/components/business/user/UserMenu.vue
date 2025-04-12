@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted } from 'vue';
+  import { ref, onMounted, onUnmounted, computed } from 'vue';
   import { useRouter } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import { useI18n } from 'vue-i18n';
@@ -78,23 +78,38 @@
     router.push('/auth/login');
   };
 
-  const userMenuOptions = [
-    {
-      label: '个人资料',
-      key: 'profile',
-      onClick: () => router.push('/profile')
-    },
-    {
-      label: '设置',
-      key: 'settings',
-      onClick: () => router.push('/settings')
-    },
-    {
+  const userMenuOptions = computed(() => {
+    const options = [
+      {
+        label: '个人资料',
+        key: 'profile',
+        onClick: () => router.push('/profile')
+      },
+      {
+        label: '设置',
+        key: 'settings',
+        onClick: () => router.push('/settings')
+      }
+    ];
+
+    // 如果用户是创作者，添加创作者中心选项
+    if (authStore.isCreator) {
+      options.unshift({
+        label: '创作者中心',
+        key: 'creator',
+        onClick: () => router.push('/creator/studio')
+      });
+    }
+
+    // 添加退出登录选项
+    options.push({
       label: '退出登录',
       key: 'logout',
       onClick: handleLogout
-    }
-  ];
+    });
+
+    return options;
+  });
 
   const handleSelect = (key: string) => {
     if (key === 'logout') {

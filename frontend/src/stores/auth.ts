@@ -22,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   // 计算属性
   const isAuthenticated = computed(() => !!token.value || demoMode.value);
   const isAdmin = computed(() => userRole.value === 'ADMIN');
+  const isCreator = computed(() => userRole.value === 'CREATOR' || isAdmin.value);
   const username = computed(() => user.value?.username || '游客');
   const userRole = computed(() => {
     // 开发环境下，如果是demo模式，且用户名是admin，则作为管理员
@@ -220,6 +221,7 @@ export const useAuthStore = defineStore('auth', () => {
     // 计算属性
     isAuthenticated,
     isAdmin,
+    isCreator,
     username,
     userRole,
 
