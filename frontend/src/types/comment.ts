@@ -1,6 +1,14 @@
 import type { Author } from './index';
 
 /**
+ * 用户类型
+ */
+export interface User {
+  nickname: string;
+  avatar: string;
+}
+
+/**
  * 评论类型
  */
 export interface Comment {
@@ -12,6 +20,9 @@ export interface Comment {
   isLiked: boolean;
   replyCount: number;
   replies: Reply[];
+  videoTitle: string;
+  status: string;
+  user: User;
 }
 
 /**
