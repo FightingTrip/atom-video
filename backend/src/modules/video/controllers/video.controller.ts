@@ -1,7 +1,7 @@
 /**
  * 视频控制器
  *
- * 处理视频相关的HTTP请求
+ * 处理视频相关的API请求
  * @module video/controllers/video
  */
 

@@ -1,8 +1,8 @@
 /**
  * 订阅控制器
  *
- * 处理订阅相关的HTTP请求
- * @module subscription/controllers/subscription
+ * 处理订阅相关的API请求
+ * @module subscription/controllers/subscription.controller
  */
 
 import {
@@ -46,6 +46,7 @@ import {
   UserSubscriptionItemDto,
   SubscriberItemDto,
   SubscriptionStatusResponseDto,
+  BulkCheckSubscriptionDto,
 } from '../dto';
 import { SUBSCRIPTION_ROUTES } from '../routes';
 
@@ -307,6 +308,55 @@ export class SubscriptionController {
     return {
       statusCode: HttpStatus.OK,
       message: '更新通知设置成功',
+    };
+  }
+
+  /**
+   * 批量获取多个创作者的订阅状态
+   *
+   * @param userId 用户ID
+   * @param body 包含创作者ID数组的请求体
+   * @returns 包含每个创作者订阅状态的对象
+   */
+  @Post(SUBSCRIPTION_ROUTES.BULK_CHECK)
+  @ApiOperation({ summary: '批量获取多个创作者的订阅状态' })
+  @ApiBody({ type: BulkCheckSubscriptionDto })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: '获取成功',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: '获取订阅状态成功' },
+        data: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              isSubscribed: { type: 'boolean' },
+              notificationEnabled: { type: 'boolean', nullable: true },
+              subscribedAt: { type: 'string', format: 'date-time', nullable: true },
+            },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: '请求数据格式不正确' })
+  async bulkCheckSubscriptionStatus(
+    @User('id') userId: string,
+    @Body() body: BulkCheckSubscriptionDto
+  ) {
+    this.logger.log(`用户 ${userId} 请求批量获取订阅状态，创作者数量: ${body.creatorIds.length}`);
+    const result = await this.subscriptionService.getBulkSubscriptionStatus(
+      userId,
+      body.creatorIds
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: '获取订阅状态成功',
+      data: result,
     };
   }
 }

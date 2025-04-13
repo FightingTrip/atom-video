@@ -25,3 +25,23 @@ declare module './modules/video/video.module' {
 declare module './modules/interaction/interaction.module' {
   export class InteractionModule {}
 }
+
+declare module './modules/subscription/subscription.module' {
+  export class SubscriptionModule {}
+}
+
+declare module './modules/notification/notification.module' {
+  export class NotificationModule {}
+}
+
+declare module './modules/search/search.module' {
+  export class SearchModule {}
+}
+
+declare module './modules/recommendation/recommendation.module' {
+  export class RecommendationModule {}
+}
+
+declare module './modules/tag/tag.module' {
+  export class TagModule {}
+}

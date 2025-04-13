@@ -38,4 +38,7 @@ export const SUBSCRIPTION_ROUTES = {
 
   /** 更新订阅通知设置 */
   UPDATE_NOTIFICATION: 'notification/:creatorId',
+
+  /** 批量获取多个创作者的订阅状态 */
+  BULK_CHECK: 'bulk-check',
 };

@@ -7,13 +7,26 @@
 
 import {
   Injectable,
-  Logger,
   NotFoundException,
+  ConflictException,
   BadRequestException,
-  ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import {
+  SubscriptionDto,
+  CreateSubscriptionDto,
+  UpdateSubscriptionDto,
+  CheckSubscriptionDto,
+  BulkCheckSubscriptionDto,
+} from '../dto';
+import {
+  SubscriptionResponseDto,
+  SubscriberItemDto,
+  CreatorSubscriptionDto,
+  CreatorDetailDto,
+} from '../dto/subscription-response.dto';
+import { SubscriberStats } from '../models';
 
 /**
  * 订阅服务类
@@ -27,62 +40,72 @@ export class SubscriptionService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * 创建订阅关系
+   * 订阅创作者
    *
    * @param userId 用户ID
-   * @param creatorId 创作者ID
-   * @param notificationEnabled 是否启用通知
-   * @returns 订阅记录
+   * @param dto 订阅创建DTO
+   * @returns 订阅响应DTO
    */
-  async subscribe(userId: string, creatorId: string, notificationEnabled = true) {
-    // 验证用户ID与创作者ID不能相同
-    if (userId === creatorId) {
-      this.logger.warn(`用户 ${userId} 尝试订阅自己`);
-      throw new BadRequestException('不能订阅自己');
-    }
-
+  async subscribe(userId: string, dto: CreateSubscriptionDto): Promise<SubscriptionResponseDto> {
     // 检查创作者是否存在
     const creator = await this.prisma.user.findUnique({
-      where: { id: creatorId },
+      where: { id: dto.creatorId },
+      select: { id: true, isCreator: true },
     });
 
     if (!creator) {
-      this.logger.warn(`创作者 ${creatorId} 不存在`);
-      throw new NotFoundException(`创作者不存在`);
+      throw new NotFoundException('创作者不存在');
     }
 
-    try {
-      // 检查是否已订阅
-      const existingSubscription = await this.prisma.subscription.findUnique({
-        where: {
-          userId_creatorId: {
-            userId,
-            creatorId,
+    if (!creator.isCreator) {
+      throw new BadRequestException('该用户不是创作者');
+    }
+
+    // 检查是否已经订阅
+    const existingSubscription = await this.prisma.subscription.findUnique({
+      where: {
+        subscriberId_creatorId: {
+          subscriberId: userId,
+          creatorId: dto.creatorId,
+        },
+      },
+    });
+
+    if (existingSubscription) {
+      throw new ConflictException('您已经订阅了该创作者');
+    }
+
+    // 创建订阅记录
+    const subscription = await this.prisma.subscription.create({
+      data: {
+        subscriberId: userId,
+        creatorId: dto.creatorId,
+        notificationsEnabled: dto.notificationsEnabled ?? true,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            bio: true,
           },
         },
-      });
+      },
+    });
 
-      if (existingSubscription) {
-        this.logger.log(`用户 ${userId} 已订阅创作者 ${creatorId}`);
-        return existingSubscription;
-      }
-
-      // 创建订阅
-      const subscription = await this.prisma.subscription.create({
-        data: {
-          userId,
-          creatorId,
-          notificationEnabled,
-          subscribedAt: new Date(),
-        },
-      });
-
-      this.logger.log(`用户 ${userId} 成功订阅创作者 ${creatorId}`);
-      return subscription;
-    } catch (error) {
-      this.logger.error(`订阅失败: ${error instanceof Error ? error.message : String(error)}`);
-      throw new BadRequestException('订阅创建失败');
-    }
+    return {
+      id: subscription.id,
+      creatorId: subscription.creatorId,
+      subscribedAt: subscription.createdAt.toISOString(),
+      notificationsEnabled: subscription.notificationsEnabled,
+      creator: {
+        id: subscription.creator.id,
+        username: subscription.creator.username,
+        avatarUrl: subscription.creator.avatarUrl,
+        bio: subscription.creator.bio,
+      },
+    };
   }
 
   /**
@@ -90,44 +113,88 @@ export class SubscriptionService {
    *
    * @param userId 用户ID
    * @param creatorId 创作者ID
-   * @returns 取消的订阅记录
+   * @returns 操作成功消息
    */
-  async unsubscribe(userId: string, creatorId: string) {
-    try {
-      // 检查是否已订阅
-      const subscription = await this.prisma.subscription.findUnique({
-        where: {
-          userId_creatorId: {
-            userId,
-            creatorId,
-          },
+  async unsubscribe(userId: string, creatorId: string): Promise<{ message: string }> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: {
+        subscriberId_creatorId: {
+          subscriberId: userId,
+          creatorId,
         },
-      });
+      },
+    });
 
-      if (!subscription) {
-        this.logger.warn(`用户 ${userId} 未订阅创作者 ${creatorId}`);
-        throw new NotFoundException('未找到订阅记录');
-      }
-
-      // 删除订阅
-      const deletedSubscription = await this.prisma.subscription.delete({
-        where: {
-          userId_creatorId: {
-            userId,
-            creatorId,
-          },
-        },
-      });
-
-      this.logger.log(`用户 ${userId} 成功取消订阅创作者 ${creatorId}`);
-      return deletedSubscription;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`取消订阅失败: ${error instanceof Error ? error.message : String(error)}`);
-      throw new BadRequestException('取消订阅失败');
+    if (!subscription) {
+      throw new NotFoundException('您没有订阅该创作者');
     }
+
+    await this.prisma.subscription.delete({
+      where: {
+        id: subscription.id,
+      },
+    });
+
+    return { message: '已成功取消订阅' };
+  }
+
+  /**
+   * 更新订阅通知设置
+   *
+   * @param userId 用户ID
+   * @param creatorId 创作者ID
+   * @param dto 更新订阅DTO
+   * @returns 订阅响应DTO
+   */
+  async updateSubscription(
+    userId: string,
+    creatorId: string,
+    dto: UpdateSubscriptionDto
+  ): Promise<SubscriptionResponseDto> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: {
+        subscriberId_creatorId: {
+          subscriberId: userId,
+          creatorId,
+        },
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('您没有订阅该创作者');
+    }
+
+    const updatedSubscription = await this.prisma.subscription.update({
+      where: {
+        id: subscription.id,
+      },
+      data: {
+        notificationsEnabled: dto.notificationsEnabled,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            bio: true,
+          },
+        },
+      },
+    });
+
+    return {
+      id: updatedSubscription.id,
+      creatorId: updatedSubscription.creatorId,
+      subscribedAt: updatedSubscription.createdAt.toISOString(),
+      notificationsEnabled: updatedSubscription.notificationsEnabled,
+      creator: {
+        id: updatedSubscription.creator.id,
+        username: updatedSubscription.creator.username,
+        avatarUrl: updatedSubscription.creator.avatarUrl,
+        bio: updatedSubscription.creator.bio,
+      },
+    };
   }
 
   /**
@@ -144,16 +211,20 @@ export class SubscriptionService {
     try {
       const [subscriptions, total] = await Promise.all([
         this.prisma.subscription.findMany({
-          where: { userId },
+          where: { subscriberId: userId },
           include: {
             creator: {
               select: {
                 id: true,
                 username: true,
-                avatar: true,
+                avatarUrl: true,
                 bio: true,
-                createdAt: true,
-                // 添加其他需要的创作者信息
+                _count: {
+                  select: {
+                    videos: true,
+                    subscribedBy: true,
+                  },
+                },
               },
             },
           },
@@ -164,12 +235,25 @@ export class SubscriptionService {
           },
         }),
         this.prisma.subscription.count({
-          where: { userId },
+          where: { subscriberId: userId },
         }),
       ]);
 
       return {
-        data: subscriptions,
+        data: subscriptions.map(sub => ({
+          id: sub.id,
+          creatorId: sub.creatorId,
+          subscribedAt: sub.createdAt.toISOString(),
+          notificationsEnabled: sub.notificationsEnabled,
+          creator: {
+            id: sub.creator.id,
+            username: sub.creator.username,
+            avatarUrl: sub.creator.avatarUrl,
+            bio: sub.creator.bio,
+            videosCount: sub.creator._count.videos,
+            subscribersCount: sub.creator._count.subscribedBy,
+          },
+        })),
         pagination: {
           total,
           page,
@@ -178,10 +262,8 @@ export class SubscriptionService {
         },
       };
     } catch (error) {
-      this.logger.error(
-        `获取用户订阅列表失败: ${error instanceof Error ? error.message : String(error)}`
-      );
-      throw new BadRequestException('获取订阅列表失败');
+      this.logger.error(`获取用户订阅列表失败: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
@@ -196,24 +278,33 @@ export class SubscriptionService {
   async getCreatorSubscribers(creatorId: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
+    // 检查创作者是否存在
+    const creator = await this.prisma.user.findUnique({
+      where: { id: creatorId },
+      select: { id: true, isCreator: true },
+    });
+
+    if (!creator) {
+      throw new NotFoundException('创作者不存在');
+    }
+
     try {
       const [subscribers, total] = await Promise.all([
         this.prisma.subscription.findMany({
           where: { creatorId },
           include: {
-            user: {
+            subscriber: {
               select: {
                 id: true,
                 username: true,
-                avatar: true,
-                // 其他需要的用户信息
+                avatarUrl: true,
               },
             },
           },
           skip,
           take: limit,
           orderBy: {
-            subscribedAt: 'desc',
+            createdAt: 'desc',
           },
         }),
         this.prisma.subscription.count({
@@ -221,8 +312,19 @@ export class SubscriptionService {
         }),
       ]);
 
+      const subscriberItems: SubscriberItemDto[] = subscribers.map(sub => ({
+        id: sub.id,
+        subscriberId: sub.subscriberId,
+        createdAt: sub.createdAt.toISOString(),
+        subscriber: {
+          id: sub.subscriber.id,
+          username: sub.subscriber.username,
+          avatarUrl: sub.subscriber.avatarUrl,
+        },
+      }));
+
       return {
-        data: subscribers,
+        data: subscriberItems,
         pagination: {
           total,
           page,
@@ -231,47 +333,106 @@ export class SubscriptionService {
         },
       };
     } catch (error) {
-      this.logger.error(
-        `获取创作者订阅者列表失败: ${error instanceof Error ? error.message : String(error)}`
-      );
-      throw new BadRequestException('获取订阅者列表失败');
+      this.logger.error(`获取创作者订阅者列表失败: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
   /**
-   * 获取创作者的订阅者数量
+   * 获取创作者统计数据
    *
    * @param creatorId 创作者ID
-   * @returns 订阅者数量
+   * @returns 创作者统计数据
    */
-  async getSubscriberCount(creatorId: string): Promise<number> {
+  async getCreatorStats(creatorId: string): Promise<SubscriberStats> {
+    // 检查创作者是否存在
+    const creator = await this.prisma.user.findUnique({
+      where: { id: creatorId },
+      select: { id: true, isCreator: true },
+    });
+
+    if (!creator) {
+      throw new NotFoundException('创作者不存在');
+    }
+
+    if (!creator.isCreator) {
+      throw new BadRequestException('该用户不是创作者');
+    }
+
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
     try {
-      const count = await this.prisma.subscription.count({
+      // 获取总订阅者数
+      const total = await this.prisma.subscription.count({
         where: { creatorId },
       });
 
-      return count;
+      // 获取一个月内新增的订阅者数
+      const newThisMonth = await this.prisma.subscription.count({
+        where: {
+          creatorId,
+          createdAt: { gte: oneMonthAgo },
+        },
+      });
+
+      // 获取两个月前的订阅者数量，用于计算增长率
+      const twoMonthsAgo = new Date(oneMonthAgo);
+      twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 1);
+
+      const lastMonthCount = await this.prisma.subscription.count({
+        where: {
+          creatorId,
+          createdAt: {
+            gte: twoMonthsAgo,
+            lt: oneMonthAgo,
+          },
+        },
+      });
+
+      // 计算增长率
+      let growthRate = 0;
+      if (lastMonthCount > 0) {
+        growthRate = ((newThisMonth - lastMonthCount) / lastMonthCount) * 100;
+      } else if (newThisMonth > 0) {
+        growthRate = 100; // 如果上月没有但本月有，则增长率为100%
+      }
+
+      // 获取启用通知的订阅者百分比
+      const enabledNotifications = await this.prisma.subscription.count({
+        where: {
+          creatorId,
+          notificationsEnabled: true,
+        },
+      });
+
+      const notificationEnabledPercentage = total > 0 ? (enabledNotifications / total) * 100 : 0;
+
+      return {
+        total,
+        newThisMonth,
+        growthRate,
+        notificationEnabledPercentage,
+      };
     } catch (error) {
-      this.logger.error(
-        `获取创作者订阅者数量失败: ${error instanceof Error ? error.message : String(error)}`
-      );
-      throw new BadRequestException('获取订阅者数量失败');
+      this.logger.error(`获取创作者统计数据失败: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
   /**
-   * 检查用户是否已订阅创作者
+   * 检查是否已订阅创作者
    *
    * @param userId 用户ID
    * @param creatorId 创作者ID
-   * @returns 是否已订阅及订阅信息
+   * @returns 订阅状态
    */
-  async checkSubscriptionStatus(userId: string, creatorId: string) {
+  async checkSubscription(userId: string, creatorId: string): Promise<{ isSubscribed: boolean }> {
     try {
       const subscription = await this.prisma.subscription.findUnique({
         where: {
-          userId_creatorId: {
-            userId,
+          subscriberId_creatorId: {
+            subscriberId: userId,
             creatorId,
           },
         },
@@ -279,71 +440,53 @@ export class SubscriptionService {
 
       return {
         isSubscribed: !!subscription,
-        notificationEnabled: subscription?.notificationEnabled || false,
-        subscribedAt: subscription?.subscribedAt || null,
       };
     } catch (error) {
-      this.logger.error(
-        `检查订阅状态失败: ${error instanceof Error ? error.message : String(error)}`
-      );
-      throw new BadRequestException('检查订阅状态失败');
+      this.logger.error(`检查订阅状态失败: ${error.message}`, error.stack);
+      throw error;
     }
   }
 
   /**
-   * 更新订阅通知设置
+   * 批量检查订阅状态
    *
    * @param userId 用户ID
-   * @param creatorId 创作者ID
-   * @param notificationEnabled 是否启用通知
-   * @returns 更新后的订阅记录
+   * @param creatorIds 创作者ID列表
+   * @returns 订阅状态映射
    */
-  async updateNotificationSettings(
+  async bulkCheckSubscription(
     userId: string,
-    creatorId: string,
-    notificationEnabled: boolean
-  ) {
+    creatorIds: string[]
+  ): Promise<{ [key: string]: boolean }> {
     try {
-      // 检查是否已订阅
-      const subscription = await this.prisma.subscription.findUnique({
+      const subscriptions = await this.prisma.subscription.findMany({
         where: {
-          userId_creatorId: {
-            userId,
-            creatorId,
-          },
+          subscriberId: userId,
+          creatorId: { in: creatorIds },
+        },
+        select: {
+          creatorId: true,
         },
       });
 
-      if (!subscription) {
-        this.logger.warn(`用户 ${userId} 未订阅创作者 ${creatorId}, 无法更新通知设置`);
-        throw new NotFoundException('未找到订阅记录');
-      }
-
-      // 更新通知设置
-      const updatedSubscription = await this.prisma.subscription.update({
-        where: {
-          userId_creatorId: {
-            userId,
-            creatorId,
-          },
+      const subscriptionMap = subscriptions.reduce(
+        (acc, { creatorId }) => {
+          acc[creatorId] = true;
+          return acc;
         },
-        data: {
-          notificationEnabled,
-        },
-      });
-
-      this.logger.log(
-        `用户 ${userId} 成功更新对创作者 ${creatorId} 的通知设置为 ${notificationEnabled}`
+        {} as { [key: string]: boolean }
       );
-      return updatedSubscription;
+
+      return creatorIds.reduce(
+        (acc, creatorId) => {
+          acc[creatorId] = !!subscriptionMap[creatorId];
+          return acc;
+        },
+        {} as { [key: string]: boolean }
+      );
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(
-        `更新通知设置失败: ${error instanceof Error ? error.message : String(error)}`
-      );
-      throw new BadRequestException('更新通知设置失败');
+      this.logger.error(`批量检查订阅状态失败: ${error.message}`, error.stack);
+      throw error;
     }
   }
 }

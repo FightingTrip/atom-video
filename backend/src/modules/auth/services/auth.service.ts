@@ -38,6 +38,18 @@ interface AppError {
 }
 
 /**
+ * OAuth用户验证数据
+ */
+interface OAuthUserData {
+  provider: string;
+  providerId: string;
+  email: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+/**
  * 认证服务类
  * 管理用户认证相关的业务逻辑
  */
@@ -275,6 +287,110 @@ export class AuthService {
       }
       const appError = error as AppError;
       throw new BadRequestException('重置密码失败: ' + (appError.message || '未知错误'));
+    }
+  }
+
+  /**
+   * 验证OAuth用户
+   * 如果用户存在则登录，不存在则创建新用户
+   *
+   * @param userData OAuth用户数据
+   * @returns 用户信息和token
+   */
+  async validateOAuthUser(userData: OAuthUserData) {
+    try {
+      // 先检查是否有使用该第三方账号登录过的用户
+      let user = await this.prismaService.user.findFirst({
+        where: {
+          OR: [
+            {
+              oauthAccounts: {
+                some: {
+                  provider: userData.provider,
+                  providerId: userData.providerId,
+                },
+              },
+            },
+            // 如果邮箱重复，关联到现有用户
+            { email: userData.email },
+          ],
+        },
+        include: {
+          oauthAccounts: true,
+        },
+      });
+
+      // 如果用户不存在，创建新用户
+      if (!user) {
+        // 为用户名添加随机后缀以确保唯一性
+        let uniqueUsername = userData.username;
+        let isUnique = false;
+        let attempt = 0;
+
+        while (!isUnique) {
+          const existingUser = await this.prismaService.user.findUnique({
+            where: { username: uniqueUsername },
+          });
+
+          if (existingUser) {
+            attempt++;
+            uniqueUsername = `${userData.username}_${attempt}`;
+          } else {
+            isUnique = true;
+          }
+        }
+
+        // 创建用户
+        user = await this.prismaService.user.create({
+          data: {
+            email: userData.email,
+            username: uniqueUsername,
+            displayName: userData.displayName,
+            avatarUrl: userData.avatarUrl,
+            isVerified: true, // OAuth用户视为已验证
+            role: 'VIEWER',
+            oauthAccounts: {
+              create: {
+                provider: userData.provider,
+                providerId: userData.providerId,
+              },
+            },
+          },
+          include: {
+            oauthAccounts: true,
+          },
+        });
+
+        console.log(`创建新OAuth用户: ${user.username}, 提供商: ${userData.provider}`);
+      }
+      // 如果用户存在但没有关联此OAuth账号，则添加关联
+      else if (
+        !user.oauthAccounts.some(
+          account =>
+            account.provider === userData.provider && account.providerId === userData.providerId
+        )
+      ) {
+        await this.prismaService.oauthAccount.create({
+          data: {
+            userId: user.id,
+            provider: userData.provider,
+            providerId: userData.providerId,
+          },
+        });
+
+        console.log(`为用户 ${user.username} 添加新的OAuth关联: ${userData.provider}`);
+      }
+
+      // 生成token
+      const token = await this.generateTokens(user.id, user.role);
+
+      return {
+        user,
+        token,
+      };
+    } catch (error) {
+      console.error(`OAuth用户验证失败: ${error.message}`, error.stack);
+      throw new Error(`OAuth认证失败: ${error.message}`);
     }
   }
 

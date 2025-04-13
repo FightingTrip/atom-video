@@ -1,42 +1,39 @@
 /**
- * 应用程序根模块
+ * 应用程序主模块
  *
- * 组织和导入所有子模块
+ * @module app.module
  */
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-// @ts-ignore 模块存在但TypeScript无法解析
+import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
-// @ts-ignore 模块存在但TypeScript无法解析
 import { AuthModule } from './modules/auth/auth.module';
-// @ts-ignore 模块存在但TypeScript无法解析
 import { UserModule } from './modules/user/user.module';
-// @ts-ignore 模块存在但TypeScript无法解析
-import { CommonModule } from './modules/common/common.module';
 import { VideoModule } from './modules/video/video.module';
 import { InteractionModule } from './modules/interaction/interaction.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { SearchModule } from './modules/search/search.module'; // 新增搜索模块
+import { RecommendationModule } from './modules/recommendation/recommendation.module'; // 新增推荐系统模块
+import { TagModule } from './modules/tag/tag.module'; // 新增标签模块
+import { CommonModule } from './modules/common/common.module';
 
-/**
- * 应用程序根模块
- * 组织和导入所有子模块
- */
 @Module({
   imports: [
-    // 配置模块，处理环境变量和配置
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
     }),
-
-    // Prisma模块，处理数据库连接
     PrismaModule,
-
-    // 业务模块
-    CommonModule,
-    UserModule,
     AuthModule,
+    UserModule,
     VideoModule,
     InteractionModule,
+    SubscriptionModule,
+    NotificationModule,
+    SearchModule, // 注册搜索模块
+    RecommendationModule, // 注册推荐系统模块
+    TagModule, // 注册标签模块
+    CommonModule,
   ],
 })
 export class AppModule {}

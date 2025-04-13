@@ -6,7 +6,30 @@
  */
 
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID, IsArray } from 'class-validator';
+
+/**
+ * 订阅请求DTO
+ */
+export class SubscriptionDto {
+  @ApiProperty({
+    description: '创作者ID',
+    example: 'e87a1881-c917-4214-a365-1f4b2e40ab65',
+  })
+  @IsNotEmpty()
+  @IsString()
+  creatorId: string;
+
+  @ApiProperty({
+    description: '是否接收通知',
+    example: true,
+    required: false,
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  notificationsEnabled?: boolean;
+}
 
 /**
  * 创建订阅DTO
@@ -71,4 +94,23 @@ export class CheckSubscriptionDto {
   @IsNotEmpty()
   @IsUUID()
   creatorId: string;
+}
+
+/**
+ * 批量检查订阅状态请求DTO
+ */
+export class BulkCheckSubscriptionDto {
+  /**
+   * 创作者ID数组
+   * @example ["a1b2c3d4-e5f6-7890-abcd-ef1234567890", "b2c3d4e5-f6a7-8901-bcde-f12345678901"]
+   */
+  @ApiProperty({
+    description: '创作者ID数组',
+    type: [String],
+    example: ['a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'b2c3d4e5-f6a7-8901-bcde-f12345678901'],
+  })
+  @IsNotEmpty()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  creatorIds: string[];
 }
