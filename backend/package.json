@@ -2,7 +2,6 @@
   "name": "atom-video-backend",
   "version": "1.0.0",
   "description": "Backend for Atom Video CMS",
-  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
@@ -59,6 +58,7 @@
     "passport-jwt": "4.0.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
+    "swagger-ui-express": "5.0.1",
     "uuid": "^11.1.0",
     "winston": "^3.11.0"
   },

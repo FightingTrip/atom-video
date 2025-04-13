@@ -8,10 +8,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
-import { VideoModule } from './modules/video/video.module';
-import { CreatorModule } from './modules/creator/creator.module';
-import { TagModule } from './modules/tag/tag.module';
-import { InteractionModule } from './modules/interaction/interaction.module';
 import { CommonModule } from './modules/common/common.module';
 
 @Module({
@@ -27,12 +23,8 @@ import { CommonModule } from './modules/common/common.module';
 
     // 业务模块
     CommonModule,
-    AuthModule,
     UserModule,
-    VideoModule,
-    CreatorModule,
-    TagModule,
-    InteractionModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

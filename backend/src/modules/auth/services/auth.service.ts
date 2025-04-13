@@ -5,9 +5,19 @@
  * @module auth/services/auth
  */
 
-import bcrypt from 'bcrypt';
-import * as jwt from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { UserRole } from '@atom/shared-types/models';
+
 import {
   LoginDto,
   RegisterDto,
@@ -15,37 +25,37 @@ import {
   RequestPasswordResetDto,
   ResetPasswordDto,
   RefreshTokenDto,
-  AuthSession,
 } from '../models/auth.model';
 import { UserService } from '../../user/services/user.service';
-import { CreateUserDto } from '../../user/models/user.model';
-import { withDbClient, performTransaction, getPrismaClient } from '../../common/utils/db-helpers';
-import {
-  NotFoundError,
-  ConflictError,
-  ValidationError,
-  UnauthorizedError,
-  ForbiddenError,
-} from '../../common/utils/app-error';
-import { removeNullUndefined, generateRandomString } from '../../common/utils/helpers';
-import { UserRole } from '../../common/middleware/auth.middleware';
+import { CreateUserDto } from '../../user/services/user.service';
+import { PrismaService } from '../../../prisma/prisma.service';
+
+// 定义错误类型接口
+interface AppError {
+  message: string;
+  name?: string;
+  statusCode?: number;
+}
 
 /**
  * 认证服务类
  * 管理用户认证相关的业务逻辑
  */
+@Injectable()
 export class AuthService {
-  private userService: UserService;
-  private jwtSecret: string;
-  private jwtExpiresIn: string;
-  private refreshTokenExpiresIn: string;
-
-  constructor() {
-    this.userService = new UserService();
-    this.jwtSecret = process.env.JWT_SECRET || 'default_jwt_secret';
-    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1h';
-    this.refreshTokenExpiresIn = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
-  }
+  /**
+   * 构造函数，注入依赖
+   * @param userService 用户服务
+   * @param jwtService JWT服务
+   * @param configService 配置服务
+   * @param prismaService Prisma服务
+   */
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly prismaService: PrismaService
+  ) {}
 
   /**
    * 处理用户登录
@@ -54,103 +64,107 @@ export class AuthService {
    * @throws UnauthorizedError 凭据无效
    */
   async login(loginDto: LoginDto): Promise<TokenResponse> {
-    return withDbClient(async prisma => {
-      // 根据用户名或者邮箱查找用户
-      const user = await prisma.user.findFirst({
-        where: {
-          OR: [{ username: loginDto.username }, { email: loginDto.username }],
-        },
+    try {
+      // 根据邮箱查找用户
+      const user = await this.prismaService.user.findFirst({
+        where: { email: loginDto.email },
       });
 
       if (!user) {
-        throw new UnauthorizedError('无效的用户名或密码');
+        throw new UnauthorizedException('无效的邮箱或密码');
       }
 
       // 验证密码
       const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
       if (!isPasswordValid) {
-        throw new UnauthorizedError('无效的用户名或密码');
+        throw new UnauthorizedException('无效的邮箱或密码');
       }
 
       // 创建令牌并返回
       return this.generateTokens(user.id, user.role);
-    });
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('登录失败');
+    }
   }
 
   /**
    * 处理用户注册
    * @param registerDto 注册数据
    * @returns 令牌信息
-   * @throws ValidationError 验证失败
-   * @throws ConflictError 用户已存在
+   * @throws BadRequestException 验证失败
+   * @throws ConflictException 用户已存在
    */
   async register(registerDto: RegisterDto): Promise<TokenResponse> {
-    // 校验密码和确认密码是否一致
-    if (registerDto.password !== registerDto.confirmPassword) {
-      throw new ValidationError('密码和确认密码不匹配');
+    try {
+      // 将注册DTO转换为创建用户DTO
+      const createUserDto: CreateUserDto = {
+        username: registerDto.username,
+        email: registerDto.email,
+        password: registerDto.password,
+        name: registerDto.name,
+        role: UserRole.USER,
+        isVerified: false, // 默认未验证
+        isCreator: false, // 默认不是创作者
+      };
+
+      // 创建用户
+      const user = await this.userService.createUser(createUserDto);
+
+      // 生成令牌
+      return this.generateTokens(user.id, user.role);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      const appError = error as AppError;
+      throw new BadRequestException('注册失败: ' + (appError.message || '未知错误'));
     }
-
-    // 将注册DTO转换为创建用户DTO
-    const createUserDto: CreateUserDto = {
-      username: registerDto.username,
-      email: registerDto.email,
-      password: registerDto.password,
-      name: registerDto.name,
-      role: UserRole.USER, // 使用枚举值
-      isVerified: false, // 默认未验证
-      isCreator: false, // 默认不是创作者
-    };
-
-    // 创建用户
-    const user = await this.userService.createUser(createUserDto);
-
-    // 生成令牌
-    return this.generateTokens(user.id, user.role);
   }
 
   /**
    * 刷新访问令牌
    * @param refreshTokenDto 刷新令牌DTO
    * @returns 新的令牌信息
-   * @throws UnauthorizedError 刷新令牌无效
+   * @throws UnauthorizedException 刷新令牌无效
    */
   async refreshToken(refreshTokenDto: RefreshTokenDto): Promise<TokenResponse> {
-    return withDbClient(async prisma => {
-      try {
-        // 根据刷新令牌查找对应记录
-        const refreshTokenRecord = await prisma.refreshToken.findUnique({
-          where: { token: refreshTokenDto.refreshToken },
-          include: { user: true },
-        });
+    try {
+      // 根据刷新令牌查找对应记录
+      const refreshTokenRecord = await this.prismaService.refreshToken.findUnique({
+        where: { token: refreshTokenDto.refresh_token },
+        include: { user: true },
+      });
 
-        if (!refreshTokenRecord) {
-          throw new UnauthorizedError('刷新令牌无效');
-        }
+      if (!refreshTokenRecord) {
+        throw new UnauthorizedException('刷新令牌无效');
+      }
 
-        // 检查令牌是否已过期
-        if (new Date() > refreshTokenRecord.expiresAt) {
-          // 删除过期令牌
-          await prisma.refreshToken.delete({
-            where: { id: refreshTokenRecord.id },
-          });
-
-          throw new UnauthorizedError('刷新令牌已过期');
-        }
-
-        // 删除旧的刷新令牌
-        await prisma.refreshToken.delete({
+      // 检查令牌是否已过期
+      if (new Date() > refreshTokenRecord.expiresAt) {
+        // 删除过期令牌
+        await this.prismaService.refreshToken.delete({
           where: { id: refreshTokenRecord.id },
         });
 
-        // 生成新的令牌
-        return this.generateTokens(refreshTokenRecord.userId, refreshTokenRecord.user.role);
-      } catch (error) {
-        if (error instanceof UnauthorizedError) {
-          throw error;
-        }
-        throw new UnauthorizedError('刷新令牌处理失败');
+        throw new UnauthorizedException('刷新令牌已过期');
       }
-    });
+
+      // 删除旧的刷新令牌
+      await this.prismaService.refreshToken.delete({
+        where: { id: refreshTokenRecord.id },
+      });
+
+      // 生成新的令牌
+      return this.generateTokens(refreshTokenRecord.userId, refreshTokenRecord.user.role);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('刷新令牌处理失败');
+    }
   }
 
   /**
@@ -159,14 +173,12 @@ export class AuthService {
    * @param refreshToken 刷新令牌
    */
   async logout(userId: string, refreshToken: string): Promise<void> {
-    return performTransaction(async prisma => {
-      // 删除用户的刷新令牌
-      await prisma.refreshToken.deleteMany({
-        where: {
-          userId,
-          token: refreshToken,
-        },
-      });
+    // 删除用户的刷新令牌
+    await this.prismaService.refreshToken.deleteMany({
+      where: {
+        userId,
+        token: refreshToken,
+      },
     });
   }
 
@@ -175,37 +187,35 @@ export class AuthService {
    * @param userId 用户ID
    */
   async logoutAll(userId: string): Promise<void> {
-    return performTransaction(async prisma => {
-      // 删除用户的所有刷新令牌
-      await prisma.refreshToken.deleteMany({
-        where: { userId },
-      });
+    // 删除用户的所有刷新令牌
+    await this.prismaService.refreshToken.deleteMany({
+      where: { userId },
     });
   }
 
   /**
    * 请求密码重置
    * @param requestDto 请求数据
-   * @throws NotFoundError 邮箱不存在
+   * @throws NotFoundException 邮箱不存在
    */
   async requestPasswordReset(requestDto: RequestPasswordResetDto): Promise<void> {
-    return performTransaction(async prisma => {
+    try {
       // 根据邮箱查找用户
-      const user = await prisma.user.findFirst({
+      const user = await this.prismaService.user.findFirst({
         where: { email: requestDto.email },
       });
 
       if (!user) {
-        throw new NotFoundError('该邮箱地址未注册');
+        throw new NotFoundException('该邮箱地址未注册');
       }
 
       // 生成重置令牌
-      const token = generateRandomString(32);
+      const token = this.generateRandomString(32);
       const expires = new Date();
       expires.setHours(expires.getHours() + 1); // 令牌1小时有效
 
       // 存储重置令牌
-      await prisma.passwordReset.create({
+      await this.prismaService.passwordReset.create({
         data: {
           userId: user.id,
           token,
@@ -216,24 +226,25 @@ export class AuthService {
       // 在实际应用中，这里应该发送邮件，包含重置链接
       // 为演示需要，这里只打印出令牌
       console.log(`Password reset token for ${user.email}: ${token}`);
-    });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      const appError = error as AppError;
+      throw new BadRequestException('请求密码重置失败: ' + (appError.message || '未知错误'));
+    }
   }
 
   /**
    * 重置密码
    * @param resetDto 重置数据
-   * @throws ValidationError 密码不匹配
-   * @throws NotFoundError 令牌无效
+   * @throws BadRequestException 密码无效
+   * @throws NotFoundException 令牌无效
    */
   async resetPassword(resetDto: ResetPasswordDto): Promise<void> {
-    // 校验密码和确认密码是否一致
-    if (resetDto.password !== resetDto.confirmPassword) {
-      throw new ValidationError('密码和确认密码不匹配');
-    }
-
-    return performTransaction(async prisma => {
+    try {
       // 查找重置令牌
-      const resetRecord = await prisma.passwordReset.findFirst({
+      const resetRecord = await this.prismaService.passwordReset.findFirst({
         where: {
           token: resetDto.token,
           expiresAt: { gt: new Date() }, // 确保令牌未过期
@@ -241,7 +252,7 @@ export class AuthService {
       });
 
       if (!resetRecord) {
-        throw new NotFoundError('重置令牌无效或已过期');
+        throw new NotFoundException('重置令牌无效或已过期');
       }
 
       // 哈希新密码
@@ -249,63 +260,73 @@ export class AuthService {
       const hashedPassword = await bcrypt.hash(resetDto.password, salt);
 
       // 更新用户密码
-      await prisma.user.update({
+      await this.prismaService.user.update({
         where: { id: resetRecord.userId },
         data: { password: hashedPassword },
       });
 
-      // 删除重置令牌
-      await prisma.passwordReset.delete({
-        where: { id: resetRecord.id },
+      // 删除所有重置令牌
+      await this.prismaService.passwordReset.deleteMany({
+        where: { userId: resetRecord.userId },
       });
-    });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      const appError = error as AppError;
+      throw new BadRequestException('重置密码失败: ' + (appError.message || '未知错误'));
+    }
   }
 
   /**
    * 生成访问令牌和刷新令牌
    * @param userId 用户ID
    * @param role 用户角色
-   * @returns 令牌响应
+   * @returns 令牌信息
    */
   private async generateTokens(userId: string, role: string): Promise<TokenResponse> {
-    // 生成访问令牌
-    const accessToken = jwt.sign({ userId, role }, this.jwtSecret, {
-      expiresIn: this.jwtExpiresIn,
+    // 确定过期时间
+    const jwtExpiresIn = this.configService.get<string>('JWT_EXPIRES_IN', '1h');
+    const refreshTokenExpiresIn = this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN', '7d');
+
+    // 创建JWT载荷
+    const payload = {
+      sub: userId,
+      role: role,
+    };
+
+    // 签发访问令牌
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: jwtExpiresIn,
     });
 
-    // 计算访问令牌过期时间（秒）
-    const decoded = jwt.decode(accessToken) as { exp: number };
-    const expiresIn = decoded && decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : 3600;
-
-    // 生成刷新令牌
+    // 创建刷新令牌
     const refreshToken = uuidv4();
+    const refreshTokenExpires = new Date();
+    refreshTokenExpires.setSeconds(
+      refreshTokenExpires.getSeconds() + this.parseTimeString(refreshTokenExpiresIn)
+    );
 
-    // 计算刷新令牌过期时间
-    const refreshExpiresIn = this.parseTimeString(this.refreshTokenExpiresIn);
-    const refreshExpiresAt = new Date();
-    refreshExpiresAt.setSeconds(refreshExpiresAt.getSeconds() + refreshExpiresIn);
+    // 存储刷新令牌到数据库
+    await this.storeRefreshToken(userId, refreshToken, refreshTokenExpires);
 
-    // 存储刷新令牌
-    await this.storeRefreshToken(userId, refreshToken, refreshExpiresAt);
-
+    // 返回令牌信息
     return {
-      accessToken,
-      refreshToken,
-      tokenType: 'Bearer',
-      expiresIn,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token_type: 'Bearer',
+      expires_in: this.parseTimeString(jwtExpiresIn),
     };
   }
 
   /**
-   * 存储刷新令牌
+   * 存储刷新令牌到数据库
    * @param userId 用户ID
    * @param token 刷新令牌
    * @param expiresAt 过期时间
    */
   private async storeRefreshToken(userId: string, token: string, expiresAt: Date): Promise<void> {
-    const prisma = getPrismaClient();
-
-    await prisma.refreshToken.create({
+    await this.prismaService.refreshToken.create({
       data: {
         userId,
         token,
@@ -316,18 +337,16 @@ export class AuthService {
 
   /**
    * 解析时间字符串为秒数
-   * @param timeString 时间字符串 (例如 "1h", "7d")
+   * @param timeString 时间字符串，如 '1d', '2h', '30m'
    * @returns 秒数
    */
   private parseTimeString(timeString: string): number {
-    const regex = /^(\d+)([smhd])$/;
-    const match = timeString.match(regex);
-
+    const match = timeString.match(/^(\d+)([smhdwy])$/);
     if (!match) {
       return 3600; // 默认1小时
     }
 
-    const value = parseInt(match[1]);
+    const value = parseInt(match[1], 10);
     const unit = match[2];
 
     switch (unit) {
@@ -339,8 +358,26 @@ export class AuthService {
         return value * 60 * 60;
       case 'd':
         return value * 24 * 60 * 60;
+      case 'w':
+        return value * 7 * 24 * 60 * 60;
+      case 'y':
+        return value * 365 * 24 * 60 * 60;
       default:
         return 3600;
     }
+  }
+
+  /**
+   * 生成随机字符串
+   * @param length 字符串长度
+   * @returns 随机字符串
+   */
+  private generateRandomString(length: number): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   }
 }
