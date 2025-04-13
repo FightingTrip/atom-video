@@ -13,6 +13,7 @@
 5. [测试指南](./testing.md) - 单元测试和集成测试指南
 6. [贡献指南](./contributing.md) - 如何贡献代码到项目
 7. [Monorepo 工作流程](./monorepo-workflow.md) - Monorepo 相关命令和实践
+8. [模拟数据到真实API改造路线图](./mock-to-real-api-migration.md) - 从前端模拟数据迁移到后端真实API的策略和步骤
 
 ## 开发环境要求
 
