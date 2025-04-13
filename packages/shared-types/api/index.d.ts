@@ -44,3 +44,4 @@ export interface ApiError {
 export * from './video';
 export * from './user';
 export * from './interaction';
+export * from './creator';
