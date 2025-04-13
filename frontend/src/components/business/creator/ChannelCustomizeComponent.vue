@@ -118,7 +118,8 @@
     NProgress,
     NButton,
     NIcon,
-    NAvatar
+    NAvatar,
+    type UploadFileInfo
   } from 'naive-ui';
   import {
     ImageOutline,
@@ -185,32 +186,32 @@
   });
 
   // 处理头像上传
-  const handleAvatarUpload = (options: { file: { file: File } }) => {
+  const handleAvatarUpload = (options: { file: UploadFileInfo, fileList: UploadFileInfo[] }) => {
     const { file } = options;
-    if (file.file) {
-      avatarFile.value = file.file;
+    if (file && file.file) {
+      avatarFile.value = file.file as File;
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target) {
           avatarPreview.value = e.target.result as string;
         }
       };
-      reader.readAsDataURL(file.file);
+      reader.readAsDataURL(file.file as File);
     }
   };
 
   // 处理横幅上传
-  const handleBannerUpload = (options: { file: { file: File } }) => {
+  const handleBannerUpload = (options: { file: UploadFileInfo, fileList: UploadFileInfo[] }) => {
     const { file } = options;
-    if (file.file) {
-      bannerFile.value = file.file;
+    if (file && file.file) {
+      bannerFile.value = file.file as File;
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target) {
           bannerPreview.value = e.target.result as string;
         }
       };
-      reader.readAsDataURL(file.file);
+      reader.readAsDataURL(file.file as File);
     }
   };
 
@@ -234,11 +235,10 @@
     // 发送保存事件
     emit('save', settings);
 
-    // 模拟API调用
+    // 重置状态
     setTimeout(() => {
       isSaving.value = false;
-      message.success('频道设置已保存');
-    }, 1500);
+    }, 500);
   };
 </script>
 

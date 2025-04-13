@@ -20,7 +20,26 @@
       </div>
     </div>
 
-    <div class="stats-cards">
+    <!-- 错误提示 -->
+    <div v-if="error" class="stats-error">
+      <n-alert type="error" :title="error" closable @close="error = ''">
+        <template #icon>
+          <n-icon>
+            <AlertCircleOutline />
+          </n-icon>
+        </template>
+        <span>请稍后重试或联系管理员</span>
+      </n-alert>
+    </div>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="stats-loading">
+      <n-spin size="large" />
+      <p>加载数据中...</p>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div v-else class="stats-cards">
       <n-card v-for="stat in statsData" :key="stat.key" class="stat-card">
         <div class="stat-header">
           <div class="stat-icon" :style="{ backgroundColor: stat.color + '20', color: stat.color }">
@@ -45,8 +64,8 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
-  import { NCard, NIcon, NButton } from 'naive-ui';
+  import { ref, onMounted, computed } from 'vue';
+  import { NCard, NIcon, NButton, NSpin, NAlert } from 'naive-ui';
   import {
     EyeOutline,
     PeopleOutline,
@@ -54,8 +73,10 @@
     ChatbubbleOutline,
     TimeOutline,
     VideocamOutline,
-    RefreshOutline
+    RefreshOutline,
+    AlertCircleOutline
   } from '@vicons/ionicons5';
+  import { getCreatorStats, type CreatorStats } from '@/services/api/creator';
 
   const props = defineProps({
     title: {
@@ -68,64 +89,78 @@
     }
   });
 
-  // 统计数据
-  const statsData = ref([
-    {
-      key: 'views',
-      label: '总观看量',
-      value: 12580,
-      trend: 5.2,
-      icon: EyeOutline,
-      color: '#58a6ff',
-      progress: 75
-    },
-    {
-      key: 'subscribers',
-      label: '订阅者',
-      value: 835,
-      trend: 2.8,
-      icon: PeopleOutline,
-      color: '#3fb950',
-      progress: 60
-    },
-    {
-      key: 'likes',
-      label: '获赞数',
-      value: 3248,
-      trend: 8.7,
-      icon: ThumbsUpOutline,
-      color: '#f78166',
-      progress: 85
-    },
-    {
-      key: 'comments',
-      label: '评论数',
-      value: 947,
-      trend: 3.5,
-      icon: ChatbubbleOutline,
-      color: '#a371f7',
-      progress: 45
-    },
-    {
-      key: 'watchTime',
-      label: '观看时长',
-      value: 4235,
-      subLabel: '分钟',
-      trend: 7.2,
-      icon: TimeOutline,
-      color: '#e3b341',
-      progress: 70
-    },
-    {
-      key: 'videos',
-      label: '视频数',
-      value: 24,
-      subLabel: '3个最近上传',
-      icon: VideocamOutline,
-      color: '#79c0ff',
-      progress: 30
-    }
-  ]);
+  // 状态
+  const apiData = ref<CreatorStats | null>(null);
+  const loading = ref(false);
+  const error = ref('');
+
+  // 统计数据映射
+  const statsData = computed(() => {
+    if (!apiData.value) return [];
+
+    return [
+      {
+        key: 'views',
+        label: '总观看量',
+        value: apiData.value.views.value,
+        trend: apiData.value.views.trend,
+        icon: EyeOutline,
+        color: '#58a6ff',
+        progress: calculateProgress(apiData.value.views.value, 20000)
+      },
+      {
+        key: 'subscribers',
+        label: '订阅者',
+        value: apiData.value.subscribers.value,
+        trend: apiData.value.subscribers.trend,
+        icon: PeopleOutline,
+        color: '#3fb950',
+        progress: calculateProgress(apiData.value.subscribers.value, 1000)
+      },
+      {
+        key: 'likes',
+        label: '获赞数',
+        value: apiData.value.likes.value,
+        trend: apiData.value.likes.trend,
+        icon: ThumbsUpOutline,
+        color: '#f78166',
+        progress: calculateProgress(apiData.value.likes.value, 5000)
+      },
+      {
+        key: 'comments',
+        label: '评论数',
+        value: apiData.value.comments.value,
+        trend: apiData.value.comments.trend,
+        icon: ChatbubbleOutline,
+        color: '#a371f7',
+        progress: calculateProgress(apiData.value.comments.value, 1000)
+      },
+      {
+        key: 'watchTime',
+        label: '观看时长',
+        value: apiData.value.watchTime.value,
+        subLabel: '分钟',
+        trend: apiData.value.watchTime.trend,
+        icon: TimeOutline,
+        color: '#e3b341',
+        progress: calculateProgress(apiData.value.watchTime.value, 10000)
+      },
+      {
+        key: 'videos',
+        label: '视频数',
+        value: apiData.value.videos.value,
+        subLabel: apiData.value.videos.recentCount + '个最近上传',
+        icon: VideocamOutline,
+        color: '#79c0ff',
+        progress: calculateProgress(apiData.value.videos.value, 100)
+      }
+    ];
+  });
+
+  // 计算进度条百分比
+  const calculateProgress = (value: number, max: number) => {
+    return Math.min(Math.round((value / max) * 100), 100);
+  };
 
   // 格式化数字，超过1000显示为k
   const formatNumber = (num: number) => {
@@ -142,10 +177,35 @@
     return trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
   };
 
+  // 加载数据
+  const loadData = async () => {
+    loading.value = true;
+    error.value = '';
+
+    try {
+      apiData.value = await getCreatorStats();
+
+      // 添加进入动画
+      setTimeout(() => {
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+          setTimeout(() => {
+            card.classList.add('visible');
+          }, 100 * index);
+        });
+      }, 100);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '获取数据失败';
+      error.value = errorMessage;
+      console.error('加载创作者统计数据失败:', err);
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // 刷新数据
-  const refreshData = () => {
-    // 实际应用中会调用API获取最新数据
-    console.log('刷新数据...');
+  const refreshData = async () => {
+    if (loading.value) return;
 
     // 添加刷新动画效果
     const statCards = document.querySelectorAll('.stat-card');
@@ -155,19 +215,13 @@
         card.classList.remove('refreshing');
       }, 1000);
     });
+
+    await loadData();
   };
 
   // 组件挂载时获取数据
   onMounted(() => {
-    // 实际应用中会调用API获取统计数据
-
-    // 添加进入动画
-    const statCards = document.querySelectorAll('.stat-card');
-    statCards.forEach((card, index) => {
-      setTimeout(() => {
-        card.classList.add('visible');
-      }, 100 * index);
-    });
+    loadData();
   });
 </script>
 
@@ -414,5 +468,22 @@
 
   :root:not(.dark) .sidebar-divider {
     background-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .stats-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+  }
+
+  .stats-loading p {
+    margin-top: 12px;
+    color: var(--text-secondary, rgba(230, 237, 243, 0.6));
+  }
+
+  .stats-error {
+    margin-bottom: 20px;
   }
 </style>

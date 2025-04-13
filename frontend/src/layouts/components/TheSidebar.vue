@@ -53,7 +53,11 @@
       <!-- 订阅频道 - 需要登录 -->
       <div class="sidebar-section" v-if="isLoggedIn">
         <div class="sidebar-heading" v-if="!collapsed">频道</div>
-        <div class="sidebar-item" v-for="channel in subscriptions" :key="channel.id">
+        <n-skeleton v-if="loadingSubscriptions && !collapsed" :repeat="5" text :sharp="false" />
+        <div v-else-if="subscriptionsError && !collapsed" class="sidebar-error">
+          <n-alert type="error" :title="subscriptionsError" closable @close="subscriptionsError = ''" />
+        </div>
+        <div v-else class="sidebar-item" v-for="channel in subscriptions" :key="channel.id">
           <router-link :to="`/channel/${channel.id}`" class="sidebar-link">
             <div class="sidebar-avatar">
               <n-avatar :src="channel.avatar" size="small" round />
@@ -110,9 +114,9 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { computed, ref, onMounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
-  import { NIcon, NAvatar } from 'naive-ui'
+  import { NIcon, NAvatar, NSkeleton, NAlert } from 'naive-ui'
   import {
     HomeOutline,
     CompassOutline,
@@ -130,6 +134,7 @@
   } from '@vicons/ionicons5'
   import { useUserStore } from '@/stores/user'
   import { useAuthStore } from '@/stores/auth'
+  import { getUserSubscriptions, type Subscription } from '@/services/api/subscription'
 
   // 定义属性
   const props = defineProps({
@@ -145,6 +150,11 @@
 
   // 认证状态
   const isLoggedIn = computed(() => authStore.isAuthenticated)
+
+  // 订阅加载状态
+  const loadingSubscriptions = ref(false)
+  const subscriptionsError = ref('')
+  const subscriptionData = ref<Subscription[]>([])
 
   // 主导航菜单
   const mainNavItems = [
@@ -169,23 +179,32 @@
     { name: '系统架构', path: '/explore/architecture', icon: ServerOutline }
   ]
 
-  // 订阅频道 - 模拟数据
+  // 订阅频道
   const subscriptions = computed(() => {
-    // 这里应该从用户数据中获取订阅
-    return [
-      { id: '1', name: '前端开发者', avatar: 'https://i.pravatar.cc/150?u=1' },
-      { id: '2', name: '编程学院', avatar: 'https://i.pravatar.cc/150?u=2' },
-      { id: '3', name: '技术分享', avatar: 'https://i.pravatar.cc/150?u=3' },
-      { id: '4', name: '代码狂人', avatar: 'https://i.pravatar.cc/150?u=4' },
-      { id: '5', name: '全栈工程师', avatar: 'https://i.pravatar.cc/150?u=5' }
-    ].slice(0, props.collapsed ? 0 : 5); // 当侧边栏折叠时不显示
+    return subscriptionData.value.slice(0, props.collapsed ? 0 : 5); // 当侧边栏折叠时不显示
   })
 
   // 是否还有更多订阅
   const hasMoreSubscriptions = computed(() => {
-    // 模拟有更多订阅
-    return true;
+    return subscriptionData.value.length > 5;
   })
+
+  // 加载订阅数据
+  const loadSubscriptions = async () => {
+    if (!isLoggedIn.value) return;
+
+    loadingSubscriptions.value = true;
+    subscriptionsError.value = '';
+
+    try {
+      subscriptionData.value = await getUserSubscriptions();
+    } catch (err) {
+      console.error('获取订阅失败:', err);
+      subscriptionsError.value = err instanceof Error ? err.message : '获取频道失败';
+    } finally {
+      loadingSubscriptions.value = false;
+    }
+  }
 
   // 检查路由是否激活
   const isActive = (path: string) => {
@@ -194,6 +213,22 @@
     }
     return route.path.startsWith(path) && path !== '/';
   }
+
+  // 当登录状态变化时重新加载订阅
+  watch(() => isLoggedIn.value, (newValue) => {
+    if (newValue) {
+      loadSubscriptions();
+    } else {
+      subscriptionData.value = [];
+    }
+  });
+
+  // 组件挂载时加载数据
+  onMounted(() => {
+    if (isLoggedIn.value) {
+      loadSubscriptions();
+    }
+  });
 </script>
 
 <style scoped>
@@ -362,5 +397,10 @@
       transform: translateX(0);
       width: 72px;
     }
+  }
+
+  .sidebar-error {
+    padding: 0 16px;
+    margin-bottom: 8px;
   }
 </style>

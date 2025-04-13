@@ -191,6 +191,7 @@
     PlayOutline
   } from '@vicons/ionicons5';
   import { useMessage } from 'naive-ui';
+  import { saveVideoBrandingSettings } from '@/services/api/creator';
 
   // 状态
   const watermarkPreview = ref<string>('');
@@ -285,14 +286,43 @@
   };
 
   // 保存设置
-  const saveBrandingSettings = () => {
+  const saveBrandingSettings = async () => {
     isSaving.value = true;
 
-    // 模拟API调用
-    setTimeout(() => {
-      isSaving.value = false;
+    try {
+      // 准备提交的数据
+      const brandingData = {
+        watermark: {
+          image: watermarkPreview.value,
+          position: watermarkPosition.value,
+          opacity: watermarkOpacity.value,
+          size: watermarkSize.value
+        },
+        intro: {
+          video: introPreview.value,
+          autoAdd: autoAddIntro.value,
+          transition: introTransition.value
+        },
+        outro: {
+          video: outroPreview.value,
+          autoAdd: autoAddOutro.value,
+          transition: outroTransition.value,
+          addSubscribeButton: addSubscribeButton.value
+        },
+        theme: {
+          color: selectedThemeColor.value
+        }
+      };
+
+      // 调用API保存数据
+      await saveVideoBrandingSettings(brandingData);
       message.success('品牌设置已保存');
-    }, 1500);
+    } catch (err) {
+      console.error('保存视频品牌设置失败:', err);
+      message.error('保存失败: ' + (err instanceof Error ? err.message : '未知错误'));
+    } finally {
+      isSaving.value = false;
+    }
   };
 </script>
 

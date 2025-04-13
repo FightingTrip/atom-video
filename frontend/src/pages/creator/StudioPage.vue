@@ -31,9 +31,43 @@
             </n-card>
 
             <div class="recent-container">
-              <recent-videos-component :videos="recentVideos" @edit="editVideo" />
+              <!-- 最近视频 -->
+              <div class="recent-section">
+                <div v-if="error.videos" class="error-message">
+                  <n-alert type="error" :title="error.videos">
+                    <span>请刷新页面重试</span>
+                  </n-alert>
+                </div>
+                <div v-else-if="loading.videos" class="loading-container">
+                  <n-spin size="large" />
+                  <p>加载视频中...</p>
+                </div>
+                <div v-else-if="recentVideos.length === 0" class="empty-container">
+                  <n-empty description="暂无视频">
+                    <template #extra>
+                      <n-button type="primary" @click="handleUploadVideo">上传视频</n-button>
+                    </template>
+                  </n-empty>
+                </div>
+                <recent-videos-component v-else :videos="recentVideos" @edit="editVideo" />
+              </div>
 
-              <recent-comments-component :comments="recentComments" @reply="replyToComment" />
+              <!-- 最近评论 -->
+              <div class="recent-section">
+                <div v-if="error.comments" class="error-message">
+                  <n-alert type="error" :title="error.comments">
+                    <span>请刷新页面重试</span>
+                  </n-alert>
+                </div>
+                <div v-else-if="loading.comments" class="loading-container">
+                  <n-spin size="large" />
+                  <p>加载评论中...</p>
+                </div>
+                <div v-else-if="recentComments.length === 0" class="empty-container">
+                  <n-empty description="暂无评论" />
+                </div>
+                <recent-comments-component v-else :comments="recentComments" @reply="replyToComment" />
+              </div>
             </div>
           </div>
         </n-tab-pane>
@@ -74,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { ref, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { useMessage } from 'naive-ui';
   import {
@@ -82,7 +116,10 @@
     NTabs,
     NTabPane,
     NIcon,
-    NCard
+    NCard,
+    NEmpty,
+    NSpin,
+    NAlert
   } from 'naive-ui';
   import {
     VideocamOutline
@@ -99,57 +136,102 @@
   import RecentCommentsComponent from '@/components/business/creator/RecentCommentsComponent.vue';
   import type { Comment } from '@/types/comment';
   import type { Video } from '@/components/business/creator/RecentVideosComponent.vue';
+  import {
+    getCreatorVideos,
+    getRecentComments as fetchRecentComments,
+    getChannelInfo,
+    saveChannelSettings as saveChannelSettingsApi
+  } from '@/services/api/creator';
 
   const router = useRouter();
   const message = useMessage();
 
+  // 状态
+  const loading = ref({
+    videos: false,
+    comments: false,
+    channel: false
+  });
+  const error = ref({
+    videos: '',
+    comments: '',
+    channel: ''
+  });
+
   // 最近视频
-  const recentVideos = ref<Video[]>([
-    {
-      id: '1',
-      title: 'Vue 3 完全指南 - 组合式API详解',
-      coverUrl: 'https://picsum.photos/id/237/400/225',
-      createdAt: '2024-06-10T15:30:00Z',
-      views: 1250
-    },
-    {
-      id: '2',
-      title: 'TypeScript 高级类型系统详解',
-      coverUrl: 'https://picsum.photos/id/238/400/225',
-      createdAt: '2024-06-08T10:15:00Z',
-      views: 980
-    }
-  ]);
+  const recentVideos = ref<Video[]>([]);
 
   // 最近评论
-  const recentComments = ref<Comment[]>([
-    {
-      id: '1',
-      content: '这个教程太棒了，学到了很多东西！',
-      createdAt: '2024-06-12T09:40:00Z',
-      videoTitle: 'Vue 3 完全指南 - 组合式API详解',
-      status: '已审核',
-      user: {
-        nickname: '前端爱好者',
-        avatar: 'https://i.pravatar.cc/150?img=33'
-      }
-    },
-    {
-      id: '2',
-      content: '能不能出一期关于Pinia的教程？',
-      createdAt: '2024-06-11T14:20:00Z',
-      videoTitle: 'Vue 3 完全指南 - 组合式API详解',
-      status: '已审核',
-      user: {
-        nickname: 'Vue开发者',
-        avatar: 'https://i.pravatar.cc/150?img=53'
-      }
-    }
-  ] as Comment[]);
+  const recentComments = ref<Comment[]>([]);
 
   // 频道定制相关
   const channelDescription = ref('');
   const selectedThemeColor = ref('#58a6ff'); // 默认主题色
+
+  // 加载最近视频
+  const loadRecentVideos = async () => {
+    loading.value.videos = true;
+    error.value.videos = '';
+
+    try {
+      const response = await getCreatorVideos({ page: 1, limit: 5 });
+      recentVideos.value = response.videos.map((video: any) => ({
+        id: video.id,
+        title: video.title,
+        coverUrl: video.thumbnailUrl || 'https://picsum.photos/id/237/400/225',
+        createdAt: video.createdAt,
+        views: video.viewCount
+      }));
+    } catch (err) {
+      console.error('加载视频失败:', err);
+      error.value.videos = err instanceof Error ? err.message : '加载视频失败';
+    } finally {
+      loading.value.videos = false;
+    }
+  };
+
+  // 加载最近评论
+  const loadRecentComments = async () => {
+    loading.value.comments = true;
+    error.value.comments = '';
+
+    try {
+      const response = await fetchRecentComments({ limit: 5 });
+      recentComments.value = response.comments.map((comment: any) => ({
+        id: comment.id,
+        content: comment.content,
+        createdAt: comment.createdAt,
+        videoTitle: comment.video.title,
+        status: comment.status,
+        user: {
+          nickname: comment.user.nickname,
+          avatar: comment.user.avatar || `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
+        }
+      }));
+    } catch (err) {
+      console.error('加载评论失败:', err);
+      error.value.comments = err instanceof Error ? err.message : '加载评论失败';
+    } finally {
+      loading.value.comments = false;
+    }
+  };
+
+  // 加载频道信息
+  const loadChannelInfo = async () => {
+    loading.value.channel = true;
+    error.value.channel = '';
+
+    try {
+      const response = await getChannelInfo();
+      channelDescription.value = response.description || '';
+      selectedThemeColor.value = response.themeColor || '#58a6ff';
+    } catch (err) {
+      console.error('加载频道信息失败:', err);
+      error.value.channel = err instanceof Error ? err.message : '加载频道信息失败';
+    } finally {
+      loading.value.channel = false;
+    }
+  };
 
   // 交互方法
   const handleUploadVideo = () => {
@@ -161,22 +243,34 @@
   };
 
   const replyToComment = (id: string) => {
-    // 实际开发中应弹出回复框
-    console.log(`回复评论 ${id}`);
+    // TODO: 实现评论回复功能
     message.success('已打开回复框');
   };
 
   const deleteComment = (id: string) => {
+    // TODO: 实现评论删除功能
     message.success('评论已删除');
   };
 
   // 保存频道设置
-  const saveChannelSettings = (settings: any) => {
-    console.log('保存频道设置:', settings);
-    channelDescription.value = settings.description;
-    selectedThemeColor.value = settings.themeColor;
-    message.success('频道设置已保存');
+  const saveChannelSettings = async (settings: any) => {
+    try {
+      await saveChannelSettingsApi(settings);
+      channelDescription.value = settings.description;
+      selectedThemeColor.value = settings.themeColor;
+      message.success('频道设置已保存');
+    } catch (err) {
+      console.error('保存频道设置失败:', err);
+      message.error('保存失败: ' + (err instanceof Error ? err.message : '未知错误'));
+    }
   };
+
+  // 组件挂载时加载数据
+  onMounted(() => {
+    loadRecentVideos();
+    loadRecentComments();
+    loadChannelInfo();
+  });
 </script>
 
 <style scoped>
@@ -282,6 +376,43 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
+  }
+
+  .recent-section {
+    position: relative;
+  }
+
+  .error-message {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .loading-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .empty-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   /* 响应式调整 */
