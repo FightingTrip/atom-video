@@ -41,8 +41,12 @@ export class UserController {
     try {
       return await this.userService.findById(id);
     } catch (error: unknown) {
-      const err = error as Error;
-      this.logger.error(`获取用户信息失败: ${err.message}`, err.stack);
+      if (error instanceof Error) {
+        this.logger.error(`获取用户信息失败: ${error.message}`, error.stack);
+      } else {
+        this.logger.error(`获取用户信息失败: ${String(error)}`);
+      }
+
       if (error instanceof NotFoundException) {
         throw error;
       }
