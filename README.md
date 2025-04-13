@@ -86,6 +86,14 @@
   - [x] 评论系统API
   - [x] 用户互动API
 
+- [ ] **后端框架迁移**
+  - [x] 项目结构设计
+  - [x] Express迁移到NestJS
+  - [x] 认证模块重构
+  - [ ] Prisma数据模型完善
+  - [ ] API端点重新实现
+  - [ ] 测试用例编写
+
 ## 技术栈
 
 ### 前端
@@ -97,7 +105,7 @@
 - Vite
 
 ### 后端
-- Express.js
+- Express.js / NestJS
 - TypeScript 5.3.3
 - PostgreSQL
 - Prisma ORM

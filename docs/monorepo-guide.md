@@ -356,6 +356,7 @@ pnpm -r --sequential <command>
 2. 子包中不需要单独的lock文件
 3. 保持.npmrc配置一致
 4. 共享包修改后记得重新构建
+5. `.pnpm-store`只应存在于项目根目录，子目录中不应有独立的store
 
 ## 相关资源
 

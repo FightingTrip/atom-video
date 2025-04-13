@@ -15,13 +15,14 @@ Atom-Video 是一个基于现代 Web 技术的视频分享平台，采用 Monore
 - Font Awesome 图标库
 
 ### 2.2 后端技术栈
-- Node.js + Express
+- Node.js + NestJS (从Express迁移中)
 - TypeScript
 - Prisma ORM
 - PostgreSQL 数据库
 - Redis 缓存
 - MinIO 对象存储
 - FFmpeg 视频处理
+- Passport JWT 认证
 
 ### 2.3 开发工具
 - pnpm 包管理器 + Workspace
@@ -37,7 +38,7 @@ Atom-Video 是一个基于现代 Web 技术的视频分享平台，采用 Monore
 ```
 atom-video/
 ├── frontend/           # Vue 3 前端项目
-├── backend/            # Express.js 后端项目
+├── backend/            # NestJS 后端项目
 ├── packages/           # 共享包
 │   ├── eslint-config/  # 共享ESLint配置
 │   ├── shared-types/   # 共享TypeScript类型
@@ -368,4 +369,63 @@ graph TD
     H --> D
     H --> E
     H --> F
-``` 
+```
+
+## 5. 后端框架迁移
+
+### 5.1 从Express到NestJS的迁移
+
+项目正在逐步从Express框架迁移到NestJS框架，主要原因如下：
+
+- **模块化架构**：NestJS提供了更好的模块化和依赖注入系统
+- **TypeScript支持**：原生支持TypeScript，提供更好的类型安全
+- **标准化结构**：统一的应用结构，提高代码可维护性
+- **内置功能**：内置了许多企业级应用所需的功能
+- **可测试性**：更容易编写自动化测试
+
+### 5.2 迁移路线图
+
+迁移计划分为以下几个阶段：
+
+1. **基础架构搭建**：✅ 建立NestJS项目基础结构
+2. **认证模块迁移**：✅ 重新实现JWT认证系统
+3. **用户模块迁移**：🔄 迁移用户相关API和服务
+4. **视频模块迁移**：⏳ 待开始
+5. **其他模块迁移**：⏳ 待开始
+6. **测试与性能优化**：⏳ 待开始
+
+### 5.3 NestJS项目结构
+
+```
+backend/
+├── src/
+│   ├── main.ts                 # 应用入口
+│   ├── app.module.ts           # 根模块
+│   ├── modules/                # 功能模块
+│   │   ├── auth/               # 认证模块
+│   │   │   ├── auth.module.ts  # 模块定义
+│   │   │   ├── auth.service.ts # 服务实现
+│   │   │   ├── auth.controller.ts # 控制器
+│   │   │   ├── strategies/     # 认证策略
+│   │   │   ├── guards/         # 守卫
+│   │   │   └── decorators/     # 装饰器
+│   │   ├── user/               # 用户模块
+│   │   ├── video/              # 视频模块
+│   │   └── ...                 # 其他模块
+│   ├── common/                 # 通用功能
+│   │   ├── filters/            # 异常过滤器
+│   │   ├── interceptors/       # 拦截器
+│   │   ├── pipes/              # 管道
+│   │   └── decorators/         # 通用装饰器
+│   └── prisma/                 # Prisma服务
+│       ├── prisma.service.ts   # Prisma服务
+│       └── schema.prisma       # 数据库模型
+└── test/                      # 测试目录
+```
+
+### 5.4 迁移注意事项
+
+- **渐进式迁移**：模块逐步迁移，确保系统持续可用
+- **API兼容性**：保持API接口兼容，前端无需大规模修改
+- **数据库迁移**：使用Prisma迁移工具确保数据安全迁移
+- **测试覆盖**：为每个迁移的模块添加测试用例 
