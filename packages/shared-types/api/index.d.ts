@@ -45,3 +45,8 @@ export * from './video';
 export * from './user';
 export * from './interaction';
 export * from './creator';
+export * from './auth';
+export * from './subscription';
+export * from './comment';
+export * from './tag';
+export * from './learning';
