@@ -5,6 +5,6 @@
  * @module auth/decorators/roles.decorator
  */
 import { SetMetadata } from '@nestjs/common';
-import { UserRole } from '@atom/shared-types/models';
+import { UserRole } from '../../../models/enums';
 
 export const Roles = (...roles: UserRole[]) => SetMetadata('roles', roles);

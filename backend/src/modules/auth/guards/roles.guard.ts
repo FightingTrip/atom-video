@@ -12,7 +12,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '@atom/shared-types/models';
+import { UserRole } from '../../../models/enums';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -41,12 +41,11 @@ export class RolesGuard implements CanActivate {
     }
 
     // 检查角色层级权限
-    // ADMIN > MODERATOR > CREATOR > VIEWER > GUEST
+    // ADMIN > CREATOR > USER > GUEST
     const roleHierarchy = {
-      ADMIN: 4,
-      MODERATOR: 3,
+      ADMIN: 3,
       CREATOR: 2,
-      VIEWER: 1,
+      USER: 1,
       GUEST: 0,
     };
 

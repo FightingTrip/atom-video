@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@atom/shared-types/models';
+import { UserRole } from '../../../models/enums';
 
 import {
   LoginDto,
@@ -25,10 +25,13 @@ import {
   RequestPasswordResetDto,
   ResetPasswordDto,
   RefreshTokenDto,
+  VerifyCodeDto,
+  ResetPasswordWithCodeDto,
 } from '../models/auth.model';
 import { UserService } from '../../user/services/user.service';
 import { CreateUserDto } from '../../user/services/user.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { MailService } from '../../../shared/services/mail.service';
 
 // 定义错误类型接口
 interface AppError {
@@ -61,12 +64,14 @@ export class AuthService {
    * @param jwtService JWT服务
    * @param configService 配置服务
    * @param prismaService Prisma服务
+   * @param mailService 邮件服务
    */
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly prismaService: PrismaService
+    private readonly prismaService: PrismaService,
+    private readonly mailService: MailService
   ) {}
 
   /**
@@ -117,13 +122,21 @@ export class AuthService {
         email: registerDto.email,
         password: registerDto.password,
         name: registerDto.name,
-        role: UserRole.USER,
+        role: UserRole.VIEWER,
         isVerified: false, // 默认未验证
         isCreator: false, // 默认不是创作者
       };
 
       // 创建用户
       const user = await this.userService.createUser(createUserDto);
+
+      // 发送欢迎邮件
+      try {
+        await this.mailService.sendWelcomeEmail(user.email, user.username);
+      } catch (emailError) {
+        console.error('发送欢迎邮件失败', emailError);
+        // 不阻止注册流程继续
+      }
 
       // 生成令牌
       return this.generateTokens(user.id, user.role);
@@ -221,23 +234,25 @@ export class AuthService {
         throw new NotFoundException('该邮箱地址未注册');
       }
 
-      // 生成重置令牌
-      const token = this.generateRandomString(32);
-      const expires = new Date();
-      expires.setHours(expires.getHours() + 1); // 令牌1小时有效
+      // 生成6位数字验证码
+      const verificationCode = this.generateVerificationCode(6);
 
-      // 存储重置令牌
-      await this.prismaService.passwordReset.create({
+      // 设置验证码有效期为30分钟
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+
+      // 存储验证码
+      await this.prismaService.verificationCode.create({
         data: {
-          userId: user.id,
-          token,
-          expiresAt: expires,
+          email: user.email,
+          code: verificationCode,
+          type: 'PASSWORD_RESET',
+          expiresAt,
         },
       });
 
-      // 在实际应用中，这里应该发送邮件，包含重置链接
-      // 为演示需要，这里只打印出令牌
-      console.log(`Password reset token for ${user.email}: ${token}`);
+      // 发送验证码邮件
+      await this.mailService.sendVerificationCode(user.email, verificationCode);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -248,23 +263,59 @@ export class AuthService {
   }
 
   /**
-   * 重置密码
-   * @param resetDto 重置数据
-   * @throws BadRequestException 密码无效
-   * @throws NotFoundException 令牌无效
+   * 验证验证码
+   * @param verifyDto 验证数据
+   * @returns 是否验证成功
    */
-  async resetPassword(resetDto: ResetPasswordDto): Promise<void> {
+  async verifyCode(verifyDto: VerifyCodeDto): Promise<boolean> {
+    const { email, code } = verifyDto;
+
+    // 查找验证码记录
+    const verificationRecord = await this.prismaService.verificationCode.findFirst({
+      where: {
+        email,
+        code,
+        type: 'PASSWORD_RESET',
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!verificationRecord) {
+      throw new BadRequestException('验证码无效或已过期');
+    }
+
+    return true;
+  }
+
+  /**
+   * 使用验证码重置密码
+   * @param resetDto 重置数据
+   */
+  async resetPasswordWithCode(resetDto: ResetPasswordWithCodeDto): Promise<void> {
     try {
-      // 查找重置令牌
-      const resetRecord = await this.prismaService.passwordReset.findFirst({
+      // 验证验证码
+      const verificationRecord = await this.prismaService.verificationCode.findFirst({
         where: {
-          token: resetDto.token,
-          expiresAt: { gt: new Date() }, // 确保令牌未过期
+          email: resetDto.email,
+          code: resetDto.code,
+          type: 'PASSWORD_RESET',
+          isUsed: false,
+          expiresAt: { gt: new Date() },
         },
       });
 
-      if (!resetRecord) {
-        throw new NotFoundException('重置令牌无效或已过期');
+      if (!verificationRecord) {
+        throw new BadRequestException('验证码无效或已过期');
+      }
+
+      // 查找用户
+      const user = await this.prismaService.user.findFirst({
+        where: { email: resetDto.email },
+      });
+
+      if (!user) {
+        throw new NotFoundException('用户不存在');
       }
 
       // 哈希新密码
@@ -273,16 +324,22 @@ export class AuthService {
 
       // 更新用户密码
       await this.prismaService.user.update({
-        where: { id: resetRecord.userId },
+        where: { id: user.id },
         data: { password: hashedPassword },
       });
 
-      // 删除所有重置令牌
+      // 将验证码标记为已使用
+      await this.prismaService.verificationCode.update({
+        where: { id: verificationRecord.id },
+        data: { isUsed: true },
+      });
+
+      // 删除该用户所有的密码重置记录
       await this.prismaService.passwordReset.deleteMany({
-        where: { userId: resetRecord.userId },
+        where: { userId: user.id },
       });
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
       const appError = error as AppError;
@@ -346,9 +403,11 @@ export class AuthService {
             email: userData.email,
             username: uniqueUsername,
             displayName: userData.displayName,
+            name: userData.displayName,
+            password: this.generateRandomString(16), // 生成随机密码
             avatarUrl: userData.avatarUrl,
             isVerified: true, // OAuth用户视为已验证
-            role: 'VIEWER',
+            role: UserRole.VIEWER,
             oauthAccounts: {
               create: {
                 provider: userData.provider,
@@ -370,7 +429,7 @@ export class AuthService {
             account.provider === userData.provider && account.providerId === userData.providerId
         )
       ) {
-        await this.prismaService.oauthAccount.create({
+        await this.prismaService.oAuthAccount.create({
           data: {
             userId: user.id,
             provider: userData.provider,
@@ -388,9 +447,10 @@ export class AuthService {
         user,
         token,
       };
-    } catch (error) {
-      console.error(`OAuth用户验证失败: ${error.message}`, error.stack);
-      throw new Error(`OAuth认证失败: ${error.message}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error(`OAuth用户验证失败: ${err.message}`, err.stack);
+      throw new Error(`OAuth认证失败: ${err.message}`);
     }
   }
 
@@ -481,6 +541,20 @@ export class AuthService {
       default:
         return 3600;
     }
+  }
+
+  /**
+   * 生成验证码
+   * @param length 验证码长度
+   * @returns 生成的验证码
+   */
+  private generateVerificationCode(length: number): string {
+    const digits = '0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += digits.charAt(Math.floor(Math.random() * digits.length));
+    }
+    return result;
   }
 
   /**

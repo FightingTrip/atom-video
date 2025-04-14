@@ -14,6 +14,7 @@ import {
   Matches,
   IsOptional,
   IsBoolean,
+  MaxLength,
 } from 'class-validator';
 import {
   LoginRequest,
@@ -151,19 +152,92 @@ export class ResetPasswordDto implements ResetPasswordRequest {
 }
 
 /**
- * 请求重置密码DTO
+ * 请求密码重置DTO
  */
 export class RequestPasswordResetDto implements ForgotPasswordRequest {
   /**
-   * 电子邮件
+   * 邮箱
    */
   @ApiProperty({
-    description: '用户电子邮件',
+    description: '用户邮箱',
     example: 'user@example.com',
   })
   @IsNotEmpty({ message: '邮箱不能为空' })
   @IsEmail({}, { message: '请提供有效的邮箱地址' })
   email!: string;
+}
+
+/**
+ * 验证码验证DTO
+ */
+export class VerifyCodeDto {
+  /**
+   * 邮箱
+   */
+  @ApiProperty({
+    description: '用户邮箱',
+    example: 'user@example.com',
+  })
+  @IsNotEmpty({ message: '邮箱不能为空' })
+  @IsEmail({}, { message: '请提供有效的邮箱地址' })
+  email!: string;
+
+  /**
+   * 验证码
+   */
+  @ApiProperty({
+    description: '验证码',
+    example: '123456',
+  })
+  @IsNotEmpty({ message: '验证码不能为空' })
+  @IsString({ message: '验证码必须是字符串' })
+  @MinLength(6, { message: '验证码长度必须为6位' })
+  @MaxLength(6, { message: '验证码长度必须为6位' })
+  code!: string;
+}
+
+/**
+ * 使用验证码重置密码DTO
+ */
+export class ResetPasswordWithCodeDto {
+  /**
+   * 邮箱
+   */
+  @ApiProperty({
+    description: '用户邮箱',
+    example: 'user@example.com',
+  })
+  @IsNotEmpty({ message: '邮箱不能为空' })
+  @IsEmail({}, { message: '请提供有效的邮箱地址' })
+  email!: string;
+
+  /**
+   * 验证码
+   */
+  @ApiProperty({
+    description: '验证码',
+    example: '123456',
+  })
+  @IsNotEmpty({ message: '验证码不能为空' })
+  @IsString({ message: '验证码必须是字符串' })
+  @MinLength(6, { message: '验证码长度必须为6位' })
+  @MaxLength(6, { message: '验证码长度必须为6位' })
+  code!: string;
+
+  /**
+   * 新密码
+   */
+  @ApiProperty({
+    description: '新密码',
+    example: 'NewPassword123',
+  })
+  @IsNotEmpty({ message: '密码不能为空' })
+  @IsString({ message: '密码必须是字符串' })
+  @MinLength(8, { message: '密码最少需要8个字符' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])/, {
+    message: '密码必须包含至少一个小写字母、一个大写字母和一个数字',
+  })
+  password!: string;
 }
 
 /**

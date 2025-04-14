@@ -1,175 +1,340 @@
-# 认证 API
+# 认证API文档
 
-## 概述
+本文档描述了Atom Video平台的认证相关API，包括用户注册、登录、密码重置等功能。
 
-本文档描述了 Atom Video 平台基于NestJS实现的认证相关 API。
+## 基本信息
 
-## 认证架构
+- 基础URL: `/api/auth`
+- 所有请求和响应均使用JSON格式
+- 认证请求头格式: `Authorization: Bearer {token}`
 
-Atom Video 使用JWT (JSON Web Token) 和 Passport 实现认证，权限控制通过基于角色的访问控制（RBAC）实现。
-
-### JWT认证流程
-
-1. 用户提供凭据（用户名/密码）
-2. 服务器验证凭据并生成JWT
-3. JWT返回给客户端并保存（通常在localStorage或Cookie中）
-4. 后续请求在Authorization头中携带JWT
-5. 服务器验证JWT并授权访问
-
-### 角色系统
-
-系统定义了以下角色：
-
-- `USER`: 普通用户
-- `CREATOR`: 内容创作者
-- `ADMIN`: 管理员
-
-## API端点
+## 认证API
 
 ### 用户注册
 
-**端点:** `POST /api/auth/register`  
-**描述:** 创建新用户账号  
-**权限:** 公开访问
+创建新用户账号。
 
-#### 请求
+**请求**
 
-```http
+```
 POST /api/auth/register
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "username": "username",
-  "password": "password123"
-}
 ```
 
-#### 响应
+**请求体**
 
 ```json
 {
-  "message": "注册成功，请查收验证邮件",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "username": "username",
-    "isVerified": false,
-    "roles": ["USER"]
-  }
+  "username": "johndoe",
+  "email": "john.doe@example.com",
+  "password": "Password123",
+  "name": "John Doe" // 可选
 }
 ```
 
-### 用户登录
-
-**端点:** `POST /api/auth/login`  
-**描述:** 验证用户凭据并返回JWT令牌  
-**权限:** 公开访问
-
-#### 请求
-
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
-
-#### 响应
+**响应 (201 Created)**
 
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "email": "user@example.com",
-    "username": "username",
-    "avatar": "avatar_url",
-    "isVerified": true,
-    "roles": ["USER", "CREATOR"]
-  }
+  "refresh_token": "550e8400-e29b-41d4-a716-446655440000",
+  "token_type": "Bearer",
+  "expires_in": 86400
 }
 ```
 
-## 保护路由
+**错误响应**
 
-要访问受保护的路由，需要在请求头中包含JWT令牌：
+- 400 Bad Request - 请求数据无效
+- 409 Conflict - 用户名或邮箱已存在
 
-```http
-GET /api/protected-route
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+### 用户登录
+
+使用邮箱和密码登录系统。
+
+**请求**
+
+```
+POST /api/auth/login
 ```
 
-### 获取当前用户
-
-**端点:** `GET /api/auth/me`  
-**描述:** 获取当前认证用户的信息  
-**权限:** 需要认证
-
-#### 请求
-
-```http
-GET /api/auth/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-#### 响应
+**请求体**
 
 ```json
 {
-  "id": 1,
-  "email": "user@example.com",
-  "username": "username",
-  "avatar": "avatar_url",
-  "isVerified": true,
-  "roles": ["USER", "CREATOR"]
+  "email": "john.doe@example.com",
+  "password": "Password123",
+  "rememberMe": true // 可选
 }
 ```
 
-### 用户登出 (客户端实现)
-
-由于JWT是无状态的，服务端不存储令牌，因此"登出"主要由客户端实现：
-
-1. 客户端删除存储的令牌
-2. 可选：将令牌加入黑名单（需要服务端实现）
-
-## 角色授权使用
-
-在NestJS控制器或方法上使用`@Roles`装饰器来限制访问：
-
-```typescript
-// 创作者专属端点
-@Get('creator/dashboard')
-@Roles('CREATOR')
-getCreatorDashboard() {
-  // 只有创作者角色可访问
-}
-
-// 管理员专属端点
-@Delete('users/:id')
-@Roles('ADMIN')
-deleteUser() {
-  // 只有管理员角色可访问
-}
-```
-
-## 错误响应
-
-所有 API 在发生错误时都会返回以下格式的响应：
+**响应 (200 OK)**
 
 ```json
 {
-  "statusCode": 401,
-  "message": "未经授权",
-  "error": "Unauthorized"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "550e8400-e29b-41d4-a716-446655440000",
+  "token_type": "Bearer",
+  "expires_in": 86400
 }
 ```
 
-常见错误响应：
+**错误响应**
 
-- `401 Unauthorized`: 认证失败（无效令牌、令牌过期等）
-- `403 Forbidden`: 权限不足（无权访问特定资源）
-- `400 Bad Request`: 请求格式不正确 
+- 401 Unauthorized - 登录失败，凭据无效
+
+### 刷新令牌
+
+使用刷新令牌获取新的访问令牌。
+
+**请求**
+
+```
+POST /api/auth/refresh
+```
+
+**请求体**
+
+```json
+{
+  "refresh_token": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**响应 (200 OK)**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "661f9500-f39c-51e5-b827-557766551111",
+  "token_type": "Bearer",
+  "expires_in": 86400
+}
+```
+
+**错误响应**
+
+- 401 Unauthorized - 刷新令牌无效或已过期
+
+### 退出登录
+
+使当前设备的令牌失效。
+
+**请求**
+
+```
+POST /api/auth/logout
+```
+
+**请求头**
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**请求体**
+
+```json
+{
+  "refreshToken": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**响应 (200 OK)**
+
+```json
+{
+  "message": "退出登录成功"
+}
+```
+
+**错误响应**
+
+- 401 Unauthorized - 未授权，访问令牌无效
+- 400 Bad Request - 请求失败，缺少刷新令牌
+
+### 从所有设备退出登录
+
+使所有设备的令牌失效。
+
+**请求**
+
+```
+POST /api/auth/logout-all
+```
+
+**请求头**
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**响应 (200 OK)**
+
+```json
+{
+  "message": "已从所有设备退出登录"
+}
+```
+
+**错误响应**
+
+- 401 Unauthorized - 未授权，访问令牌无效
+
+## 密码重置API
+
+### 请求密码重置
+
+发送验证码到用户邮箱。
+
+**请求**
+
+```
+POST /api/auth/forgot-password
+```
+
+**请求体**
+
+```json
+{
+  "email": "john.doe@example.com"
+}
+```
+
+**响应 (200 OK)**
+
+```json
+{
+  "message": "验证码已发送到您的邮箱，请查收"
+}
+```
+
+**错误响应**
+
+- 404 Not Found - 邮箱未找到
+- 400 Bad Request - 请求密码重置失败
+
+### 验证重置密码验证码
+
+验证用户提供的验证码是否有效。
+
+**请求**
+
+```
+POST /api/auth/verify-code
+```
+
+**请求体**
+
+```json
+{
+  "email": "john.doe@example.com",
+  "code": "123456"
+}
+```
+
+**响应 (200 OK)**
+
+```json
+{
+  "valid": true
+}
+```
+
+**错误响应**
+
+- 400 Bad Request - 验证码无效或已过期
+
+### 使用验证码重置密码
+
+通过验证码重置用户密码。
+
+**请求**
+
+```
+POST /api/auth/reset-password
+```
+
+**请求体**
+
+```json
+{
+  "email": "john.doe@example.com",
+  "code": "123456",
+  "password": "NewPassword123"
+}
+```
+
+**响应 (200 OK)**
+
+```json
+{
+  "message": "密码重置成功"
+}
+```
+
+**错误响应**
+
+- 400 Bad Request - 密码重置失败，验证码无效或已过期
+- 404 Not Found - 用户不存在
+
+## OAuth认证API
+
+### GitHub登录
+
+通过GitHub进行OAuth登录。
+
+**请求**
+
+```
+GET /auth/github
+```
+
+**响应**
+
+重定向到GitHub授权页面。
+
+### GitHub回调
+
+GitHub授权完成后的回调。
+
+**请求**
+
+```
+GET /auth/github/callback
+```
+
+**响应**
+
+重定向到前端页面，带上token参数。
+成功: `{FRONTEND_URL}/auth/oauth-success?token={token}`
+失败: `{FRONTEND_URL}/auth/oauth-error`
+
+### Google登录
+
+通过Google进行OAuth登录。
+
+**请求**
+
+```
+GET /auth/google
+```
+
+**响应**
+
+重定向到Google授权页面。
+
+### Google回调
+
+Google授权完成后的回调。
+
+**请求**
+
+```
+GET /auth/google/callback
+```
+
+**响应**
+
+重定向到前端页面，带上token参数。
+成功: `{FRONTEND_URL}/auth/oauth-success?token={token}`
+失败: `{FRONTEND_URL}/auth/oauth-error` 

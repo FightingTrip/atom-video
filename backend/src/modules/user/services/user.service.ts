@@ -8,7 +8,7 @@
 import { Injectable, ConflictException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { UserRole } from '@atom/shared-types/models';
+import { UserRole } from '../../../models/enums';
 
 /**
  * 创建用户DTO
@@ -18,7 +18,7 @@ export interface CreateUserDto {
   email: string;
   password: string;
   name?: string;
-  role?: string;
+  role?: UserRole;
   isVerified?: boolean;
   isCreator?: boolean;
 }
@@ -57,6 +57,14 @@ export class UserService {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(createUserDto.password, salt);
 
+    // 确定用户角色
+    let userRole: UserRole;
+    if (createUserDto.role) {
+      userRole = createUserDto.role;
+    } else {
+      userRole = UserRole.VIEWER;
+    }
+
     // 创建用户
     const user = await this.prismaService.user.create({
       data: {
@@ -64,7 +72,7 @@ export class UserService {
         email: createUserDto.email,
         password: hashedPassword,
         name: createUserDto.name,
-        role: createUserDto.role || UserRole.USER,
+        role: userRole,
         isVerified: createUserDto.isVerified || false,
         isCreator: createUserDto.isCreator || false,
       },
@@ -90,7 +98,7 @@ export class UserService {
         username: true,
         email: true,
         role: true,
-        avatar: true,
+        avatarUrl: true,
         bio: true,
         createdAt: true,
         updatedAt: true,

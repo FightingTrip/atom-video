@@ -7,7 +7,7 @@
 
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationType } from '@atom/shared-types/models';
+import { NotificationType } from '../../../models/enums';
 import { CreateNotificationDto } from '../dto/create-notification.dto';
 import { UpdateNotificationDto } from '../dto/update-notification.dto';
 

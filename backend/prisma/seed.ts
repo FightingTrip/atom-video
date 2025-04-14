@@ -169,6 +169,33 @@ async function main() {
     },
   });
 
+  // 添加GitHub OAuth账号
+  const githubOAuth = await prisma.oauthAccount.create({
+    data: {
+      userId: creator.id,
+      provider: 'GITHUB',
+      providerId: '12345678',
+    },
+  });
+
+  // 添加Google OAuth账号
+  const googleOAuth = await prisma.oauthAccount.create({
+    data: {
+      userId: viewer.id,
+      provider: 'GOOGLE',
+      providerId: '87654321',
+    },
+  });
+
+  // 添加刷新令牌
+  const refreshToken = await prisma.refreshToken.create({
+    data: {
+      userId: creator.id,
+      token: 'sample-refresh-token-for-testing',
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7天后过期
+    },
+  });
+
   // 创建视频系列
   const reactSeries = await prisma.series.create({
     data: {
@@ -316,7 +343,7 @@ async function main() {
     data: {
       userId: viewer.id,
       videoId: reactIntroVideo.id,
-      watchedAt: new Date(),
+      lastWatchedAt: new Date(),
     },
   });
 
@@ -325,7 +352,7 @@ async function main() {
     data: {
       userId: viewer.id,
       videoId: reactIntroVideo.id,
-      progressSeconds: 600, // 10分钟
+      currentTime: 600, // 10分钟
       isCompleted: false,
     },
   });
@@ -363,6 +390,10 @@ async function cleanDatabase() {
   await prisma.report.deleteMany({});
   await prisma.certificate.deleteMany({});
   await prisma.creatorBranding.deleteMany({});
+  await prisma.oauthAccount.deleteMany({});
+  await prisma.refreshToken.deleteMany({});
+  await prisma.verificationCode.deleteMany({});
+  await prisma.passwordReset.deleteMany({});
 
   // 删除主要实体
   await prisma.video.deleteMany({});

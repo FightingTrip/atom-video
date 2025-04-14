@@ -75,5 +75,15 @@
     "overrides": {
       "vue": "^3.4.15"
     }
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "7.0.1",
+    "@types/bcrypt": "5.0.2",
+    "@types/nodemailer": "6.4.17",
+    "ant-design-vue": "4.2.6",
+    "backend": "0.0.0",
+    "bcrypt": "5.1.1",
+    "dayjs": "^1.11.13",
+    "nodemailer": "6.10.1"
   }
 }

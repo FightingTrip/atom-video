@@ -5,7 +5,7 @@
  */
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray } from 'class-validator';
-import { RecommendationReason } from '@atom/shared-types/models';
+import { RecommendationReason } from '../../../models/enums';
 
 class VideoCreatorDto {
   @ApiProperty({

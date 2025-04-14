@@ -38,7 +38,8 @@ import {
   UpdateVideoDto,
   VideoQueryParams,
 } from '../services/video.service';
-import { UserRole } from '@atom/shared-types/models';
+import { UserRole } from '../../../models/enums';
+import { formatError } from '../../../utils/error-handler.util';
 
 /**
  * 视频控制器类
@@ -77,9 +78,10 @@ export class VideoController {
   async getVideos(@Query() queryParams: VideoQueryParams) {
     try {
       return await this.videoService.getVideos(queryParams);
-    } catch (error) {
-      this.logger.error(`获取视频列表失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`获取视频列表失败: ${error.message}`);
+    } catch (error: unknown) {
+      const { message, stack } = formatError(error);
+      this.logger.error(`获取视频列表失败: ${message}`, stack);
+      throw new BadRequestException(`获取视频列表失败: ${message}`);
     }
   }
 
@@ -96,12 +98,13 @@ export class VideoController {
   async getVideoById(@Param('id', ParseUUIDPipe) id: string) {
     try {
       return await this.videoService.getVideoById(id);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`获取视频详情失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`获取视频详情失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`获取视频详情失败: ${message}`, stack);
+      throw new BadRequestException(`获取视频详情失败: ${message}`);
     }
   }
 
@@ -123,9 +126,10 @@ export class VideoController {
   async createVideo(@Body() createVideoDto: CreateVideoDto) {
     try {
       return await this.videoService.createVideo(createVideoDto);
-    } catch (error) {
-      this.logger.error(`创建视频失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`创建视频失败: ${error.message}`);
+    } catch (error: unknown) {
+      const { message, stack } = formatError(error);
+      this.logger.error(`创建视频失败: ${message}`, stack);
+      throw new BadRequestException(`创建视频失败: ${message}`);
     }
   }
 
@@ -152,12 +156,13 @@ export class VideoController {
   ) {
     try {
       return await this.videoService.updateVideo(id, updateVideoDto);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`更新视频失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`更新视频失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`更新视频失败: ${message}`, stack);
+      throw new BadRequestException(`更新视频失败: ${message}`);
     }
   }
 
@@ -178,12 +183,13 @@ export class VideoController {
   async deleteVideo(@Param('id', ParseUUIDPipe) id: string) {
     try {
       return await this.videoService.deleteVideo(id);
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`删除视频失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`删除视频失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`删除视频失败: ${message}`, stack);
+      throw new BadRequestException(`删除视频失败: ${message}`);
     }
   }
 }

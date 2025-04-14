@@ -13,6 +13,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { formatError } from '../../../utils/error-handler.util';
 
 /**
  * 创建评论DTO
@@ -105,7 +106,7 @@ export class CommentService {
             select: {
               id: true,
               username: true,
-              avatar: true,
+              avatarUrl: true,
             },
           },
         },
@@ -126,8 +127,9 @@ export class CommentService {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`创建评论失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`创建评论失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`创建评论失败: ${message}`, stack);
+      throw new BadRequestException(`创建评论失败: ${message}`);
     }
   }
 
@@ -176,7 +178,7 @@ export class CommentService {
               select: {
                 id: true,
                 username: true,
-                avatar: true,
+                avatarUrl: true,
               },
             },
             _count: {
@@ -191,12 +193,17 @@ export class CommentService {
       ]);
 
       // 格式化响应数据
-      const formattedComments = comments.map(comment => ({
-        ...comment,
-        repliesCount: comment._count.replies,
-        likesCount: comment._count.likes,
-        _count: undefined,
-      }));
+      const formattedComments = comments.map(comment => {
+        // 使用临时变量保存_count，避免类型错误
+        const countData = comment._count as { replies: number; likes: number };
+
+        return {
+          ...comment,
+          repliesCount: countData.replies,
+          likesCount: countData.likes,
+          _count: undefined, // 从返回中移除原始_count
+        };
+      });
 
       return {
         comments: formattedComments,
@@ -208,8 +215,9 @@ export class CommentService {
         },
       };
     } catch (error) {
-      this.logger.error(`获取评论列表失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`获取评论列表失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`获取评论列表失败: ${message}`, stack);
+      throw new BadRequestException(`获取评论列表失败: ${message}`);
     }
   }
 
@@ -248,7 +256,7 @@ export class CommentService {
             select: {
               id: true,
               username: true,
-              avatar: true,
+              avatarUrl: true,
             },
           },
         },
@@ -259,8 +267,9 @@ export class CommentService {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
-      this.logger.error(`更新评论失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`更新评论失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`更新评论失败: ${message}`, stack);
+      throw new BadRequestException(`更新评论失败: ${message}`);
     }
   }
 
@@ -306,8 +315,9 @@ export class CommentService {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
-      this.logger.error(`删除评论失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`删除评论失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`删除评论失败: ${message}`, stack);
+      throw new BadRequestException(`删除评论失败: ${message}`);
     }
   }
 }

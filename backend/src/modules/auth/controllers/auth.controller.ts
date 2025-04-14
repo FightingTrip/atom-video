@@ -17,6 +17,7 @@ import {
   BadRequestException,
   ConflictException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
@@ -29,6 +30,8 @@ import {
   RefreshTokenDto,
   RequestPasswordResetDto,
   ResetPasswordDto,
+  VerifyCodeDto,
+  ResetPasswordWithCodeDto,
 } from '../models/auth.model';
 
 // 定义接口来处理错误类型
@@ -172,43 +175,63 @@ export class AuthController {
   /**
    * 请求密码重置
    * @param requestDto 请求数据
-   * @returns 成功消息
    */
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '请求密码重置', description: '发送密码重置链接到用户邮箱' })
+  @ApiOperation({ summary: '请求密码重置', description: '发送验证码到用户邮箱' })
   @ApiBody({ type: RequestPasswordResetDto })
-  @ApiResponse({ status: 200, description: '密码重置链接已发送' })
-  @ApiResponse({ status: 404, description: '邮箱地址未注册' })
+  @ApiResponse({ status: 200, description: '密码重置验证码已发送' })
+  @ApiResponse({ status: 404, description: '邮箱未找到' })
   async requestPasswordReset(@Body() requestDto: RequestPasswordResetDto) {
     try {
       await this.authService.requestPasswordReset(requestDto);
-      return { message: '密码重置链接已发送到您的邮箱' };
+      return { message: '验证码已发送到您的邮箱，请查收' };
     } catch (error) {
       this.logger.error(`请求密码重置失败: ${(error as AppError).message}`);
-      throw error;
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException((error as AppError).message || '请求密码重置失败');
     }
   }
 
   /**
-   * 重置密码
+   * 验证重置密码验证码
+   * @param verifyDto 验证数据
+   */
+  @Post('verify-code')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '验证验证码', description: '验证密码重置验证码是否有效' })
+  @ApiBody({ type: VerifyCodeDto })
+  @ApiResponse({ status: 200, description: '验证码有效' })
+  @ApiResponse({ status: 400, description: '验证码无效或已过期' })
+  async verifyCode(@Body() verifyDto: VerifyCodeDto) {
+    try {
+      const isValid = await this.authService.verifyCode(verifyDto);
+      return { valid: isValid };
+    } catch (error) {
+      this.logger.error(`验证码验证失败: ${(error as AppError).message}`);
+      throw new BadRequestException((error as AppError).message || '验证码验证失败');
+    }
+  }
+
+  /**
+   * 使用验证码重置密码
    * @param resetDto 重置数据
-   * @returns 成功消息
    */
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '重置密码', description: '使用重置令牌设置新密码' })
-  @ApiBody({ type: ResetPasswordDto })
+  @ApiOperation({ summary: '重置密码', description: '使用验证码重置用户密码' })
+  @ApiBody({ type: ResetPasswordWithCodeDto })
   @ApiResponse({ status: 200, description: '密码重置成功' })
-  @ApiResponse({ status: 400, description: '请求失败，密码验证错误' })
-  @ApiResponse({ status: 404, description: '重置令牌无效或已过期' })
-  async resetPassword(@Body() resetDto: ResetPasswordDto) {
+  @ApiResponse({ status: 400, description: '密码重置失败' })
+  async resetPassword(@Body() resetDto: ResetPasswordWithCodeDto) {
     try {
-      await this.authService.resetPassword(resetDto);
+      await this.authService.resetPasswordWithCode(resetDto);
       return { message: '密码重置成功' };
     } catch (error) {
-      this.logger.error(`重置密码失败: ${(error as AppError).message}`);
-      throw error;
+      this.logger.error(`密码重置失败: ${(error as AppError).message}`);
+      throw new BadRequestException((error as AppError).message || '密码重置失败');
     }
   }
 }

@@ -7,7 +7,9 @@
 
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { VideoVisibility, VideoType, DifficultyLevel } from '@atom/shared-types/models';
+import { VideoVisibility, VideoType, DifficultyLevel } from '../../../models/enums';
+import { formatError } from '../../../utils/error-handler.util';
+import { Prisma } from '@prisma/client';
 
 /**
  * 创建视频DTO
@@ -118,9 +120,10 @@ export class VideoService {
       });
 
       return video;
-    } catch (error) {
-      this.logger.error(`创建视频失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`创建视频失败: ${error.message}`);
+    } catch (error: unknown) {
+      const { message, stack } = formatError(error);
+      this.logger.error(`创建视频失败: ${message}`, stack);
+      throw new BadRequestException(`创建视频失败: ${message}`);
     }
   }
 
@@ -143,7 +146,7 @@ export class VideoService {
     } = queryParams;
 
     // 构建过滤条件
-    const where: any = {
+    const where: Prisma.VideoWhereInput = {
       visibility: VideoVisibility.PUBLIC,
     };
 
@@ -175,7 +178,7 @@ export class VideoService {
     }
 
     // 构建排序条件
-    let orderBy: any = {};
+    let orderBy: Prisma.VideoOrderByWithRelationInput = {};
     switch (sortBy) {
       case 'newest':
         orderBy = { createdAt: 'desc' };
@@ -208,9 +211,10 @@ export class VideoService {
               select: {
                 id: true,
                 username: true,
-                avatar: true,
+                avatarUrl: true,
               },
             },
+            // 为计数而包含关系
             _count: {
               select: {
                 comments: true,
@@ -222,13 +226,18 @@ export class VideoService {
         this.prismaService.video.count({ where }),
       ]);
 
-      // 格式化响应数据
-      const formattedVideos = videos.map(video => ({
-        ...video,
-        commentsCount: video._count.comments,
-        likesCount: video._count.likes,
-        _count: undefined,
-      }));
+      // 格式化响应数据，使用_count正确获取计数
+      const formattedVideos = videos.map(video => {
+        // 从视频对象中提取_count
+        const { _count, ...videoData } = video;
+
+        // 返回格式化后的对象
+        return {
+          ...videoData,
+          commentsCount: _count?.comments || 0,
+          likesCount: _count?.likes || 0,
+        };
+      });
 
       return {
         videos: formattedVideos,
@@ -239,9 +248,10 @@ export class VideoService {
           totalPages: Math.ceil(total / limit),
         },
       };
-    } catch (error) {
-      this.logger.error(`获取视频列表失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`获取视频列表失败: ${error.message}`);
+    } catch (error: unknown) {
+      const { message, stack } = formatError(error);
+      this.logger.error(`获取视频列表失败: ${message}`, stack);
+      throw new BadRequestException(`获取视频列表失败: ${message}`);
     }
   }
 
@@ -252,6 +262,7 @@ export class VideoService {
    */
   async getVideoById(id: string) {
     try {
+      // 检查Prisma模型中的确切字段，只选择存在的字段
       const video = await this.prismaService.video.findUnique({
         where: { id },
         include: {
@@ -259,7 +270,7 @@ export class VideoService {
             select: {
               id: true,
               username: true,
-              avatar: true,
+              avatarUrl: true,
               bio: true,
             },
           },
@@ -281,14 +292,10 @@ export class VideoService {
               },
             },
           },
+          // 使用Prisma模型中正确定义的VideoTag关系
           tags: {
-            select: {
-              tag: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
+            include: {
+              tag: true,
             },
           },
           codeSnippets: true,
@@ -305,22 +312,23 @@ export class VideoService {
         throw new NotFoundException(`未找到ID为 ${id} 的视频`);
       }
 
-      // 格式化标签数据
+      // 安全地格式化数据
       const formattedVideo = {
         ...video,
-        tags: video.tags.map(tag => tag.tag),
+        tags: video.tags?.map(vt => vt.tag) || [],
       };
 
       // 更新浏览量
       await this.incrementViewCount(id);
 
       return formattedVideo;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`获取视频详情失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`获取视频详情失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`获取视频详情失败: ${message}`, stack);
+      throw new BadRequestException(`获取视频详情失败: ${message}`);
     }
   }
 
@@ -342,7 +350,26 @@ export class VideoService {
       }
 
       // 准备更新数据
-      const updateData: any = { ...updateVideoDto };
+      const updateData: Prisma.VideoUpdateInput = {};
+
+      // 复制基本字段
+      if (updateVideoDto.title) updateData.title = updateVideoDto.title;
+      if (updateVideoDto.description !== undefined)
+        updateData.description = updateVideoDto.description;
+      if (updateVideoDto.thumbnailUrl) updateData.thumbnailUrl = updateVideoDto.thumbnailUrl;
+      if (updateVideoDto.visibility) updateData.visibility = updateVideoDto.visibility;
+      if (updateVideoDto.difficultyLevel)
+        updateData.difficultyLevel = updateVideoDto.difficultyLevel;
+      if (updateVideoDto.sourceCodeUrl !== undefined)
+        updateData.sourceCodeUrl = updateVideoDto.sourceCodeUrl;
+      if (updateVideoDto.liveDemo !== undefined) updateData.liveDemo = updateVideoDto.liveDemo;
+      if (updateVideoDto.videoType) updateData.videoType = updateVideoDto.videoType;
+      if (updateVideoDto.prerequisites !== undefined)
+        updateData.prerequisites = updateVideoDto.prerequisites;
+      if (updateVideoDto.learningOutcomes !== undefined)
+        updateData.learningOutcomes = updateVideoDto.learningOutcomes;
+      if (updateVideoDto.seriesOrder !== undefined)
+        updateData.seriesOrder = updateVideoDto.seriesOrder;
 
       // 处理系列关联
       if ('seriesId' in updateVideoDto) {
@@ -355,7 +382,6 @@ export class VideoService {
             disconnect: true,
           };
         }
-        delete updateData.seriesId;
       }
 
       // 处理语言关联
@@ -369,7 +395,6 @@ export class VideoService {
             disconnect: true,
           };
         }
-        delete updateData.languageId;
       }
 
       // 执行更新
@@ -379,12 +404,13 @@ export class VideoService {
       });
 
       return updatedVideo;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`更新视频失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`更新视频失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`更新视频失败: ${message}`, stack);
+      throw new BadRequestException(`更新视频失败: ${message}`);
     }
   }
 
@@ -410,12 +436,13 @@ export class VideoService {
       });
 
       return { message: '视频删除成功' };
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      this.logger.error(`删除视频失败: ${error.message}`, error.stack);
-      throw new BadRequestException(`删除视频失败: ${error.message}`);
+      const { message, stack } = formatError(error);
+      this.logger.error(`删除视频失败: ${message}`, stack);
+      throw new BadRequestException(`删除视频失败: ${message}`);
     }
   }
 

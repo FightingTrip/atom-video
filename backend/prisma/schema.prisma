@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -32,16 +32,17 @@ enum ExperienceLevel {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  username   String   @unique
-  email      String   @unique
-  password   String
-  name       String?
-  bio        String?
-  avatarUrl  String?
-  role       UserRole @default(VIEWER)
-  isVerified Boolean  @default(false)
-  isCreator  Boolean  @default(false)
+  id          String   @id @default(uuid())
+  username    String   @unique
+  email       String   @unique
+  password    String
+  name        String?
+  displayName String? // 显示名称，用于OAuth登录
+  bio         String?
+  avatarUrl   String?
+  role        UserRole @default(VIEWER)
+  isVerified  Boolean  @default(false)
+  isCreator   Boolean  @default(false)
 
   // 开发者特有属性
   githubProfile        String?
@@ -64,6 +65,8 @@ model User {
   subscriptions Subscription[]  @relation("CreatorSubscriptions")
   subscribers   Subscription[]  @relation("SubscriberSubscriptions")
   savedVideos   SavedVideo[]
+  oauthAccounts OAuthAccount[] // 第三方登录关联
+  refreshTokens RefreshToken[] // 刷新令牌
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,11 +82,12 @@ model User {
   UserActivity            UserActivity[]
   SearchHistory           SearchHistory[]
   Recommendation          Recommendation[]
-  Report                  Report[]
-  Report                  Report[]
+  Report                  Report[]                  @relation("ReportSubmitter")
+  ReportModerated         Report[]                  @relation("ReportModerator")
   Question                Question[]
   Answer                  Answer[]
   AnswerVote              AnswerVote[]
+  PasswordReset           PasswordReset[]
 }
 
 // =========================================
@@ -523,10 +527,10 @@ enum ActivityType {
 
 model UserActivity {
   id           String       @id @default(uuid())
-  user         User         @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
   activityType ActivityType
-  metadata     Json
+  metadata     String // 存储为JSON字符串，在应用中解析
 
   createdAt DateTime @default(now())
 
@@ -601,7 +605,7 @@ model Report {
   reporter    User         @relation("ReportSubmitter", fields: [reporterId], references: [id])
   reporterId  String
   reason      ReportReason
-  description String?      @db.Text
+  description String?
   status      ReportStatus @default(PENDING)
 
   // 被举报内容
@@ -646,7 +650,7 @@ model ContentAccuracy {
 model Question {
   id      String @id @default(uuid())
   title   String
-  content String @db.Text
+  content String
 
   video    Video  @relation(fields: [videoId], references: [id])
   videoId  String
@@ -666,7 +670,7 @@ model Question {
 
 model Answer {
   id      String @id @default(uuid())
-  content String @db.Text
+  content String
 
   question   Question @relation(fields: [questionId], references: [id])
   questionId String
@@ -766,4 +770,63 @@ model CreatorBranding {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// OAuth 第三方账号模型
+model OAuthAccount {
+  id         String @id @default(uuid())
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  provider   String // 提供商: GITHUB, GOOGLE 等
+  providerId String // 提供商用户ID
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+// 刷新令牌模型
+model RefreshToken {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+// 验证码模型
+model VerificationCode {
+  id        String   @id @default(uuid())
+  email     String // 请求验证码的邮箱
+  code      String // 6位验证码
+  type      String // 验证码类型: REGISTER, PASSWORD_RESET 等
+  expiresAt DateTime // 过期时间
+  isUsed    Boolean  @default(false) // 是否已使用
+
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+  @@index([code])
+}
+
+// 密码重置模型
+model PasswordReset {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
 }

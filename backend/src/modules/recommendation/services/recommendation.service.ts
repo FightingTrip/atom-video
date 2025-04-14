@@ -7,7 +7,7 @@
 
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { RecommendationReason } from '@atom/shared-types/models';
+import { RecommendationReason } from '../../../models/enums';
 
 @Injectable()
 export class RecommendationService {

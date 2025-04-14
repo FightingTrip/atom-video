@@ -20,284 +20,384 @@
 */
 
 <template>
-  <div class="forgot-password">
-    <div class="forgot-password-container">
-      <div>
-        <h2 class="forgot-password-title">
-          忘记密码
-        </h2>
-        <p class="forgot-password-desc">
-          请输入您的邮箱地址，我们将发送重置密码的链接
+  <div class="forgot-password-container">
+    <div class="card">
+      <h2 class="title">{{ title }}</h2>
+      
+      <!-- 第一步：输入邮箱 -->
+      <div v-if="step === 1">
+        <p class="description">请输入您的邮箱地址，我们将向您发送验证码。</p>
+        <a-form :model="form" @finish="handleSendCode" layout="vertical">
+          <a-form-item
+            name="email"
+            :rules="[
+              { required: true, message: '请输入邮箱地址' },
+              { type: 'email', message: '请输入有效的邮箱地址' }
+            ]"
+          >
+            <a-input
+              v-model:value="form.email"
+              placeholder="请输入邮箱"
+              size="large"
+              :disabled="loading"
+            >
+              <template #prefix>
+                <mail-outlined />
+              </template>
+            </a-input>
+          </a-form-item>
+
+          <a-form-item>
+            <a-button
+              type="primary"
+              html-type="submit"
+              :loading="loading"
+              block
+              size="large"
+            >
+              发送验证码
+            </a-button>
+          </a-form-item>
+          
+          <div class="actions">
+            <router-link to="/auth/login">返回登录</router-link>
+          </div>
+        </a-form>
+      </div>
+
+      <!-- 第二步：输入验证码 -->
+      <div v-if="step === 2">
+        <p class="description">
+          验证码已发送到您的邮箱：{{ form.email }}
+          <br />
+          <a class="resend-link" @click="resendCode" :class="{ disabled: countdown > 0 }">
+            {{ countdown > 0 ? `${countdown}秒后可重新发送` : '重新发送验证码' }}
+          </a>
         </p>
+        
+        <a-form :model="form" @finish="handleVerifyCode" layout="vertical">
+          <a-form-item
+            name="code"
+            :rules="[
+              { required: true, message: '请输入验证码' },
+              { len: 6, message: '验证码长度必须为6位' }
+            ]"
+          >
+            <a-input
+              v-model:value="form.code"
+              placeholder="请输入6位验证码"
+              size="large"
+              :disabled="loading"
+            >
+              <template #prefix>
+                <safety-outlined />
+              </template>
+            </a-input>
+          </a-form-item>
+
+          <a-form-item>
+            <a-button
+              type="primary"
+              html-type="submit"
+              :loading="loading"
+              block
+              size="large"
+            >
+              验证
+            </a-button>
+          </a-form-item>
+          
+          <div class="actions">
+            <a @click="step = 1">返回</a>
+          </div>
+        </a-form>
       </div>
 
-      <!-- 错误提示 -->
-      <div v-if="error" class="error-alert">
-        <div class="error-alert-content">
-          <div class="error-alert-icon">
-            <svg class="error-icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div class="error-alert-text">
-            <p class="error-message">{{ error }}</p>
-          </div>
-        </div>
+      <!-- 第三步：设置新密码 -->
+      <div v-if="step === 3">
+        <p class="description">请设置您的新密码</p>
+        
+        <a-form :model="form" @finish="handleResetPassword" layout="vertical">
+          <a-form-item
+            name="password"
+            :rules="[
+              { required: true, message: '请输入密码' },
+              { min: 8, message: '密码最少8个字符' },
+              { 
+                pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 
+                message: '密码必须包含大小写字母和数字' 
+              }
+            ]"
+          >
+            <a-input-password
+              v-model:value="form.password"
+              placeholder="请输入新密码"
+              size="large"
+              :disabled="loading"
+            >
+              <template #prefix>
+                <lock-outlined />
+              </template>
+            </a-input-password>
+          </a-form-item>
+
+          <a-form-item
+            name="confirmPassword"
+            :rules="[
+              { required: true, message: '请确认密码' },
+              { validator: validateConfirmPassword }
+            ]"
+          >
+            <a-input-password
+              v-model:value="form.confirmPassword"
+              placeholder="请再次输入新密码"
+              size="large"
+              :disabled="loading"
+            >
+              <template #prefix>
+                <lock-outlined />
+              </template>
+            </a-input-password>
+          </a-form-item>
+
+          <a-form-item>
+            <a-button
+              type="primary"
+              html-type="submit"
+              :loading="loading"
+              block
+              size="large"
+            >
+              重置密码
+            </a-button>
+          </a-form-item>
+        </a-form>
       </div>
 
-      <!-- 成功提示 -->
-      <div v-if="success" class="success-alert">
-        <div class="success-alert-content">
-          <div class="success-alert-icon">
-            <svg class="success-icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div class="success-alert-text">
-            <p class="success-message">{{ success }}</p>
-          </div>
-        </div>
-      </div>
-
-      <form class="forgot-password-form" @submit.prevent="handleSubmit">
-        <div>
-          <label for="email" class="sr-only">邮箱地址</label>
-          <input id="email" v-model="email" name="email" type="email" required class="auth-input" placeholder="邮箱地址"
-            :class="{ 'input-error': emailError }" />
-          <p v-if="emailError" class="error-text">{{ emailError }}</p>
-        </div>
-
-        <div>
-          <button type="submit" :disabled="isLoading" class="submit-button" :class="{ 'button-disabled': isLoading }">
-            {{ isLoading ? '发送中...' : '发送重置链接' }}
-          </button>
-        </div>
-      </form>
-
-      <div class="forgot-password-footer">
-        <p class="forgot-password-text">
-          想起密码了？
-          <router-link to="/auth/login" class="forgot-password-link">
-            返回登录
-          </router-link>
-        </p>
+      <!-- 第四步：重置成功 -->
+      <div v-if="step === 4" class="success-container">
+        <a-result
+          status="success"
+          title="密码重置成功"
+          sub-title="您已成功重置密码，请使用新密码登录"
+        >
+          <template #extra>
+            <a-button type="primary" @click="gotoLogin">
+              返回登录
+            </a-button>
+          </template>
+        </a-result>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-  import { ref } from 'vue';
-  import { useRouter } from 'vue-router';
-  import api from '@/utils/api';
+<script lang="ts">
+import { defineComponent, ref, reactive, computed } from 'vue';
+import { message } from 'ant-design-vue';
+import { MailOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons-vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
-  const router = useRouter();
+export default defineComponent({
+  name: 'ForgotPassword',
+  components: {
+    MailOutlined,
+    LockOutlined,
+    SafetyOutlined,
+  },
+  setup() {
+    const router = useRouter();
+    const authStore = useAuthStore();
+    
+    // 表单状态
+    const step = ref(1);
+    const loading = ref(false);
+    const countdown = ref(0);
+    const countdownTimer = ref<number | null>(null);
+    
+    const form = reactive({
+      email: '',
+      code: '',
+      password: '',
+      confirmPassword: '',
+    });
 
-  const email = ref('');
-  const isLoading = ref(false);
-  const error = ref('');
-  const success = ref('');
-  const emailError = ref('');
+    // 计算属性
+    const title = computed(() => {
+      switch (step.value) {
+        case 1: return '找回密码';
+        case 2: return '验证邮箱';
+        case 3: return '设置新密码';
+        case 4: return '重置成功';
+        default: return '找回密码';
+      }
+    });
 
-  const validateForm = () => {
-    let isValid = true;
-    emailError.value = '';
+    // 方法
+    const startCountdown = () => {
+      countdown.value = 60;
+      if (countdownTimer.value) {
+        clearInterval(countdownTimer.value);
+      }
+      
+      countdownTimer.value = window.setInterval(() => {
+        if (countdown.value > 0) {
+          countdown.value--;
+        } else {
+          if (countdownTimer.value) {
+            clearInterval(countdownTimer.value);
+            countdownTimer.value = null;
+          }
+        }
+      }, 1000);
+    };
 
-    if (!email.value) {
-      emailError.value = '请输入邮箱地址';
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email.value)) {
-      emailError.value = '请输入有效的邮箱地址';
-      isValid = false;
-    }
+    const handleSendCode = async () => {
+      try {
+        loading.value = true;
+        
+        // 调用 API 发送验证码
+        await authStore.requestPasswordReset(form.email);
+        
+        message.success('验证码已发送到您的邮箱');
+        startCountdown();
+        step.value = 2;
+      } catch (error) {
+        console.error('发送验证码失败', error);
+        message.error('发送验证码失败，请检查邮箱是否正确');
+      } finally {
+        loading.value = false;
+      }
+    };
 
-    return isValid;
-  };
+    const resendCode = async () => {
+      if (countdown.value > 0) return;
+      
+      try {
+        loading.value = true;
+        
+        // 调用 API 重新发送验证码
+        await authStore.requestPasswordReset(form.email);
+        
+        message.success('验证码已重新发送到您的邮箱');
+        startCountdown();
+      } catch (error) {
+        console.error('重新发送验证码失败', error);
+        message.error('重新发送验证码失败');
+      } finally {
+        loading.value = false;
+      }
+    };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+    const handleVerifyCode = async () => {
+      try {
+        loading.value = true;
+        
+        // 调用 API 验证验证码
+        const isValid = await authStore.verifyCode(form.email, form.code);
+        
+        if (isValid) {
+          step.value = 3;
+        } else {
+          message.error('验证码无效或已过期');
+        }
+      } catch (error) {
+        console.error('验证码验证失败', error);
+        message.error('验证码无效或已过期');
+      } finally {
+        loading.value = false;
+      }
+    };
 
-    isLoading.value = true;
-    error.value = '';
-    success.value = '';
+    const validateConfirmPassword = (_rule: any, value: string) => {
+      if (value !== form.password) {
+        return Promise.reject('两次输入的密码不一致');
+      }
+      return Promise.resolve();
+    };
 
-    try {
-      await api.post('/auth/forgot-password', { email: email.value });
-      success.value = '重置密码的链接已发送到您的邮箱，请查收';
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '发送失败，请重试';
-    } finally {
-      isLoading.value = false;
-    }
-  };
+    const handleResetPassword = async () => {
+      try {
+        loading.value = true;
+        
+        // 调用 API 重置密码
+        await authStore.resetPasswordWithCode(form.email, form.code, form.password);
+        
+        message.success('密码重置成功');
+        step.value = 4;
+      } catch (error) {
+        console.error('密码重置失败', error);
+        message.error('密码重置失败，请重试');
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    const gotoLogin = () => {
+      router.push('/auth/login');
+    };
+
+    return {
+      step,
+      loading,
+      countdown,
+      form,
+      title,
+      handleSendCode,
+      resendCode,
+      handleVerifyCode,
+      validateConfirmPassword,
+      handleResetPassword,
+      gotoLogin,
+    };
+  },
+});
 </script>
 
 <style scoped>
-  .forgot-password {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--primary-bg);
-    padding: var(--spacing-lg) var(--spacing-md);
-  }
+.forgot-password-container {
+  max-width: 400px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
 
-  .forgot-password-container {
-    max-width: 28rem;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
-  }
+.card {
+  background: #1f1f1f;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
 
-  .forgot-password-title {
-    margin-top: var(--spacing-md);
-    text-align: center;
-    font-size: var(--text-2xl);
-    font-weight: 700;
-    color: var(--text-primary);
-  }
+.title {
+  font-size: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #fff;
+}
 
-  .forgot-password-desc {
-    margin-top: var(--spacing-sm);
-    text-align: center;
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-  }
+.description {
+  margin-bottom: 24px;
+  text-align: center;
+  color: #bfbfbf;
+}
 
-  .error-alert,
-  .success-alert {
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-  }
+.actions {
+  margin-top: 16px;
+  text-align: center;
+}
 
-  .error-alert {
-    background-color: var(--error-bg);
-  }
+.resend-link {
+  color: #1890ff;
+  cursor: pointer;
+}
 
-  .success-alert {
-    background-color: var(--success-bg);
-  }
+.resend-link.disabled {
+  color: #595959;
+  cursor: not-allowed;
+}
 
-  .error-alert-content,
-  .success-alert-content {
-    display: flex;
-  }
-
-  .error-alert-icon,
-  .success-alert-icon {
-    flex-shrink: 0;
-  }
-
-  .error-icon,
-  .success-icon {
-    height: 1.25rem;
-    width: 1.25rem;
-  }
-
-  .error-icon {
-    color: var(--error-color);
-  }
-
-  .success-icon {
-    color: var(--success-color);
-  }
-
-  .error-alert-text,
-  .success-alert-text {
-    margin-left: var(--spacing-sm);
-  }
-
-  .error-message,
-  .success-message {
-    font-size: var(--text-sm);
-    font-weight: 500;
-  }
-
-  .error-message {
-    color: var(--error-color);
-  }
-
-  .success-message {
-    color: var(--success-color);
-  }
-
-  .forgot-password-form {
-    margin-top: var(--spacing-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .auth-input {
-    width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-light);
-    background-color: var(--primary-bg);
-    color: var(--text-primary);
-    transition: all var(--transition-normal);
-  }
-
-  .auth-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);
-  }
-
-  .input-error {
-    border-color: var(--error-color);
-  }
-
-  .error-text {
-    margin-top: var(--spacing-xs);
-    font-size: var(--text-sm);
-    color: var(--error-color);
-  }
-
-  .submit-button {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    color: var(--text-inverse);
-    background-color: var(--primary-color);
-    transition: background-color var(--transition-normal);
-  }
-
-  .submit-button:hover:not(.button-disabled) {
-    background-color: var(--primary-color-dark);
-  }
-
-  .button-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .forgot-password-footer {
-    text-align: center;
-  }
-
-  .forgot-password-text {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-  }
-
-  .forgot-password-link {
-    font-weight: 500;
-    color: var(--primary-color);
-    transition: color var(--transition-normal);
-  }
-
-  .forgot-password-link:hover {
-    color: var(--primary-color-dark);
-  }
+.success-container {
+  text-align: center;
+}
 </style>

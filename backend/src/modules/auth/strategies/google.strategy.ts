@@ -18,10 +18,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private configService: ConfigService,
     private authService: AuthService
   ) {
+    // 确保配置值存在，否则提供默认值防止undefined
+    const clientID = configService.get<string>('GOOGLE_CLIENT_ID') || '';
+    const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET') || '';
+    const callbackURL = configService.get<string>('GOOGLE_CALLBACK_URL') || '';
+
     super({
-      clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
-      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
-      callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL'),
+      clientID,
+      clientSecret,
+      callbackURL,
       scope: ['email', 'profile'],
     });
   }
@@ -37,7 +42,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
 
       // 通过authService处理第三方登录
-      const user = await this.authService.validateOAuthUser({
+      const result = await this.authService.validateOAuthUser({
         provider: 'GOOGLE',
         providerId: profile.id,
         email,
@@ -46,10 +51,15 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         avatarUrl,
       });
 
-      done(null, user);
-    } catch (error) {
-      this.logger.error(`Google认证失败: ${error.message}`, error.stack);
-      done(new UnauthorizedException('Google认证失败'), null);
+      // 只返回用户对象，不返回token信息
+      done(null, result.user);
+    } catch (error: unknown) {
+      // 正确处理unknown类型的error
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Google认证失败: ${errorMessage}`, errorStack);
+      done(new UnauthorizedException('Google认证失败'), false);
     }
   }
 }

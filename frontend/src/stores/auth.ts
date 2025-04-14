@@ -9,34 +9,43 @@ import type { User, AuthResponse } from '@/types';
 import { login as mockLogin, register as mockRegister, getUserByToken } from '@/mock/users';
 import { useStorage } from '@vueuse/core';
 import { useToast } from '@/composables/useToast';
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
+import api from '@/utils/api';
+import router from '@/router';
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
-  const token = ref<string | null>(null);
-  const user = ref<User | null>(null);
+  const token = ref<string | null>(localStorage.getItem('token') || null);
+  const user = reactive<User>({
+    id: '',
+    username: '',
+    email: '',
+    role: '',
+    avatarUrl: '',
+    isVerified: false,
+  });
   const loading = ref(false);
   const error = ref<string | null>(null);
   const demoMode = useStorage<boolean>('demo-mode', true);
 
   // 计算属性
   const isAuthenticated = computed(() => !!token.value || demoMode.value);
-  const isAdmin = computed(() => userRole.value === 'ADMIN');
-  const isCreator = computed(() => userRole.value === 'CREATOR' || isAdmin.value);
-  const username = computed(() => user.value?.username || '游客');
+  const isAdmin = computed(() => user.role === 'ADMIN');
+  const isCreator = computed(() => user.role === 'CREATOR' || isAdmin.value);
+  const username = computed(() => user.username || '游客');
   const userRole = computed(() => {
     // 开发环境下，如果是demo模式，且用户名是admin，则作为管理员
-    if (demoMode.value && user.value?.username === 'admin') {
+    if (demoMode.value && user.username === 'admin') {
       return 'ADMIN';
     }
 
     // 如果用户名是admin@atomvideo.com或username是admin，则作为管理员
-    if (user.value?.email === 'admin@atomvideo.com' || user.value?.username === 'admin') {
+    if (user.email === 'admin@atomvideo.com' || user.username === 'admin') {
       return 'ADMIN';
     }
 
     // 如果用户名是creator@atomvideo.com或username是creator，则作为创作者
-    if (user.value?.email === 'creator@atomvideo.com' || user.value?.username === 'creator') {
+    if (user.email === 'creator@atomvideo.com' || user.username === 'creator') {
       return 'CREATOR';
     }
 
@@ -48,71 +57,40 @@ export const useAuthStore = defineStore('auth', () => {
   function setToken(newToken: string | null) {
     token.value = newToken;
     if (newToken) {
-      localStorage.setItem('auth_token', newToken);
+      localStorage.setItem('token', newToken);
+      api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     } else {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
+      api.defaults.headers.common['Authorization'] = '';
     }
   }
 
   function setUser(newUser: User | null) {
-    user.value = newUser;
+    Object.assign(
+      user,
+      newUser || {
+        id: '',
+        username: '',
+        email: '',
+        role: '',
+        avatarUrl: '',
+        isVerified: false,
+      }
+    );
   }
 
   // 异步操作
-  async function login(email: string, password: string): Promise<boolean> {
+  async function login(email: string, password: string, rememberMe = false): Promise<boolean> {
     const toast = useToast();
     loading.value = true;
     error.value = null;
 
     try {
-      // 开发环境下支持快速登录任意账号
-      if (import.meta.env.DEV && (email === 'demo' || password === 'demo')) {
-        setToken('demo-token');
-        setUser({
-          id: 'demo-user',
-          username: email || 'demo',
-          email: `${email || 'demo'}@example.com`,
-          avatar: `https://i.pravatar.cc/150?img=1`,
-          verified: true,
-          nickname: email || 'Demo User',
-          bio: '',
-          subscribers: 0,
-          subscribing: 0,
-          totalViews: 0,
-          joinedAt: new Date().toISOString(),
-        });
-        demoMode.value = true;
-        toast.success('演示模式登录成功');
-        return true;
-      }
-
-      // 调用mockLogin处理登录，包括测试账号的处理
-      try {
-        const response = await mockLogin({ username: email, password });
-
-        if (response && response.success && response.data) {
-          setToken(response.data.token);
-          setUser(response.data.user);
-          demoMode.value = false;
-          toast.success('登录成功');
-          // 调试信息：记录当前用户角色
-          console.log('[AuthStore] 登录成功，当前用户:', response.data.user);
-          console.log('[AuthStore] 用户角色:', userRole.value);
-          return true;
-        } else {
-          // 确保错误信息不为undefined
-          const errorMsg =
-            response && response.error ? response.error : '登录失败，请检查用户名和密码';
-          error.value = errorMsg;
-          toast.error(errorMsg);
-          return false;
-        }
-      } catch (loginError: any) {
-        console.error('登录过程中发生错误:', loginError);
-        error.value = '登录服务暂时不可用，请稍后再试';
-        toast.error(error.value);
-        return false;
-      }
+      const response = await api.post('/api/auth/login', { email, password, rememberMe });
+      setToken(response.data.access_token);
+      await fetchUser();
+      toast.success('登录成功');
+      return true;
     } catch (err: any) {
       // 处理其他错误
       const errorMsg =
@@ -127,28 +105,26 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function register(username: string, password: string, nickname?: string): Promise<boolean> {
+  async function register(userData: {
+    username: string;
+    email: string;
+    password: string;
+    name?: string;
+  }): Promise<boolean> {
     const toast = useToast();
     loading.value = true;
     error.value = null;
     try {
-      try {
-        const response = await mockRegister({ username, password, nickname });
-        if (response && response.success && response.data) {
-          // 注册成功但不立即登录
-          toast.success('注册成功，请登录');
-          return true;
-        } else {
-          // 确保错误信息不为undefined
-          const errorMsg = response && response.error ? response.error : '注册失败，请稍后重试';
-          error.value = errorMsg;
-          toast.error(errorMsg);
-          return false;
-        }
-      } catch (registerError: any) {
-        console.error('注册过程中发生错误:', registerError);
-        error.value = '注册服务暂时不可用，请稍后再试';
-        toast.error(error.value);
+      const response = await api.post('/api/auth/register', userData);
+      if (response && response.data) {
+        setToken(response.data.access_token);
+        toast.success('注册成功，请登录');
+        return true;
+      } else {
+        // 确保错误信息不为undefined
+        const errorMsg = response && response.error ? response.error : '注册失败，请稍后重试';
+        error.value = errorMsg;
+        toast.error(errorMsg);
         return false;
       }
     } catch (err: any) {
@@ -165,22 +141,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function checkAuth(): Promise<boolean> {
-    if (demoMode.value) return true;
+  async function fetchUser(): Promise<boolean> {
     if (!token.value) return false;
 
+    loading.value = true;
     try {
-      const response = await getUserByToken(token.value);
-      if (response && response.success && response.data) {
-        setUser(response.data);
-        return true;
-      } else {
-        logout();
-        return false;
-      }
+      const response = await api.get('/api/user/me');
+      setUser(response.data);
+      return true;
     } catch (err: any) {
+      console.error('获取用户信息失败:', err);
       logout();
       return false;
+    } finally {
+      loading.value = false;
     }
   }
 
@@ -191,6 +165,11 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null;
     demoMode.value = false;
     toast.success('已退出登录');
+
+    // 如果在需要认证的路由，重定向到登录页
+    if (router.currentRoute.value.meta.requiresAuth) {
+      router.push('/auth/login');
+    }
   }
 
   function enableDemoMode() {
@@ -202,12 +181,54 @@ export const useAuthStore = defineStore('auth', () => {
   function disableDemoMode() {
     demoMode.value = false;
     if (!token.value) {
-      user.value = null;
+      setUser(null);
     }
   }
 
   function clearError() {
     error.value = null;
+  }
+
+  // 请求密码重置验证码
+  async function requestPasswordReset(email: string) {
+    loading.value = true;
+    try {
+      const response = await api.post('/api/auth/forgot-password', { email });
+      return response.data;
+    } catch (error) {
+      console.error('Password reset request failed', error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // 验证重置密码验证码
+  async function verifyCode(email: string, code: string) {
+    loading.value = true;
+    try {
+      const response = await api.post('/api/auth/verify-code', { email, code });
+      return response.data.valid;
+    } catch (error) {
+      console.error('Code verification failed', error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  // 使用验证码重置密码
+  async function resetPasswordWithCode(email: string, code: string, password: string) {
+    loading.value = true;
+    try {
+      const response = await api.post('/api/auth/reset-password', { email, code, password });
+      return response.data;
+    } catch (error) {
+      console.error('Password reset failed', error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
   }
 
   return {
@@ -228,12 +249,15 @@ export const useAuthStore = defineStore('auth', () => {
     // 操作
     login,
     register,
-    checkAuth,
+    fetchUser,
     logout,
     enableDemoMode,
     disableDemoMode,
     clearError,
     setToken,
     setUser,
+    requestPasswordReset,
+    verifyCode,
+    resetPasswordWithCode,
   };
 });

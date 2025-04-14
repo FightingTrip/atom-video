@@ -15,6 +15,15 @@ import { vPermission, vPermissionBtn } from './directives/permission';
 // 导入样式 - 统一使用样式入口文件
 import '@/styles/index.scss';
 
+// 判断是否使用mock数据
+const useMockData = import.meta.env.VITE_USE_MOCK === 'true';
+
+// 如果启用mock数据，导入mock数据
+if (useMockData) {
+  console.log('🚀 正在使用模拟数据模式运行...');
+  import('./mock');
+}
+
 // 设置默认的环境变量
 if (process.env.NODE_ENV === 'development') {
   console.log('App running in development mode');

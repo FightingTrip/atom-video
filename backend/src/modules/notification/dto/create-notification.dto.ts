@@ -5,7 +5,7 @@
  */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsEnum, IsUUID, IsOptional, IsObject, IsNotEmpty } from 'class-validator';
-import { NotificationType } from '@atom/shared-types/models';
+import { NotificationType } from '../../../models/enums';
 
 export class CreateNotificationDto {
   @ApiProperty({

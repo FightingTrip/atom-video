@@ -17,6 +17,7 @@ import { RecommendationModule } from './modules/recommendation/recommendation.mo
 import { TagModule } from './modules/tag/tag.module'; // 新增标签模块
 import { CommonModule } from './modules/common/common.module';
 import { FavoriteModule } from './modules/favorite/favorite.module';
+import { SharedModule } from './shared/shared.module'; // 新增共享模块
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { FavoriteModule } from './modules/favorite/favorite.module';
       envFilePath: ['.env'],
     }),
     PrismaModule,
+    SharedModule, // 注册共享模块
     AuthModule,
     UserModule,
     VideoModule,
