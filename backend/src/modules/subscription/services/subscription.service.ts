@@ -80,14 +80,14 @@ export class SubscriptionService {
       data: {
         subscriberId: userId,
         creatorId: dto.creatorId,
-        notificationsEnabled: dto.notificationsEnabled ?? true,
+        notificationEnabled: dto.notificationEnabled ?? true,
       },
       include: {
         creator: {
           select: {
             id: true,
             username: true,
-            avatarUrl: true,
+            avatar: true,
             bio: true,
           },
         },
@@ -98,11 +98,11 @@ export class SubscriptionService {
       id: subscription.id,
       creatorId: subscription.creatorId,
       subscribedAt: subscription.createdAt.toISOString(),
-      notificationsEnabled: subscription.notificationsEnabled,
+      notificationEnabled: subscription.notificationEnabled,
       creator: {
         id: subscription.creator.id,
         username: subscription.creator.username,
-        avatarUrl: subscription.creator.avatarUrl,
+        avatar: subscription.creator.avatar,
         bio: subscription.creator.bio,
       },
     };
@@ -169,14 +169,14 @@ export class SubscriptionService {
         id: subscription.id,
       },
       data: {
-        notificationsEnabled: dto.notificationsEnabled,
+        notificationEnabled: dto.notificationEnabled,
       },
       include: {
         creator: {
           select: {
             id: true,
             username: true,
-            avatarUrl: true,
+            avatar: true,
             bio: true,
           },
         },
@@ -187,11 +187,11 @@ export class SubscriptionService {
       id: updatedSubscription.id,
       creatorId: updatedSubscription.creatorId,
       subscribedAt: updatedSubscription.createdAt.toISOString(),
-      notificationsEnabled: updatedSubscription.notificationsEnabled,
+      notificationEnabled: updatedSubscription.notificationEnabled,
       creator: {
         id: updatedSubscription.creator.id,
         username: updatedSubscription.creator.username,
-        avatarUrl: updatedSubscription.creator.avatarUrl,
+        avatar: updatedSubscription.creator.avatar,
         bio: updatedSubscription.creator.bio,
       },
     };
@@ -217,7 +217,7 @@ export class SubscriptionService {
               select: {
                 id: true,
                 username: true,
-                avatarUrl: true,
+                avatar: true,
                 bio: true,
                 _count: {
                   select: {
@@ -244,11 +244,11 @@ export class SubscriptionService {
           id: sub.id,
           creatorId: sub.creatorId,
           subscribedAt: sub.createdAt.toISOString(),
-          notificationsEnabled: sub.notificationsEnabled,
+          notificationEnabled: sub.notificationEnabled,
           creator: {
             id: sub.creator.id,
             username: sub.creator.username,
-            avatarUrl: sub.creator.avatarUrl,
+            avatar: sub.creator.avatar,
             bio: sub.creator.bio,
             videosCount: sub.creator._count.videos,
             subscribersCount: sub.creator._count.subscribedBy,
@@ -261,8 +261,11 @@ export class SubscriptionService {
           totalPages: Math.ceil(total / limit),
         },
       };
-    } catch (error) {
-      this.logger.error(`获取用户订阅列表失败: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`获取用户订阅列表失败: ${errorMessage}`, errorStack);
       throw error;
     }
   }
@@ -297,7 +300,7 @@ export class SubscriptionService {
               select: {
                 id: true,
                 username: true,
-                avatarUrl: true,
+                avatar: true,
               },
             },
           },
@@ -319,7 +322,7 @@ export class SubscriptionService {
         subscriber: {
           id: sub.subscriber.id,
           username: sub.subscriber.username,
-          avatarUrl: sub.subscriber.avatarUrl,
+          avatar: sub.subscriber.avatar,
         },
       }));
 
@@ -332,8 +335,11 @@ export class SubscriptionService {
           totalPages: Math.ceil(total / limit),
         },
       };
-    } catch (error) {
-      this.logger.error(`获取创作者订阅者列表失败: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`获取创作者订阅者列表失败: ${errorMessage}`, errorStack);
       throw error;
     }
   }
@@ -402,7 +408,7 @@ export class SubscriptionService {
       const enabledNotifications = await this.prisma.subscription.count({
         where: {
           creatorId,
-          notificationsEnabled: true,
+          notificationEnabled: true,
         },
       });
 
@@ -414,8 +420,11 @@ export class SubscriptionService {
         growthRate,
         notificationEnabledPercentage,
       };
-    } catch (error) {
-      this.logger.error(`获取创作者统计数据失败: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`获取创作者统计数据失败: ${errorMessage}`, errorStack);
       throw error;
     }
   }
@@ -441,8 +450,11 @@ export class SubscriptionService {
       return {
         isSubscribed: !!subscription,
       };
-    } catch (error) {
-      this.logger.error(`检查订阅状态失败: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`检查订阅状态失败: ${errorMessage}`, errorStack);
       throw error;
     }
   }
@@ -484,9 +496,75 @@ export class SubscriptionService {
         },
         {} as { [key: string]: boolean }
       );
-    } catch (error) {
-      this.logger.error(`批量检查订阅状态失败: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`批量检查订阅状态失败: ${errorMessage}`, errorStack);
       throw error;
+    }
+  }
+
+  /**
+   * 批量获取多个创作者的订阅状态
+   *
+   * 用于前端需要展示多个创作者时，一次性获取订阅状态
+   *
+   * @param userId 用户ID
+   * @param creatorIds 创作者ID数组
+   * @returns 包含每个创作者订阅状态的对象，键为创作者ID
+   */
+  async getBulkSubscriptionStatus(userId: string, creatorIds: string[]) {
+    if (!userId || !creatorIds.length) {
+      return {};
+    }
+
+    try {
+      // 查询用户对所有创作者的订阅状态
+      const subscriptions = await this.prisma.subscription.findMany({
+        where: {
+          subscriberId: userId,
+          creatorId: {
+            in: creatorIds,
+          },
+        },
+      });
+
+      // 构建结果对象，键为创作者ID，值为订阅状态
+      const result: Record<
+        string,
+        {
+          isSubscribed: boolean;
+          notificationEnabled: boolean | null;
+          subscribedAt: Date | null;
+        }
+      > = {};
+
+      // 初始化所有创作者为未订阅状态
+      creatorIds.forEach(creatorId => {
+        result[creatorId] = {
+          isSubscribed: false,
+          notificationEnabled: null,
+          subscribedAt: null,
+        };
+      });
+
+      // 填充已订阅的创作者信息
+      subscriptions.forEach(subscription => {
+        result[subscription.creatorId] = {
+          isSubscribed: true,
+          notificationEnabled: subscription.notificationEnabled,
+          subscribedAt: subscription.subscribedAt || subscription.createdAt,
+        };
+      });
+
+      return result;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`批量获取订阅状态失败: ${errorMessage}`, errorStack);
+      throw new BadRequestException('批量获取订阅状态失败');
     }
   }
 }

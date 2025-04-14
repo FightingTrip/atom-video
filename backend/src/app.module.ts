@@ -16,6 +16,7 @@ import { SearchModule } from './modules/search/search.module'; // 新增搜索�
 import { RecommendationModule } from './modules/recommendation/recommendation.module'; // 新增推荐系统模块
 import { TagModule } from './modules/tag/tag.module'; // 新增标签模块
 import { CommonModule } from './modules/common/common.module';
+import { FavoriteModule } from './modules/favorite/favorite.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CommonModule } from './modules/common/common.module';
     RecommendationModule, // 注册推荐系统模块
     TagModule, // 注册标签模块
     CommonModule,
+    FavoriteModule,
   ],
 })
 export class AppModule {}
