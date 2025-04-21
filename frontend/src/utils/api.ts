@@ -1,50 +1,13 @@
-import axios from 'axios';
-import type { ApiResponse, ApiError } from '@/types';
-import { env } from './env';
+/**
+ * API请求工具
+ * 提供简化的API接口，内部使用services/api实现
+ */
 
-// 创建 axios 实例
-const api = axios.create({
-  baseURL: env.apiUrl,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import api from '@/services/api';
+import { shouldUseMockData } from './mockUtils';
 
-// 请求拦截器
-api.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
-
-// 响应拦截器
-api.interceptors.response.use(
-  response => {
-    return response.data;
-  },
-  error => {
-    if (error.response) {
-      const apiError: ApiError = {
-        message: error.response.data.message || '请求失败',
-        code: error.response.data.code || 'UNKNOWN_ERROR',
-        status: error.response.status,
-      };
-      return Promise.reject(apiError);
-    }
-    return Promise.reject({
-      message: '网络错误',
-      code: 'NETWORK_ERROR',
-      status: 0,
-    });
-  }
-);
-
+// 重新导出API服务
 export default api;
+
+// 导出mock模式检查
+export const isMockMode = shouldUseMockData;

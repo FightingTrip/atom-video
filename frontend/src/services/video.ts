@@ -1,271 +1,314 @@
-import api, { isMockMode } from './api';
+/**
+ * @file video.ts
+ * @description 视频服务，提供视频相关的API调用
+ */
+
+import api from '@/utils/api';
+import type { Video, ApiResponse, VideoInteraction, Comment } from '@/types';
+import { shouldUseMockData } from '@/utils/mockUtils';
 import {
   getMockVideo,
   getMockComments,
-  getMockVideoInteraction,
   getMockRecommendedVideos,
-  createMockResponse,
-  mockDelay,
+  getMockVideoInteraction,
 } from './mockData';
-import type { Video, ApiResponse, VideoInteraction } from '@/types';
 
 /**
- * 视频服务
- * 根据环境变量自动选择使用真实API或模拟数据
+ * 视频服务类
+ * 提供视频相关的API调用
  */
-export const videoService = {
+class VideoService {
+  /**
+   * 获取视频列表
+   * @param params 查询参数
+   */
+  async getVideos(
+    params: any = {}
+  ): Promise<ApiResponse<{ videos: Video[]; total: number; hasMore: boolean }>> {
+    try {
+      return await api.get('/api/videos', { params });
+    } catch (error) {
+      console.error('获取视频列表失败:', error);
+
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        const page = params.page || 1;
+        const limit = params.limit || 10;
+
+        // 生成一些随机视频
+        const videos = Array(limit)
+          .fill(0)
+          .map((_, i) => getMockVideo(`video-${(page - 1) * limit + i + 1}`));
+
+        return {
+          success: true,
+          data: {
+            videos,
+            total: 100, // 假设有100个视频
+            hasMore: page * limit < 100,
+          },
+          message: '使用模拟数据',
+        };
+      }
+
+      throw error;
+    }
+  }
+
   /**
    * 获取视频详情
+   * @param id 视频ID
    */
-  getVideoById: async (videoId: string): Promise<ApiResponse<Video>> => {
-    if (isMockMode) {
-      // 在mock模式下返回模拟数据，并增加一定的延迟以模拟网络请求
-      try {
-        console.log('[VideoService] 使用模拟模式获取视频:', videoId);
-        await mockDelay(500);
-        return createMockResponse(getMockVideo(videoId));
-      } catch (error) {
-        console.error('[VideoService] 获取模拟视频失败:', error);
-        // 即使模拟数据出错也尝试返回基本的视频对象
-        return createMockResponse(getMockVideo(videoId));
-      }
-    }
-
-    // 真实API调用
+  async getVideoById(id: string): Promise<ApiResponse<Video>> {
     try {
-      console.log('[VideoService] 从API获取视频:', videoId);
-      const response = await api.get(`/videos/${videoId}`);
-      console.log('[VideoService] API返回视频数据:', response.success);
-      return response;
+      return await api.get(`/api/videos/${id}`);
     } catch (error) {
-      console.error('[VideoService] 获取视频详情失败:', error);
+      console.error('获取视频详情失败:', error);
 
-      // 检查是否是网络错误
-      const isNetworkError =
-        error instanceof Error &&
-        (error.message.includes('Network Error') ||
-          error.message.includes('Failed to fetch') ||
-          error.message.includes('ERR_CONNECTION_REFUSED'));
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        const video = getMockVideo(id);
 
-      if (isNetworkError) {
-        console.warn('[VideoService] 检测到网络错误，切换到模拟数据');
-        // 使用模拟数据并告知用户
-        return createMockResponse(getMockVideo(videoId), false, '网络连接问题，显示离线内容');
+        return {
+          success: true,
+          data: video,
+          message: '使用模拟数据',
+        };
       }
 
-      // 在真实API失败时，如果配置允许，仍然使用模拟数据作为回退
-      return createMockResponse(getMockVideo(videoId), false, '获取视频失败，使用备用数据');
+      throw error;
     }
-  },
+  }
 
   /**
-   * 获取视频评论
+   * 获取热门视频
    */
-  getVideoComments: async (videoId: string, params: any): Promise<ApiResponse<any>> => {
-    if (isMockMode) {
-      await mockDelay(300);
-      return createMockResponse({
-        comments: getMockComments(videoId),
-        totalPages: 2,
-        currentPage: params.page || 1,
-      });
-    }
-
+  async getTrendingVideos(): Promise<ApiResponse<Video[]>> {
     try {
-      return await api.get(`/videos/${videoId}/comments`, params);
+      return await api.get('/api/videos/trending');
     } catch (error) {
-      console.error('获取视频评论失败:', error);
-      return createMockResponse(
-        {
-          comments: getMockComments(videoId),
-          totalPages: 2,
-          currentPage: params.page || 1,
-        },
-        false,
-        '获取评论失败，使用备用数据'
-      );
-    }
-  },
+      console.error('获取热门视频失败:', error);
 
-  /**
-   * 获取视频交互状态
-   */
-  getVideoInteraction: async (videoId: string): Promise<ApiResponse<VideoInteraction>> => {
-    if (isMockMode) {
-      await mockDelay(200);
-      return createMockResponse(getMockVideoInteraction(videoId));
-    }
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        const videos = Array(10)
+          .fill(0)
+          .map((_, i) => getMockVideo(`trending-${i + 1}`));
 
-    try {
-      return await api.get(`/videos/${videoId}/interaction`);
-    } catch (error) {
-      console.error('获取视频交互状态失败:', error);
-      return createMockResponse(
-        getMockVideoInteraction(videoId),
-        false,
-        '获取交互状态失败，使用备用数据'
-      );
-    }
-  },
+        return {
+          success: true,
+          data: videos,
+          message: '使用模拟数据',
+        };
+      }
 
-  /**
-   * 点赞/取消点赞视频
-   */
-  likeVideo: async (videoId: string, action: string): Promise<ApiResponse<any>> => {
-    if (isMockMode) {
-      await mockDelay(200);
-      return createMockResponse({ success: true });
+      throw error;
     }
-
-    try {
-      return await api.post(`/videos/${videoId}/like`, { action });
-    } catch (error) {
-      console.error('点赞操作失败:', error);
-      return createMockResponse(null, false, '点赞操作失败，请检查网络连接');
-    }
-  },
-
-  /**
-   * 收藏/取消收藏视频
-   */
-  favoriteVideo: async (videoId: string, action: string): Promise<ApiResponse<any>> => {
-    if (isMockMode) {
-      await mockDelay(200);
-      return createMockResponse({ success: true });
-    }
-
-    try {
-      return await api.post(`/videos/${videoId}/favorite`, { action });
-    } catch (error) {
-      console.error('收藏操作失败:', error);
-      return createMockResponse(null, false, '收藏操作失败，请检查网络连接');
-    }
-  },
-
-  /**
-   * 订阅/取消订阅作者
-   */
-  subscribeAuthor: async (authorId: string, action: string): Promise<ApiResponse<any>> => {
-    if (isMockMode) {
-      await mockDelay(200);
-      return createMockResponse({ success: true });
-    }
-
-    try {
-      return await api.post(`/authors/${authorId}/subscribe`, { action });
-    } catch (error) {
-      console.error('订阅操作失败:', error);
-      return createMockResponse(null, false, '订阅操作失败，请检查网络连接');
-    }
-  },
-
-  /**
-   * 添加评论
-   */
-  addComment: async (videoId: string, content: string): Promise<ApiResponse<any>> => {
-    if (isMockMode) {
-      await mockDelay(300);
-      return createMockResponse({ success: true });
-    }
-
-    try {
-      return await api.post(`/videos/${videoId}/comments`, { content });
-    } catch (error) {
-      console.error('评论发表失败:', error);
-      return createMockResponse(null, false, '评论发表失败，请检查网络连接');
-    }
-  },
+  }
 
   /**
    * 获取推荐视频
+   * @param videoId 当前视频ID
+   * @param count 推荐数量
    */
-  getRecommendedVideos: async (
-    videoId: string,
-    limit: number = 5
-  ): Promise<ApiResponse<Video[]>> => {
-    if (isMockMode) {
-      try {
-        await mockDelay(400);
-        return createMockResponse(getMockRecommendedVideos(videoId, limit));
-      } catch (error) {
-        console.error('获取模拟推荐视频失败:', error);
-        // 即使出错也尝试返回基本的推荐视频数据
-        return createMockResponse(getMockRecommendedVideos(videoId, limit));
-      }
-    }
-
+  async getRecommendedVideos(videoId: string, count: number = 5): Promise<ApiResponse<Video[]>> {
     try {
-      return await api.get(`/videos/${videoId}/recommended`, { params: { limit } });
+      return await api.get(`/api/videos/${videoId}/recommended`, { params: { count } });
     } catch (error) {
       console.error('获取推荐视频失败:', error);
-      // 使用模拟数据作为备用
-      return createMockResponse(
-        getMockRecommendedVideos(videoId, limit),
-        false,
-        '获取推荐视频失败，使用备用数据'
-      );
+
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        const videos = getMockRecommendedVideos(videoId, count);
+
+        return {
+          success: true,
+          data: videos,
+          message: '使用模拟数据',
+        };
+      }
+
+      throw error;
     }
-  },
+  }
 
   /**
-   * 更新视频播放次数
+   * 获取视频评论
+   * @param videoId 视频ID
+   * @param params 查询参数
    */
-  updateVideoViews: async (videoId: string): Promise<ApiResponse<any>> => {
-    if (isMockMode) {
-      console.log('[VideoService] 模拟模式更新播放量:', videoId);
-      await mockDelay(100);
-      return createMockResponse({ success: true });
-    }
-
+  async getVideoComments(
+    videoId: string,
+    params: any = {}
+  ): Promise<ApiResponse<{ comments: Comment[]; hasMore: boolean }>> {
     try {
-      console.log('[VideoService] 更新视频播放量:', videoId);
-      // 设置更短的超时，因为这是非关键请求
-      const response = await api.post(`/videos/${videoId}/views`, null, {
-        timeout: 5000,
-        headers: {
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        },
-      });
-      return response;
+      return await api.get(`/api/videos/${videoId}/comments`, { params });
     } catch (error) {
-      // 由于这不是关键操作，我们可以静默处理错误，不影响主要体验
-      console.warn('[VideoService] 更新视频播放量失败:', error);
-      // 返回成功响应，允许用户继续使用
-      return createMockResponse({ success: true, silent: true }, true, '');
-    }
-  },
+      console.error('获取视频评论失败:', error);
 
-  /**
-   * 保存观看历史记录
-   */
-  saveWatchHistory: async (videoId: string, progress: number): Promise<ApiResponse<any>> => {
-    if (isMockMode) {
-      console.log('[VideoService] 模拟模式保存观看历史:', videoId, progress);
-      await mockDelay(100);
-      return createMockResponse({ success: true });
-    }
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        const comments = getMockComments(videoId);
+        const page = params?.page || 1;
+        const limit = params?.limit || 20;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedComments = comments.slice(startIndex, endIndex);
 
-    try {
-      console.log('[VideoService] 保存观看历史:', videoId, progress);
-      // 设置更短的超时，因为这是非关键请求
-      const response = await api.post(
-        `/history/watch/${videoId}`,
-        { progress },
-        {
-          timeout: 5000,
-          headers: {
-            'Cache-Control': 'no-cache',
-            Pragma: 'no-cache',
+        return {
+          success: true,
+          data: {
+            comments: paginatedComments,
+            hasMore: endIndex < comments.length,
           },
-        }
-      );
-      return response;
-    } catch (error) {
-      // 由于这不是关键操作，我们可以静默处理错误，不影响主要体验
-      console.warn('[VideoService] 保存观看历史失败:', error);
-      // 返回成功响应，允许用户继续使用
-      return createMockResponse({ success: true, silent: true }, true, '');
+          message: '使用模拟数据',
+        };
+      }
+
+      throw error;
     }
-  },
-};
+  }
+
+  /**
+   * 添加评论
+   * @param videoId 视频ID
+   * @param content 评论内容
+   */
+  async addComment(videoId: string, content: string): Promise<ApiResponse<Comment>> {
+    try {
+      return await api.post(`/api/videos/${videoId}/comments`, { content });
+    } catch (error) {
+      console.error('添加评论失败:', error);
+
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        const newComment: Comment = {
+          id: `comment-${Date.now()}`,
+          content,
+          createdAt: new Date().toISOString(),
+          likes: 0,
+          author: {
+            id: 'current-user',
+            nickname: '当前用户',
+            avatar: 'https://i.pravatar.cc/150?u=current',
+          },
+        };
+
+        return {
+          success: true,
+          data: newComment,
+          message: '评论成功（模拟数据）',
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * 获取视频互动状态
+   * @param videoId 视频ID
+   */
+  async getVideoInteraction(videoId: string): Promise<ApiResponse<VideoInteraction>> {
+    try {
+      return await api.get(`/api/videos/${videoId}/interaction`);
+    } catch (error) {
+      console.error('获取视频互动状态失败:', error);
+
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        const interaction = getMockVideoInteraction(videoId);
+
+        return {
+          success: true,
+          data: interaction,
+          message: '使用模拟数据',
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * 点赞视频
+   * @param videoId 视频ID
+   */
+  async likeVideo(videoId: string): Promise<ApiResponse<{ liked: boolean }>> {
+    try {
+      return await api.post(`/api/videos/${videoId}/like`);
+    } catch (error) {
+      console.error('点赞视频失败:', error);
+
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        return {
+          success: true,
+          data: { liked: true },
+          message: '点赞成功（模拟数据）',
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * 收藏视频
+   * @param videoId 视频ID
+   */
+  async favoriteVideo(videoId: string): Promise<ApiResponse<{ favorited: boolean }>> {
+    try {
+      return await api.post(`/api/videos/${videoId}/favorite`);
+    } catch (error) {
+      console.error('收藏视频失败:', error);
+
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        return {
+          success: true,
+          data: { favorited: true },
+          message: '收藏成功（模拟数据）',
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * 关注频道
+   * @param channelId 频道ID
+   */
+  async followChannel(channelId: string): Promise<ApiResponse<{ followed: boolean }>> {
+    try {
+      return await api.post(`/api/users/${channelId}/follow`);
+    } catch (error) {
+      console.error('关注频道失败:', error);
+
+      // 如果启用了mock数据或处于离线模式，使用模拟数据
+      if (shouldUseMockData()) {
+        console.log('使用模拟数据');
+        return {
+          success: true,
+          data: { followed: true },
+          message: '关注成功（模拟数据）',
+        };
+      }
+
+      throw error;
+    }
+  }
+}
+
+// 导出视频服务实例
+export default new VideoService();

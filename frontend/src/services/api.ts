@@ -212,28 +212,11 @@ class ApiService {
 interface MockHandler {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   url: string | RegExp;
-  handler: any | ((url: string, data?: any) => any);
+  handler: (url: string, data?: Record<string, any>) => any;
 }
 
 // Mock处理器定义
-const mockHandlers: MockHandler[] = [
-  // 示例：可以根据项目需要添加更多mock处理器
-  {
-    method: 'GET',
-    url: '/api/videos',
-    handler: (url, params) => {
-      // 从localStorage获取mock视频数据
-      // 这里可以添加分页、过滤等逻辑
-      return {
-        videos: [],
-        total: 0,
-        page: params?.page || 1,
-        pageSize: params?.pageSize || 10,
-      };
-    },
-  },
-  // 可以添加更多mock处理器
-];
+const mockHandlers: MockHandler[] = [];
 
 // 注册mock处理器
 export function registerMockHandler(handler: MockHandler): void {

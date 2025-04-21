@@ -7,12 +7,17 @@
 export * from './api';
 export * from './api/client';
 export * from './api/types';
+export * from './api/errorHandler';
 
 // 导出业务模块服务
 export * from './auth';
-export * from './video';
+export { default as videoService } from './video';
 export * from './comment';
 export * from './user';
+
+// 导出Mock相关服务
+export * from './mockHandlers';
+export * from './mockData';
 
 // 导出OAuth服务
 export * from './oauth';
