@@ -139,3 +139,11 @@ export function formatEmail(email: string): string {
 
   return `${maskedUsername}@${domain}`;
 }
+
+/**
+ * 生成唯一ID
+ * @returns 生成的唯一ID字符串
+ */
+export function generateId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}

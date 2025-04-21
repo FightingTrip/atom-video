@@ -269,12 +269,12 @@ const routes: RouteRecordRaw[] = [
   // 添加管理员路由
   ...adminRoutes,
   {
-    path: 'content/videos/:id',
+    path: '/content/videos/:id',
     component: () => import('@/pages/admin/content/VideoDetailPage.vue'),
     meta: { title: '视频详情', requiresAuth: true, role: 'admin' },
   },
   {
-    path: 'content/playlists',
+    path: '/content/playlists',
     component: () => import('@/pages/admin/content/PlaylistsPage.vue'),
     meta: { title: '播放列表管理', requiresAuth: true, role: 'admin' },
   },
