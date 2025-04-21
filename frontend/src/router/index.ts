@@ -100,6 +100,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: '/playlist/:id',
+        name: 'playlist',
+        component: () => import('@/pages/channel/PlaylistPage.vue'),
+        meta: {
+          title: '播放列表 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
         path: '/search',
         name: 'search',
         component: () => import('@/pages/search/SearchResultsPage.vue'),

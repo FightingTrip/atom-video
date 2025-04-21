@@ -8,7 +8,7 @@
 <template>
   <div class="video-detail-container">
     <div v-if="loading" class="loading-state">
-      <n-spin size="large" />
+        <n-spin size="large" />
       <p>加载视频中...</p>
     </div>
     <div v-else-if="error" class="error-state">
@@ -44,7 +44,7 @@
                   <template #icon>
                     <n-icon :color="interaction.liked ? '#f00' : undefined">
                       <ThumbsUpOutline />
-                    </n-icon>
+        </n-icon>
                   </template>
                 </n-button>
                 <span>{{ formatNumber(video.likes) }}</span>
@@ -61,11 +61,11 @@
               <div class="action-button">
                 <n-button quaternary circle @click="openShareDialog">
                   <template #icon>
-                    <n-icon>
+      <n-icon>
                       <ShareSocialOutline />
-                    </n-icon>
+      </n-icon>
                   </template>
-                </n-button>
+      </n-button>
                 <span>分享</span>
               </div>
               <div class="action-button">
@@ -101,7 +101,7 @@
               </div>
             </div>
           </div>
-        </div>
+    </div>
 
         <!-- 频道信息 -->
         <div class="video-owner-info">
@@ -132,7 +132,7 @@
               <p class="description-text">{{ video.description }}</p>
               <div class="tags">
                 <n-tag v-for="tag in video.tags" :key="tag" size="small">{{ tag }}</n-tag>
-              </div>
+      </div>
             </div>
             <div class="show-more" v-if="isDescriptionLong">
               <n-button text @click="toggleDescription">
@@ -186,7 +186,7 @@
                     <template #icon>
                       <n-icon :color="comment.userLiked ? '#f00' : undefined">
                         <ThumbsUpOutline />
-                      </n-icon>
+              </n-icon>
                     </template>
                   </n-button>
                   <span class="like-count">{{ formatNumber(comment.likes) }}</span>
@@ -198,14 +198,14 @@
                     </template>
                   </n-button>
                   <n-button text size="small">回复</n-button>
-                </div>
+            </div>
                 <div class="replies" v-if="comment.replyCount > 0">
                   <n-button text size="small">
                     <template #icon>
                       <n-icon>
                         <ChevronDownOutline />
                       </n-icon>
-                    </template>
+          </template>
                     查看{{ comment.replyCount }}条回复
                   </n-button>
                 </div>
@@ -467,7 +467,7 @@
       console.error('加载视频失败:', err);
       error.value = '加载视频失败';
     } finally {
-      loading.value = false;
+        loading.value = false;
     }
   }
 
@@ -750,7 +750,7 @@
 
     if (comment.userLiked) {
       comment.likes += 1;
-    } else {
+      } else {
       comment.likes -= 1;
     }
 

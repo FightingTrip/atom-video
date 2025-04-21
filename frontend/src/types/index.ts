@@ -177,6 +177,8 @@ export interface Danmaku {
 export * from './video';
 export * from './tags';
 export * from './comment';
+export * from './user';
+export * from './channel';
 
 export interface TrendingItem {
   id: string;
