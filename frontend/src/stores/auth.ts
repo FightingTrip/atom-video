@@ -60,6 +60,13 @@ export const useAuthStore = defineStore(
       user.value = newUser;
     }
 
+    // 设置认证状态（用于OAuth登录）
+    async function setAuth(authData: { token: string; user: User }): Promise<void> {
+      setToken(authData.token);
+      setUser(authData.user);
+      demoMode.value = false;
+    }
+
     // 异步操作
     async function login(email: string, password: string): Promise<boolean> {
       const toast = useToast();
@@ -241,6 +248,7 @@ export const useAuthStore = defineStore(
       clearError,
       setToken,
       setUser,
+      setAuth,
     };
   },
   {

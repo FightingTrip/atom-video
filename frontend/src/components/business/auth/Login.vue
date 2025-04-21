@@ -26,6 +26,7 @@
   import { useI18n } from 'vue-i18n'
   import { useAuthStore } from '@/stores/auth'
   import LoginTestAccountsComponent from './LoginTestAccountsComponent.vue'
+  import { OAuthService } from '@/services/oauth'
 
   const { t } = useI18n()
   const router = useRouter()
@@ -128,7 +129,7 @@
   }
 
   const handleSocialLogin = (provider: 'google' | 'github') => {
-    window.location.href = `/api/auth/${provider}`
+    OAuthService.initiateOAuth(provider);
   }
 
   // 开始重置密码流程

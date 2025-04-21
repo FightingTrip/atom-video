@@ -178,6 +178,16 @@ const routes: RouteRecordRaw[] = [
           requiresAuth: false,
         },
       },
+      // OAuth回调路由
+      {
+        path: '/oauth/callback/:provider',
+        name: 'oauth-callback',
+        component: () => import('@/components/business/auth/OAuthCallback.vue'),
+        meta: {
+          title: '第三方登录 - Atom Video',
+          requiresAuth: false,
+        },
+      },
     ],
   },
   // 添加管理员路由
