@@ -7,12 +7,12 @@
 
 <template>
   <div class="trending-page">
-    <Trending />
+    <TrendingComponent />
   </div>
 </template>
 
 <script setup lang="ts">
-  import Trending from '@/components/business/feed/Trending.vue';
+  import TrendingComponent from '@/components/business/feed/TrendingComponent.vue';
 </script>
 
 <style scoped>

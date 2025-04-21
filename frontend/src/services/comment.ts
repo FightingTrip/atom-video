@@ -1,5 +1,5 @@
 import { http } from '@/utils/http';
-import type { Comment, Reply, CommentService } from '@/types';
+import type { Comment, Reply, CommentService, Author } from '@/types';
 import { localStorageSupport } from '@/utils/storageUtils';
 
 // 判断是否为mock模式
@@ -105,16 +105,26 @@ class CommentServiceImpl implements CommentService {
 
   async addComment(videoId: string, content: string): Promise<Comment> {
     if (isMockMode) {
+      const userNickname = localStorage.getItem('current-user-nickname') || '当前用户';
+      const userAvatar =
+        localStorage.getItem('current-user-avatar') || 'https://i.pravatar.cc/150?u=default';
+
       const newComment: Comment = {
         id: `comment-${Date.now()}`,
         content,
         createdAt: new Date().toISOString(),
+        videoTitle: '',
+        user: {
+          nickname: userNickname,
+          avatar: userAvatar,
+        },
         likes: 0,
         author: {
           id: 'current-user',
-          nickname: localStorage.getItem('current-user-nickname') || '当前用户',
-          avatar:
-            localStorage.getItem('current-user-avatar') || 'https://i.pravatar.cc/150?u=default',
+          nickname: userNickname,
+          username: userNickname, // 使用昵称作为用户名
+          avatar: userAvatar,
+          verified: false,
         },
         replyCount: 0,
       };
@@ -137,6 +147,10 @@ class CommentServiceImpl implements CommentService {
 
   async addReply(commentId: string, content: string): Promise<Reply> {
     if (isMockMode) {
+      const userNickname = localStorage.getItem('current-user-nickname') || '当前用户';
+      const userAvatar =
+        localStorage.getItem('current-user-avatar') || 'https://i.pravatar.cc/150?u=default';
+
       const newReply: Reply = {
         id: `reply-${Date.now()}`,
         content,
@@ -144,11 +158,13 @@ class CommentServiceImpl implements CommentService {
         likes: 0,
         author: {
           id: 'current-user',
-          nickname: localStorage.getItem('current-user-nickname') || '当前用户',
-          avatar:
-            localStorage.getItem('current-user-avatar') || 'https://i.pravatar.cc/150?u=default',
+          nickname: userNickname,
+          username: userNickname, // 使用昵称作为用户名
+          avatar: userAvatar,
+          verified: false,
         },
-        commentId,
+        isLiked: false,
+        parentId: commentId,
       };
 
       if (!this.replies[commentId]) {
@@ -188,7 +204,7 @@ class CommentServiceImpl implements CommentService {
         for (const videoId in this.comments) {
           const comment = this.comments[videoId].find(c => c.id === commentId);
           if (comment) {
-            comment.likes = Math.max(0, comment.likes - 1);
+            comment.likes = comment.likes !== undefined ? Math.max(0, comment.likes - 1) : 0;
             break;
           }
         }
@@ -199,7 +215,7 @@ class CommentServiceImpl implements CommentService {
         for (const videoId in this.comments) {
           const comment = this.comments[videoId].find(c => c.id === commentId);
           if (comment) {
-            comment.likes += 1;
+            comment.likes = (comment.likes || 0) + 1;
             break;
           }
         }
