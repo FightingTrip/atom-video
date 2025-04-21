@@ -6,6 +6,7 @@
 
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'; // 导入持久化插件
 import App from './App.vue';
 import router from './router';
 import i18n from './plugins/i18n';
@@ -23,6 +24,9 @@ if (process.env.NODE_ENV === 'development') {
 // 创建Vue应用实例
 const app = createApp(App);
 const pinia = createPinia();
+
+// 配置Pinia持久化插件
+pinia.use(piniaPluginPersistedstate);
 
 // 注册插件
 app.use(pinia);

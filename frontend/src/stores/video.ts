@@ -51,6 +51,11 @@ export const useVideoStore = defineStore('video', () => {
     sort: 'relevance',
   });
 
+  // 用户相关状态 - 这些将被持久化
+  const watchHistory = ref<Video[]>([]);
+  const likedVideos = ref<string[]>([]);
+  const savedVideos = ref<string[]>([]);
+
   // 计算属性
   const hasMore = computed(() => {
     return videos.value.length < total.value;
@@ -342,209 +347,106 @@ export const useVideoStore = defineStore('video', () => {
     }
   };
 
-  const toggleVideoLike = async (videoId: string): Promise<boolean> => {
-    try {
-      const response = await api.post(`/videos/${videoId}/like`);
-      return response.data.liked;
-    } catch (error) {
-      console.error('视频点赞操作失败:', error);
-      return false;
-    }
-  };
+  // 增强的用户互动方法
 
-  const toggleVideoFavorite = async (videoId: string): Promise<boolean> => {
-    try {
-      const response = await api.post(`/videos/${videoId}/favorite`);
-      return response.data.favorited;
-    } catch (error) {
-      console.error('视频收藏操作失败:', error);
-      return false;
+  // 添加视频到历史记录
+  const addToHistory = (video: Video) => {
+    // 如果已经在历史记录中，先移除旧的记录
+    const index = watchHistory.value.findIndex(v => v.id === video.id);
+    if (index !== -1) {
+      watchHistory.value.splice(index, 1);
     }
-  };
 
-  const toggleAuthorFollow = async (authorId: string): Promise<boolean> => {
-    try {
-      const response = await api.post(`/users/${authorId}/follow`);
-      return response.data.followed;
-    } catch (error) {
-      console.error('关注作者操作失败:', error);
-      return false;
-    }
-  };
+    // 添加到历史记录开头
+    watchHistory.value.unshift(video);
 
-  const postComment = async (videoId: string, content: string): Promise<Comment> => {
-    try {
-      const response = await api.post(`/videos/${videoId}/comments`, { content });
-      return response.data;
-    } catch (error) {
-      console.error('发表评论失败:', error);
-      throw error;
-    }
-  };
-
-  const replyComment = async (
-    videoId: string,
-    commentId: string,
-    content: string,
-    replyToId?: string
-  ): Promise<Comment> => {
-    try {
-      const response = await api.post(`/videos/${videoId}/comments/${commentId}/replies`, {
-        content,
-        replyToId,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('回复评论失败:', error);
-      throw error;
-    }
-  };
-
-  const toggleCommentLike = async (commentId: string): Promise<boolean> => {
-    try {
-      const response = await api.post(`/comments/${commentId}/like`);
-      return response.data.liked;
-    } catch (error) {
-      console.error('评论点赞操作失败:', error);
-      return false;
-    }
-  };
-
-  // 获取视频列表
-  const getVideos = async (page = 1, category?: string): Promise<VideoResponse> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      const response = await api.get('/videos', {
-        params: { page, category },
-      });
-      return response.data;
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '获取视频列表失败';
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 获取趋势视频
-  const getTrendingVideos = async (): Promise<Video[]> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      const response = await api.get('/videos/trending');
-      return response.data;
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '获取趋势视频失败';
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 获取推荐视频
-  const getRecommendedVideosByPage = async (page = 1): Promise<VideoResponse> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      const response = await api.get('/videos/recommended', {
-        params: { page },
-      });
-      return response.data;
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '获取推荐视频失败';
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 获取收藏视频
-  const getLibraryVideos = async (page = 1): Promise<VideoResponse> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      const response = await api.get('/videos/library', {
-        params: { page },
-      });
-      return response.data;
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '获取收藏视频失败';
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 获取观看历史
-  const getHistory = async (): Promise<Video[]> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      const response = await api.get('/videos/history');
-      return response.data;
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '获取观看历史失败';
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  // 清除观看历史
-  const clearHistory = async (): Promise<void> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      await api.delete('/videos/history');
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '清除观看历史失败';
-      throw err;
-    } finally {
-      loading.value = false;
+    // 限制历史记录数量，最多保存50条
+    if (watchHistory.value.length > 50) {
+      watchHistory.value = watchHistory.value.slice(0, 50);
     }
   };
 
   // 从历史记录中移除视频
-  const removeFromHistory = async (videoId: string): Promise<void> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      await api.delete(`/videos/history/${videoId}`);
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '移除视频失败';
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+  const removeFromHistory = (videoId: string) => {
+    watchHistory.value = watchHistory.value.filter(video => video.id !== videoId);
   };
 
-  // 收藏/取消收藏视频
-  const toggleFavorite = async (videoId: string): Promise<void> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      await api.post(`/videos/${videoId}/favorite`);
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '操作失败';
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+  // 清空历史记录
+  const clearHistory = () => {
+    watchHistory.value = [];
   };
 
-  // 点赞/取消点赞视频
-  const toggleLike = async (videoId: string): Promise<void> => {
-    try {
-      loading.value = true;
-      error.value = null;
-      await api.post(`/videos/${videoId}/like`);
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : '操作失败';
-      throw err;
-    } finally {
-      loading.value = false;
+  // 切换视频点赞状态
+  const toggleVideoLike = (videoId: string) => {
+    const index = likedVideos.value.indexOf(videoId);
+    if (index === -1) {
+      likedVideos.value.push(videoId);
+
+      // 更新视频列表中的点赞数
+      const video = videos.value.find(v => v.id === videoId);
+      if (video) {
+        video.likes += 1;
+      }
+    } else {
+      likedVideos.value.splice(index, 1);
+
+      // 更新视频列表中的点赞数
+      const video = videos.value.find(v => v.id === videoId);
+      if (video) {
+        video.likes = Math.max(0, video.likes - 1);
+      }
     }
+
+    return likedVideos.value.includes(videoId);
+  };
+
+  // 检查视频是否已点赞
+  const isVideoLiked = (videoId: string) => {
+    return likedVideos.value.includes(videoId);
+  };
+
+  // 切换视频收藏状态
+  const toggleVideoFavorite = (videoId: string) => {
+    const index = savedVideos.value.indexOf(videoId);
+    if (index === -1) {
+      savedVideos.value.push(videoId);
+
+      // 更新视频列表中的收藏数
+      const video = videos.value.find(v => v.id === videoId);
+      if (video) {
+        video.favorites += 1;
+      }
+    } else {
+      savedVideos.value.splice(index, 1);
+
+      // 更新视频列表中的收藏数
+      const video = videos.value.find(v => v.id === videoId);
+      if (video) {
+        video.favorites = Math.max(0, video.favorites - 1);
+      }
+    }
+
+    return savedVideos.value.includes(videoId);
+  };
+
+  // 检查视频是否已收藏
+  const isVideoFavorited = (videoId: string) => {
+    return savedVideos.value.includes(videoId);
+  };
+
+  // 获取历史记录
+  const getHistory = () => {
+    return watchHistory.value;
+  };
+
+  // 获取收藏视频
+  const getFavorites = () => {
+    return videos.value.filter(video => savedVideos.value.includes(video.id));
+  };
+
+  // 获取点赞视频
+  const getLikedVideos = () => {
+    return videos.value.filter(video => likedVideos.value.includes(video.id));
   };
 
   return {
@@ -559,6 +461,9 @@ export const useVideoStore = defineStore('video', () => {
     selectedCategory,
     creators,
     currentFilters,
+    watchHistory,
+    likedVideos,
+    savedVideos,
     allTags,
 
     // 计算属性
@@ -581,18 +486,10 @@ export const useVideoStore = defineStore('video', () => {
     getRecommendedVideos,
     toggleVideoLike,
     toggleVideoFavorite,
-    toggleAuthorFollow,
-    postComment,
-    replyComment,
-    toggleCommentLike,
-    getVideos,
-    getTrendingVideos,
-    getRecommendedVideosByPage,
-    getLibraryVideos,
+    isVideoLiked,
+    isVideoFavorited,
     getHistory,
-    clearHistory,
-    removeFromHistory,
-    toggleFavorite,
-    toggleLike,
+    getFavorites,
+    getLikedVideos,
   };
 });
