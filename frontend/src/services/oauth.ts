@@ -8,9 +8,18 @@ export type OAuthProvider = 'google' | 'github';
 export class OAuthService {
   // 获取OAuth登录URL
   public static getOAuthUrl(provider: OAuthProvider): string {
-    // 生产环境中，这些URL应该从后端API获取
+    // 生成跳转回应用的地址
     const redirectUri = encodeURIComponent(`${window.location.origin}/oauth/callback/${provider}`);
 
+    // 检查是否为模拟模式
+    const isMockMode = env.useMock || localStorage.getItem('use_mock_oauth') === 'true';
+
+    if (isMockMode) {
+      // 使用模拟授权页面
+      return `/mock/oauth/${provider}?redirect_uri=${redirectUri}`;
+    }
+
+    // 真实环境使用真实OAuth提供商
     if (provider === 'google') {
       // 使用环境变量中的client_id
       const clientId = env.oauth.googleClientId || 'your-google-client-id';
@@ -24,6 +33,17 @@ export class OAuthService {
     }
 
     throw new Error(`不支持的OAuth提供商: ${provider}`);
+  }
+
+  // 启用模拟OAuth模式
+  public static enableMockMode(enabled = true): void {
+    if (enabled) {
+      localStorage.setItem('use_mock_oauth', 'true');
+      console.log('[OAuth] 已启用模拟模式');
+    } else {
+      localStorage.removeItem('use_mock_oauth');
+      console.log('[OAuth] 已禁用模拟模式');
+    }
   }
 
   // 处理OAuth回调
@@ -41,6 +61,9 @@ export class OAuthService {
       // });
       // const data = await response.json();
       // if (!response.ok) throw new Error(data.message || '登录失败');
+
+      // 记录授权码（实际项目中不要这样做）
+      console.log(`[OAuth] 收到授权码: ${code}`);
 
       // 模拟网络请求延迟
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -95,6 +118,11 @@ export class OAuthService {
 
   // 初始化OAuth登录
   public static initiateOAuth(provider: OAuthProvider): void {
+    // 在开发模式下强制启用模拟模式
+    if (import.meta.env.DEV) {
+      this.enableMockMode(true);
+    }
+
     const url = this.getOAuthUrl(provider);
     window.location.href = url;
   }

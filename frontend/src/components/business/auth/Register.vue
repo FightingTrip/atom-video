@@ -25,6 +25,8 @@
   import { useRouter } from 'vue-router'
   import { useMessage, NModal } from 'naive-ui'
   import { useAuthStore } from '@/stores/auth'
+  import { sendVerificationCode as mockSendVerificationCode, verifyEmailCode } from '@/mock/users'
+  import { OAuthService } from '@/services/oauth'
 
   const { t } = useI18n()
   const router = useRouter()
@@ -65,20 +67,25 @@
       return
     }
 
+    // 如果已经进入验证码界面，此方法不应该被直接调用
+    // 而是应该通过verifyEmail方法间接调用
+    if (showVerifyEmail.value && !form.verificationCode) {
+      message.warning('请输入验证码完成注册')
+      return
+    }
+
     loading.value = true
     try {
-      // 在实际项目中，应将验证码一并提交进行验证
-      // const success = await authStore.register(form.username, form.password, form.email, form.verificationCode)
-
-      // 当前实现
+      // 在模拟模式下，简化为直接注册
       const success = await authStore.register(form.username, form.password, form.username)
 
       if (success) {
-        message.success(t('auth.signUpSuccess'))
+        message.success(t('auth.signUpSuccess') || '注册成功')
+        showVerifyEmail.value = false
         router.push('/auth/login')
       }
     } catch (error: any) {
-      message.error(error.message || t('auth.signUpError'))
+      message.error(error.message || t('auth.signUpError') || '注册失败')
     } finally {
       loading.value = false
     }
@@ -124,24 +131,29 @@
     if (countdown.value > 0) return
 
     try {
-      // 这里应该调用发送验证码的API
-      // await authStore.sendVerificationCode(form.email)
+      loading.value = true
+      // 调用模拟验证码API
+      const response = await mockSendVerificationCode(form.email)
+      loading.value = false
 
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (response.success) {
+        // 在模拟模式下，显示验证码方便测试
+        message.success(`验证码已发送！模拟模式下，验证码为: ${response.data}`)
 
-      // 倒计时
-      countdown.value = 60
-      if (countdownTimer.value) clearInterval(countdownTimer.value)
-      countdownTimer.value = window.setInterval(() => {
-        countdown.value--
-        if (countdown.value <= 0) {
-          if (countdownTimer.value) clearInterval(countdownTimer.value)
-        }
-      }, 1000)
-
-      message.success('验证码已发送，请查收邮件')
+        // 倒计时
+        countdown.value = 60
+        if (countdownTimer.value) clearInterval(countdownTimer.value)
+        countdownTimer.value = window.setInterval(() => {
+          countdown.value--
+          if (countdown.value <= 0) {
+            if (countdownTimer.value) clearInterval(countdownTimer.value)
+          }
+        }, 1000)
+      } else {
+        message.error(response.error || '发送验证码失败')
+      }
     } catch (error: any) {
+      loading.value = false
       message.error(error.message || '发送验证码失败')
     }
   }
@@ -155,15 +167,16 @@
 
     loading.value = true
     try {
-      // 这里应该调用验证邮箱的API
-      // const success = await authStore.verifyEmail(form.email, form.verificationCode)
+      // 调用验证码验证API
+      const response = await verifyEmailCode(form.email, form.verificationCode)
 
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // 假设验证成功，继续注册流程
-      await handleSubmit()
-
+      if (response.success) {
+        message.success('验证成功')
+        // 继续注册流程
+        await handleSubmit()
+      } else {
+        message.error(response.error || '验证码不正确或已过期')
+      }
     } catch (error: any) {
       message.error(error.message || '验证码无效')
     } finally {
@@ -178,7 +191,7 @@
 
   // 社交登录处理
   const handleSocialLogin = (provider: 'google' | 'github') => {
-    window.location.href = `/api/auth/${provider}`
+    OAuthService.initiateOAuth(provider);
   }
 </script>
 
@@ -326,6 +339,15 @@
       <p class="verify-description">
         我们已向 {{ form.email }} 发送了验证码，请输入您收到的验证码完成注册。
       </p>
+
+      <!-- 模拟模式下的帮助提示 -->
+      <div class="mock-tip">
+        <p><strong>提示:</strong> 在模拟模式下，您可以：</p>
+        <ul>
+          <li>使用控制台查看验证码 (已打印到控制台)</li>
+          <li>使用固定测试验证码 "123456"</li>
+        </ul>
+      </div>
 
       <div class="form-group">
         <label for="verification-code" class="form-label">验证码</label>
@@ -698,5 +720,34 @@
 
   .terms-link:hover {
     text-decoration: underline;
+  }
+
+  .mock-tip {
+    background-color: #2d3748;
+    border-left: 4px solid #3b82f6;
+    padding: 12px;
+    margin: 16px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .mock-tip p {
+    margin: 0 0 8px 0;
+    color: #e2e8f0;
+  }
+
+  .mock-tip strong {
+    font-weight: 600;
+    color: #3b82f6;
+  }
+
+  .mock-tip ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #cbd5e0;
+  }
+
+  .mock-tip li {
+    margin: 4px 0;
   }
 </style>

@@ -190,6 +190,16 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // 模拟的第三方OAuth授权页面
+  {
+    path: '/mock/oauth/:provider',
+    name: 'mock-oauth',
+    component: () => import('@/pages/oauth/MockOAuthPage.vue'),
+    meta: {
+      title: '模拟授权 - Atom Video',
+      requiresAuth: false,
+    },
+  },
   // 添加管理员路由
   ...adminRoutes,
 ];

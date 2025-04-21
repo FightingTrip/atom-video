@@ -107,6 +107,9 @@ const userPasswords = {
 // 模拟token存储
 export const tokens = new Map<string, string>();
 
+// 模拟验证码存储
+const verificationCodes = new Map<string, string>();
+
 // 生成唯一ID
 export function generateId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -268,15 +271,49 @@ export async function getUserByToken(token: string): Promise<ApiResponse<User>> 
   };
 }
 
-// 模拟验证码发送
+// 模拟发送验证码
 export async function sendVerificationCode(email: string): Promise<ApiResponse<string>> {
   // 模拟网络延迟
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // 模拟成功响应
+  // 生成6位验证码
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // 在实际应用中，这里会调用邮件服务发送验证码
+  console.log(`[模拟] 向 ${email} 发送验证码: ${code}`);
+
+  // 存储验证码 (实际应用中应存储在后端)
+  verificationCodes.set(email, code);
+
+  // 在模拟模式下，返回验证码方便测试
   return {
     success: true,
-    data: '验证码已发送到您的邮箱',
+    data: code,
+    message: `验证码已发送到 ${email}`,
+  };
+}
+
+// 验证邮箱验证码
+export async function verifyEmailCode(email: string, code: string): Promise<ApiResponse<boolean>> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // 获取存储的验证码
+  const storedCode = verificationCodes.get(email);
+
+  // 验证码正确或固定测试码 "123456"
+  if (storedCode === code || code === '123456') {
+    return {
+      success: true,
+      data: true,
+      message: '验证成功',
+    };
+  }
+
+  return {
+    success: false,
+    data: false,
+    error: '验证码不正确或已过期',
   };
 }
 
