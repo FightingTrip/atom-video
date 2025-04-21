@@ -208,7 +208,7 @@
       </div>
 
       <!-- 标题 -->
-      <h1 class="auth-title">Sign up 注册</h1>
+      <h1 class="auth-title">注册</h1>
 
       <!-- 社交注册按钮 -->
       <div class="social-login-buttons">
@@ -305,8 +305,8 @@
         <!-- 同意条款 -->
         <div class="terms-checkbox">
           <input type="checkbox" id="agree-terms" required>
-          <label for="agree-terms">我已阅读并同意 <a href="#" class="terms-link">服务条款</a> 和 <a href="#"
-              class="terms-link">隐私政策</a></label>
+          <label for="agree-terms">我已阅读并同意 <router-link to="/legal/terms" class="terms-link">服务条款</router-link> 和
+            <router-link to="/legal/privacy" class="terms-link">隐私政策</router-link></label>
         </div>
 
         <button type="submit" class="register-button" :disabled="loading">
@@ -321,13 +321,13 @@
       <!-- 底部登录链接 -->
       <div class="auth-footer">
         <p class="login-prompt">
-          已有账号? <router-link to="/auth/login">Sign in 登录</router-link>
+          已有账号? <router-link to="/auth/login">登录</router-link>
         </p>
       </div>
 
       <!-- 服务条款和隐私政策 -->
       <div class="terms-privacy">
-        <a href="#">Terms of Service</a>
+        <router-link to="/legal/terms">服务条款</router-link> · <router-link to="/legal/privacy">隐私政策</router-link>
       </div>
     </div>
   </div>

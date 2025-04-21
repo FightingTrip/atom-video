@@ -200,6 +200,31 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: false,
     },
   },
+  // 法律页面路由
+  {
+    path: '/legal',
+    component: () => import('@/layouts/BlankLayout.vue'),
+    children: [
+      {
+        path: 'terms',
+        name: 'terms-of-service',
+        component: () => import('@/pages/legal/TermsOfService.vue'),
+        meta: {
+          title: '服务条款 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
+        path: 'privacy',
+        name: 'privacy-policy',
+        component: () => import('@/pages/legal/PrivacyPolicy.vue'),
+        meta: {
+          title: '隐私政策 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+    ],
+  },
   // 添加管理员路由
   ...adminRoutes,
 ];
