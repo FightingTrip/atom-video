@@ -11,17 +11,9 @@
     <div class="category-header">
       <h2>{{ categoryName }}</h2>
       <div class="category-filters">
-        <n-select v-model:value="sortBy" placeholder="排序方式" @update:value="handleSortChange">
-          <n-option label="最新" value="latest" />
-          <n-option label="最热" value="hot" />
-          <n-option label="评分最高" value="rating" />
-        </n-select>
-        <n-select v-model:value="timeRange" placeholder="时间范围" @update:value="handleTimeRangeChange">
-          <n-option label="全部时间" value="all" />
-          <n-option label="今天" value="today" />
-          <n-option label="本周" value="week" />
-          <n-option label="本月" value="month" />
-        </n-select>
+        <n-select v-model:value="sortBy" placeholder="排序方式" @update:value="handleSortChange" :options="sortOptions" />
+        <n-select v-model:value="timeRange" placeholder="时间范围" @update:value="handleTimeRangeChange"
+          :options="timeOptions" />
       </div>
     </div>
 
@@ -33,7 +25,7 @@
 
     <!-- 视频列表 -->
     <div v-else class="category-content">
-      <div v-if="videos.length" class="videos-grid">
+      <div v-if="videos.length" class="explore-videos-grid">
         <VideoCard v-for="video in videos" :key="video.id" :video="video" @click="handleVideoClick(video)" />
       </div>
       <div v-else class="empty-state">
@@ -52,13 +44,27 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import { NSelect, NOption, NSpin, NEmpty, NPagination } from 'naive-ui';
-  import type { Video } from '@/types';
+  import { NSelect, NSpin, NEmpty, NPagination } from 'naive-ui';
+  import type { Video, VideoSearchParams } from '@/types';
   import VideoCard from '@/components/common/VideoCard.vue';
   import videoService from '@/services/videoService';
 
   const route = useRoute();
   const router = useRouter();
+
+  // 选项数据
+  const sortOptions = [
+    { label: '最新', value: 'latest' },
+    { label: '最热', value: 'popular' },
+    { label: '相关度', value: 'relevant' }
+  ];
+
+  const timeOptions = [
+    { label: '全部时间', value: 'all' },
+    { label: '今天', value: 'today' },
+    { label: '本周', value: 'week' },
+    { label: '本月', value: 'month' }
+  ];
 
   // 状态
   const loading = ref(false);
@@ -66,7 +72,7 @@
   const hasMore = ref(false);
   const total = ref(0);
   const categoryName = ref(route.params.category as string || '全部');
-  const sortBy = ref('latest');
+  const sortBy = ref<'latest' | 'popular' | 'relevant'>('latest');
   const timeRange = ref('all');
   const currentPage = ref(1);
   const pageSize = ref(12);
@@ -75,7 +81,7 @@
   const loadVideos = async () => {
     loading.value = true;
     try {
-      const params = {
+      const params: VideoSearchParams = {
         tags: categoryName.value === '全部' ? [] : [categoryName.value],
         sort: sortBy.value,
         page: currentPage.value,
@@ -158,7 +164,7 @@
     gap: 16px;
   }
 
-  .videos-grid {
+  .explore-videos-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 24px;
@@ -192,7 +198,7 @@
       gap: 16px;
     }
 
-    .videos-grid {
+    .explore-videos-grid {
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 16px;
     }

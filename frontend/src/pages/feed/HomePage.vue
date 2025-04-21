@@ -1,18 +1,18 @@
 /**
 * @file HomePage.vue
-* @description 首页页面，使用HomeComponent组件
+* @description 首页页面，使用HomeVideoList组件
 * @author Atom Video Team
 * @date 2025-04-06
 */
 
 <template>
   <div class="home-page">
-    <HomeComponent />
+    <HomeVideoList />
   </div>
 </template>
 
 <script setup lang="ts">
-  import HomeComponent from '@/components/business/feed/HomeComponent.vue';
+  import HomeVideoList from '@/components/business/home/HomeVideoList.vue';
 </script>
 
 <style scoped>

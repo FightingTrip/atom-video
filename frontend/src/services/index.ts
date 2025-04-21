@@ -13,11 +13,12 @@ export * from './api/errorHandler';
 export * from './auth';
 export { default as videoService } from './video';
 export * from './comment';
-export * from './user';
+export * from './user/index';
 
 // 导出Mock相关服务
 export * from './mockHandlers';
-export * from './mockData';
 
 // 导出OAuth服务
-export * from './oauth';
+// 将auth中已经导出的OAuth服务重命名，避免冲突
+export { OAuthService as OAuthServiceBase } from './oauth';
+export type { OAuthProvider as OAuthProviderBase } from './oauth';

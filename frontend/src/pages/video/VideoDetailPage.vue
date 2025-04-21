@@ -6,1294 +6,1275 @@
 */
 
 <template>
-  <div class="video-detail-page">
-    <n-card v-if="loading" class="loading-card">
-      <n-space justify="center" align="center" style="height: 400px">
-        <n-spin size="large" />
-        <p>加载视频信息...</p>
-      </n-space>
-    </n-card>
-
-    <n-card v-else-if="error" class="error-card">
-      <n-space vertical justify="center" align="center" style="height: 300px">
-        <n-icon size="48" color="#d03050">
-          <WarningOutline />
-        </n-icon>
-        <p>{{ error }}</p>
-        <n-button @click="fetchVideoData" type="primary">重试</n-button>
-      </n-space>
-    </n-card>
-
-    <!-- 离线模式提示 -->
-    <div v-if="isOfflineMode" class="offline-alert">
-      <n-icon>
-        <CloudOfflineOutline />
-      </n-icon>
-      <span>网络连接不可用，当前处于离线模式。历史记录和互动功能将仅在本地保存，无法与服务器同步。</span>
-      <n-button text type="warning" @click="checkNetworkAndRefresh">
-        重新连接
-      </n-button>
+  <div class="video-detail-container">
+    <div v-if="loading" class="loading-state">
+      <n-spin size="large" />
+      <p>加载视频中...</p>
     </div>
-
+    <div v-else-if="error" class="error-state">
+      <n-result status="error" :title="error" :description="'无法加载视频信息，请稍后重试'">
+        <template #footer>
+          <n-button @click="loadVideo">重试</n-button>
+          <n-button @click="$router.push('/')" type="primary">返回首页</n-button>
+        </template>
+      </n-result>
+    </div>
     <div v-else-if="video" class="video-content">
-      <div class="primary-column">
-        <VideoPlayerComponent ref="playerRef" :video="video" :current-time="savedProgress"
-          @time-update="handleTimeUpdate" @play="handlePlay" @pause="handlePause" @ended="handleEnded"
-          class="video-player" />
-
-        <VideoDetailComponent :video="video" :is-liked="isLiked" :is-favorited="isFavorited"
-          :is-subscribed="isSubscribed" :offline-mode="isOfflineMode" @like="handleLike" @favorite="handleFavorite"
-          @subscribe="handleSubscribe" @comment="handleComment" @load-more-comments="loadMoreComments"
-          class="video-detail" />
-
-        <!-- 自动播放和播放队列设置 -->
-        <div class="playback-settings">
-          <div class="autoplay-toggle">
-            <n-switch v-model:value="autoplayEnabled" @update:value="toggleAutoplay">
-              <template #checked>自动播放已开启</template>
-              <template #unchecked>自动播放已关闭</template>
-            </n-switch>
-          </div>
-          <n-button quaternary @click="showPlayQueueDrawer = true">
-            <template #icon>
-              <n-icon>
-                <ListOutline />
-              </n-icon>
-            </template>
-            播放队列 ({{ playQueue.length }})
-          </n-button>
+      <!-- 视频播放区 -->
+      <div class="main-content">
+        <!-- 视频播放器 -->
+        <div class="player-wrapper">
+          <VideoPlayerTemp :videoUrl="video.videoUrl" :thumbnailUrl="video.coverUrl" :title="video.title"
+            :duration="video.duration" @time-update="handleVideoProgress" @ended="handleVideoEnded"
+            @loaded="handleVideoLoaded" />
         </div>
-      </div>
-      <div class="secondary-column">
-        <div class="related-videos">
-          <h3 class="related-title">推荐视频</h3>
 
-          <!-- 推荐视频加载状态 -->
-          <template v-if="!relatedVideos.length">
-            <!-- 骨架屏加载效果 -->
-            <n-skeleton v-if="loading" text :repeat="5" />
-
-            <!-- 无推荐视频时的空状态 -->
-            <div v-else class="empty-state">
-              <n-icon size="48">
-                <VideocamOutline />
-              </n-icon>
-              <p>暂无推荐视频</p>
+        <!-- 视频标题和信息 -->
+        <div class="video-primary-info">
+          <h1 class="video-title">{{ video.title }}</h1>
+          <div class="video-stats">
+            <div class="view-count">
+              <span>{{ formatViews(video.views) }}次观看</span>
+              <span class="dot-separator">•</span>
+              <span>{{ formatDate(video.createdAt) }}</span>
             </div>
-          </template>
-
-          <!-- 推荐视频列表 -->
-          <div v-else class="video-suggestions">
-            <video-card-small v-for="(video, index) in relatedVideos" :key="video.id" :video="video"
-              @click="handleRecommendedVideoClick(video)" class="video-card">
-              <template #extra>
-                <div class="video-card-actions">
-                  <n-tooltip trigger="hover" placement="top">
-                    <template #trigger>
-                      <n-button circle quaternary size="small" @click.stop="addToPlayQueue(video)">
-                        <template #icon>
-                          <n-icon>
-                            <AddOutline />
-                          </n-icon>
-                        </template>
-                      </n-button>
+            <div class="actions">
+              <div class="action-button">
+                <n-button quaternary circle @click="toggleLike">
+                  <template #icon>
+                    <n-icon :color="interaction.liked ? '#f00' : undefined">
+                      <ThumbsUpOutline />
+                    </n-icon>
+                  </template>
+                </n-button>
+                <span>{{ formatNumber(video.likes) }}</span>
+              </div>
+              <div class="action-button">
+                <n-button quaternary circle @click="toggleDislike">
+                  <template #icon>
+                    <n-icon :color="interaction.disliked ? '#f00' : undefined">
+                      <ThumbsDownOutline />
+                    </n-icon>
+                  </template>
+                </n-button>
+              </div>
+              <div class="action-button">
+                <n-button quaternary circle @click="openShareDialog">
+                  <template #icon>
+                    <n-icon>
+                      <ShareSocialOutline />
+                    </n-icon>
+                  </template>
+                </n-button>
+                <span>分享</span>
+              </div>
+              <div class="action-button">
+                <n-button quaternary circle @click="downloadVideo">
+                  <template #icon>
+                    <n-icon>
+                      <DownloadOutline />
+                    </n-icon>
+                  </template>
+                </n-button>
+                <span>下载</span>
+              </div>
+              <div class="action-button">
+                <n-button quaternary circle @click="toggleFavorite">
+                  <template #icon>
+                    <n-icon :color="interaction.favorited ? '#f00' : undefined">
+                      <BookmarkOutline />
+                    </n-icon>
+                  </template>
+                </n-button>
+                <span>{{ interaction.favorited ? '已收藏' : '收藏' }}</span>
+              </div>
+              <div class="action-button">
+                <n-dropdown trigger="click" :options="moreOptions" @select="handleMoreAction">
+                  <n-button quaternary circle>
+                    <template #icon>
+                      <n-icon>
+                        <EllipsisHorizontalOutline />
+                      </n-icon>
                     </template>
-                    添加到播放队列
-                  </n-tooltip>
-                  <n-tooltip v-if="index === 0 && autoplayEnabled" trigger="hover" placement="top">
-                    <template #trigger>
-                      <n-tag size="small" type="info" class="autoplay-next-tag">
-                        即将播放
-                      </n-tag>
-                    </template>
-                    此视频将在当前视频结束后自动播放
-                  </n-tooltip>
-                </div>
-              </template>
-            </video-card-small>
+                  </n-button>
+                </n-dropdown>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- 播放队列抽屉 -->
-    <n-drawer v-model:show="showPlayQueueDrawer" :width="350" placement="right">
-      <n-drawer-content title="播放队列" closable>
-        <div class="play-queue-header">
-          <n-button quaternary size="small" @click="clearPlayQueue" :disabled="playQueue.length === 0">
-            清空队列
-          </n-button>
-          <n-button quaternary size="small" @click="savePlayQueueAsPlaylist" :disabled="playQueue.length === 0">
-            保存为播放列表
-          </n-button>
-        </div>
-
-        <div v-if="playQueue.length === 0" class="empty-queue">
-          <n-icon size="48">
-            <ListOutline />
-          </n-icon>
-          <p>播放队列为空</p>
-          <n-button tertiary @click="fillQueueWithRecommended">
-            使用推荐视频填充队列
-          </n-button>
-        </div>
-
-        <div v-else class="queue-list">
-          <div v-for="(queueItem, index) in playQueue" :key="queueItem.id" class="queue-item"
-            :class="{ 'currently-playing': video && video.id === queueItem.id }">
-
-            <div class="queue-item-index">{{ index + 1 }}</div>
-            <n-image :src="queueItem.coverUrl" class="queue-thumbnail" :preview-disabled="true" object-fit="cover"
-              width="80" height="45" :alt="queueItem.title" />
-            <div class="queue-item-details">
-              <div class="queue-item-title">{{ queueItem.title }}</div>
-              <div class="queue-item-author">{{ queueItem.author.nickname }}</div>
+        <!-- 频道信息 -->
+        <div class="video-owner-info">
+          <n-divider />
+          <div class="channel-info">
+            <div class="owner-badge">
+              <n-avatar round :size="48" :src="video.author?.avatar" />
             </div>
-            <div class="queue-item-actions">
-              <n-button circle quaternary size="small" @click="removeFromPlayQueue(index)">
-                <template #icon>
-                  <n-icon>
-                    <CloseOutline />
-                  </n-icon>
-                </template>
+            <div class="owner-info">
+              <div class="owner-name">
+                <h3>{{ video.author?.nickname || video.author?.username }}</h3>
+                <n-badge v-if="video.author?.verified" dot color="#1976d2" />
+              </div>
+              <div class="subscriber-count">
+                <span>{{ formatSubscribers(25600) }}位订阅者</span>
+              </div>
+            </div>
+            <div class="subscribe-button">
+              <n-button type="primary" :color="isSubscribed ? 'grey' : undefined" @click="toggleSubscribe">
+                {{ isSubscribed ? '已订阅' : '订阅' }}
               </n-button>
             </div>
           </div>
-        </div>
-      </n-drawer-content>
-    </n-drawer>
 
-    <!-- 保存播放列表对话框 -->
-    <n-modal v-model:show="showSavePlaylistModal" preset="dialog" title="保存播放列表">
-      <template #content>
-        <div class="save-playlist-form">
-          <n-form>
-            <n-form-item label="播放列表名称">
-              <n-input v-model:value="newPlaylistName" placeholder="请输入播放列表名称" />
-            </n-form-item>
-            <n-form-item label="描述">
-              <n-input v-model:value="newPlaylistDescription" type="textarea" placeholder="描述这个播放列表（可选）" />
-            </n-form-item>
-            <n-form-item label="隐私设置">
-              <n-radio-group v-model:value="newPlaylistPrivacy">
-                <n-radio-button value="public">公开</n-radio-button>
-                <n-radio-button value="unlisted">不公开</n-radio-button>
-                <n-radio-button value="private">私有</n-radio-button>
-              </n-radio-group>
-            </n-form-item>
-          </n-form>
+          <!-- 视频描述 -->
+          <div class="video-description" :class="{ 'collapsed': !showFullDescription }">
+            <div class="description-content" ref="descriptionRef">
+              <p class="description-text">{{ video.description }}</p>
+              <div class="tags">
+                <n-tag v-for="tag in video.tags" :key="tag" size="small">{{ tag }}</n-tag>
+              </div>
+            </div>
+            <div class="show-more" v-if="isDescriptionLong">
+              <n-button text @click="toggleDescription">
+                {{ showFullDescription ? '收起' : '展开' }}
+              </n-button>
+            </div>
+          </div>
+          <n-divider />
         </div>
-      </template>
-      <template #action>
-        <div>
-          <n-button @click="showSavePlaylistModal = false">取消</n-button>
-          <n-button type="primary" @click="savePlaylist" :disabled="!newPlaylistName">
-            保存
-          </n-button>
-        </div>
-      </template>
-    </n-modal>
 
-    <!-- 自动播放倒计时 -->
-    <n-modal v-model:show="showAutoplayCountdown" preset="card" style="width: 350px" :mask-closable="false">
-      <div class="autoplay-countdown">
-        <div class="countdown-header">
-          <n-icon size="32">
-            <PlayOutline />
-          </n-icon>
-          <div class="countdown-title">即将自动播放</div>
-        </div>
-        <div class="countdown-info">
-          <n-image :src="nextVideo?.coverUrl" class="countdown-thumbnail" :preview-disabled="true" object-fit="cover"
-            width="120" height="68" />
-          <div class="countdown-details">
-            <div class="countdown-video-title">{{ nextVideo?.title }}</div>
-            <div class="countdown-video-author">{{ nextVideo?.author?.nickname }}</div>
+        <!-- 评论区 -->
+        <div class="comments-section">
+          <div class="comments-header">
+            <h3>{{ formatNumber(video.comments || 0) }}条评论</h3>
+            <n-dropdown trigger="click" :options="sortOptions">
+              <n-button quaternary>
+                <template #icon>
+                  <n-icon>
+                    <FilterOutline />
+                  </n-icon>
+                </template>
+                排序方式
+              </n-button>
+            </n-dropdown>
+          </div>
+
+          <!-- 评论输入框 -->
+          <div class="comment-add">
+            <n-avatar round :size="40" :src="userAvatar" />
+            <n-input v-model:value="commentText" type="textarea" placeholder="添加评论..."
+              :autosize="{ minRows: 1, maxRows: 4 }" class="comment-input" />
+            <div class="comment-actions" :class="{ 'active': commentText.length > 0 }">
+              <n-button quaternary size="small" @click="commentText = ''">取消</n-button>
+              <n-button type="primary" size="small" :disabled="commentText.length === 0"
+                @click="addComment">评论</n-button>
+            </div>
+          </div>
+
+          <!-- 评论列表 -->
+          <div class="comments-list" v-if="comments.length > 0">
+            <div class="comment-item" v-for="comment in comments" :key="comment.id">
+              <n-avatar round :size="40" :src="comment.user.avatar" />
+              <div class="comment-content">
+                <div class="comment-header">
+                  <span class="comment-author">{{ comment.user.nickname || comment.user.username }}</span>
+                  <span class="comment-time">{{ formatCommentTime(comment.createdAt) }}</span>
+                </div>
+                <p class="comment-text">{{ comment.content }}</p>
+                <div class="comment-actions">
+                  <n-button quaternary circle size="small" @click="likeComment(comment)">
+                    <template #icon>
+                      <n-icon :color="comment.userLiked ? '#f00' : undefined">
+                        <ThumbsUpOutline />
+                      </n-icon>
+                    </template>
+                  </n-button>
+                  <span class="like-count">{{ formatNumber(comment.likes) }}</span>
+                  <n-button quaternary circle size="small">
+                    <template #icon>
+                      <n-icon>
+                        <ThumbsDownOutline />
+                      </n-icon>
+                    </template>
+                  </n-button>
+                  <n-button text size="small">回复</n-button>
+                </div>
+                <div class="replies" v-if="comment.replyCount > 0">
+                  <n-button text size="small">
+                    <template #icon>
+                      <n-icon>
+                        <ChevronDownOutline />
+                      </n-icon>
+                    </template>
+                    查看{{ comment.replyCount }}条回复
+                  </n-button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="comments-empty" v-else>
+            <p>暂无评论</p>
           </div>
         </div>
-        <div class="countdown-progress">
-          <div class="countdown-progress-text">{{ countdownSeconds }}秒后播放</div>
-          <n-progress type="line" :percentage="(countdownDuration - countdownSeconds) / countdownDuration * 100"
-            :show-indicator="false" />
-        </div>
-        <div class="countdown-actions">
-          <n-button quaternary @click="cancelAutoplay">取消</n-button>
-          <n-button type="primary" @click="playNextVideoNow">立即播放</n-button>
+      </div>
+
+      <!-- 右侧推荐视频 -->
+      <div class="side-content">
+        <h3 class="related-title">推荐视频</h3>
+        <div class="related-videos">
+          <div class="related-video-item" v-for="(video, index) in relatedVideos" :key="index">
+            <div class="thumbnail-container">
+              <img :src="video.coverUrl" :alt="video.title" class="thumbnail" />
+              <span class="video-duration">{{ formatDuration(video.duration) }}</span>
+            </div>
+            <div class="video-info">
+              <h4 class="video-title">{{ video.title }}</h4>
+              <p class="channel-name">{{ video.author.nickname || video.author.username }}</p>
+              <p class="video-metadata">
+                {{ formatViews(video.views) }}次观看
+                <span class="dot-separator">•</span>
+                {{ formatTimeAgo(video.createdAt) }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </n-modal>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue';
+  import { ref, onMounted, computed, watch, h } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import { NButton, NSpin, NResult, NDivider, NAvatar, NIcon, NBadge, NTag, NInput, NDropdown, useMessage, useDialog } from 'naive-ui';
   import {
-    NCard, NSpace, NSpin, NButton, NIcon, NAlert, NSkeleton, useMessage,
-    NSwitch, NDrawer, NDrawerContent, NModal, NImage, NProgress, NForm,
-    NFormItem, NInput, NRadioGroup, NRadioButton, NTag, NTooltip
-  } from 'naive-ui';
-  import {
-    WarningOutline, CloudOfflineOutline, VideocamOutline,
-    ListOutline, AddOutline, CloseOutline, ChevronDown, PlayOutline
+    ThumbsUpOutline,
+    ThumbsDownOutline,
+    ShareSocialOutline,
+    DownloadOutline,
+    BookmarkOutline,
+    EllipsisHorizontalOutline,
+    FilterOutline,
+    ChevronDownOutline
   } from '@vicons/ionicons5';
-  import { videoService } from '@/services/video';
-  import { useHistoryStore } from '@/stores/history';
-  import { useUserStore } from '@/stores/user';
-  import { isMockMode } from '@/services/api';
-  import { checkAndEnableOfflineMode, isOfflineMode as checkOfflineMode, checkNetworkAndReconnect } from '@/services/api/errorHandler';
-  import VideoPlayerComponent from '@/components/business/video/VideoPlayerComponent.vue';
-  import VideoDetailComponent from '@/components/business/video/VideoDetailComponent.vue';
-  import VideoCardSmall from '@/components/common/video/VideoCardSmall.vue';
-  import CommentListComponent from '@/components/business/comment/CommentListComponent.vue';
-  import type { Video, VideoInteraction, Comment, VideoChapter } from '@/types';
+  import VideoPlayerTemp from './VideoPlayerTemp.vue';
 
-  const route = useRoute();
+  // 定义视频类型接口
+  interface VideoAuthor {
+    id: string;
+    username: string;
+    nickname?: string;
+    avatar?: string;
+    verified?: boolean;
+  }
+
+  interface Video {
+    id: string;
+    title: string;
+    description: string;
+    coverUrl: string;
+    videoUrl: string;
+    duration?: number;
+    views: number;
+    likes?: number;
+    favorites?: number;
+    comments?: number;
+    createdAt: string;
+    author: VideoAuthor;
+    tags?: string[];
+  }
+
+  interface VideoInteraction {
+    liked: boolean;
+    disliked: boolean;
+    favorited: boolean;
+    watched: boolean;
+    progress: number;
+  }
+
+  interface CommentUser {
+    id: string;
+    username: string;
+    nickname?: string;
+    avatar?: string;
+  }
+
+  interface Comment {
+    id: string;
+    content: string;
+    createdAt: string;
+    user: CommentUser;
+    likes: number;
+    replyCount: number;
+    userLiked: boolean;
+  }
+
   const router = useRouter();
+  const route = useRoute();
+  const videoId = route.params.id as string;
   const message = useMessage();
-  const historyStore = useHistoryStore();
-  const userStore = useUserStore();
+  const dialog = useDialog();
 
-  // 状态
+  const video = ref<Video | null>(null);
   const loading = ref(true);
   const error = ref<string | null>(null);
-  const video = ref<Video | null>(null);
-  const savedProgress = ref(0);
-  const isLiked = ref(false);
-  const isFavorited = ref(false);
   const isSubscribed = ref(false);
+  const showFullDescription = ref(false);
+  const isDescriptionLong = ref(true);
+  const descriptionRef = ref<HTMLElement | null>(null);
+  const commentText = ref('');
   const comments = ref<Comment[]>([]);
-  const commentPage = ref(1);
-  const hasMoreComments = ref(true);
-  const loadingMoreComments = ref(false);
-  const networkRetryTimer = ref<number | null>(null);
   const relatedVideos = ref<Video[]>([]);
+  const userAvatar = ref('https://i.pravatar.cc/150?u=user');
 
-  // 离线模式状态 
-  const isOfflineMode = computed(() => checkOfflineMode());
-
-  // 自动播放和播放队列
-  const autoplayEnabled = ref(true);
-  const playQueue = ref<Video[]>([]);
-  const showPlayQueueDrawer = ref(false);
-  const showSavePlaylistModal = ref(false);
-  const newPlaylistName = ref('');
-  const newPlaylistDescription = ref('');
-  const newPlaylistPrivacy = ref<'public' | 'unlisted' | 'private'>('public');
-
-  // 自动播放倒计时
-  const showAutoplayCountdown = ref(false);
-  const countdownSeconds = ref(10);
-  const countdownDuration = 10;
-  const countdownTimer = ref<number | null>(null);
-  const nextVideo = computed(() => {
-    if (playQueue.value.length > 0) {
-      return playQueue.value[0];
-    } else if (relatedVideos.value.length > 0) {
-      return relatedVideos.value[0];
-    }
-    return null;
+  const interaction = ref<VideoInteraction>({
+    liked: false,
+    disliked: false,
+    favorited: false,
+    watched: false,
+    progress: 0
   });
 
-  // 视频播放器引用
-  const playerRef = ref<InstanceType<typeof VideoPlayerComponent> | null>(null);
+  // 模拟的评论排序选项
+  const sortOptions = [
+    {
+      label: '最新评论',
+      key: 'newest'
+    },
+    {
+      label: '热门评论',
+      key: 'top'
+    }
+  ];
 
-  // 检查网络并刷新页面
-  const checkNetworkAndRefresh = async () => {
-    const isConnected = await checkNetworkAndReconnect();
+  // 更多选项下拉菜单
+  const moreOptions = [
+    {
+      label: '举报',
+      key: 'report'
+    },
+    {
+      label: '不感兴趣',
+      key: 'not-interested'
+    },
+    {
+      label: '添加到播放列表',
+      key: 'add-to-playlist'
+    },
+    {
+      label: '复制视频链接',
+      key: 'copy-link'
+    }
+  ];
 
-    if (isConnected) {
-      message.success('网络已恢复，正在刷新页面');
+  // 格式化视图数量
+  function formatViews(views: number): string {
+    if (views >= 1000000) {
+      return (views / 1000000).toFixed(1) + '百万';
+    } else if (views >= 1000) {
+      return (views / 1000).toFixed(1) + '千';
+    }
+    return views.toString();
+  }
 
-      // 短暂延迟后刷新
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+  // 格式化数字
+  function formatNumber(num?: number): string {
+    if (!num) return '0';
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  }
+
+  // 格式化订阅者数量
+  function formatSubscribers(count: number): string {
+    if (count >= 1000000) {
+      return (count / 1000000).toFixed(1) + '百万';
+    } else if (count >= 1000) {
+      return (count / 1000).toFixed(1) + '千';
+    }
+    return count.toString();
+  }
+
+  // 格式化日期
+  function formatDate(dateString: string): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  // 格式化评论时间
+  function formatCommentTime(dateString: string): string {
+    if (!dateString) return '';
+    return formatTimeAgo(dateString);
+  }
+
+  // 格式化时长
+  function formatDuration(seconds?: number): string {
+    if (!seconds) return '00:00';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  // 格式化多久以前
+  function formatTimeAgo(dateString: string): string {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return '刚刚';
+    } else if (diffInSeconds < 3600) {
+      return `${Math.floor(diffInSeconds / 60)}分钟前`;
+    } else if (diffInSeconds < 86400) {
+      return `${Math.floor(diffInSeconds / 3600)}小时前`;
+    } else if (diffInSeconds < 2592000) {
+      return `${Math.floor(diffInSeconds / 86400)}天前`;
+    } else if (diffInSeconds < 31536000) {
+      return `${Math.floor(diffInSeconds / 2592000)}个月前`;
     } else {
-      message.error('网络连接仍然不可用，请检查您的网络设置');
-
-      // 定时自动重试
-      if (networkRetryTimer.value === null) {
-        networkRetryTimer.value = window.setInterval(async () => {
-          const reconnected = await checkNetworkAndReconnect();
-          if (reconnected) {
-            clearInterval(networkRetryTimer.value!);
-            networkRetryTimer.value = null;
-            message.success('网络已自动恢复，刷新页面获取最新数据');
-          }
-        }, 30000) as unknown as number; // 每30秒自动检测一次
-      }
+      return `${Math.floor(diffInSeconds / 31536000)}年前`;
     }
-  };
+  }
 
-  // 更新播放量
-  const updateVideoViews = async () => {
-    if (!video.value || isOfflineMode.value) return;
+  // 切换描述展开/收起
+  function toggleDescription() {
+    showFullDescription.value = !showFullDescription.value;
+  }
 
-    try {
-      await videoService.updateVideoViews(video.value.id);
-    } catch (err) {
-      console.warn('更新视频播放量失败:', err);
-      // 非关键操作，失败可以忽略
-    }
-  };
-
-  // 获取视频互动状态
-  const fetchVideoInteraction = async () => {
-    if (!video.value || !userStore.isLoggedIn) return;
-
-    try {
-      const response = await videoService.getVideoInteraction(video.value.id);
-      if (response.success && response.data) {
-        isLiked.value = response.data.isLiked ?? false;
-        isFavorited.value = response.data.isFavorited ?? false;
-        isSubscribed.value = response.data.isSubscribed ?? false;
-      }
-    } catch (err) {
-      console.warn('获取视频互动状态失败:', err);
-      // 非关键错误，可以继续显示视频
-    }
-  };
-
-  // 获取视频信息
-  const fetchVideoData = async () => {
-    const videoId = route.params.id;
-    if (!videoId) {
-      router.push('/');
-      return;
-    }
-
+  // 加载视频数据
+  async function loadVideo(): Promise<void> {
     loading.value = true;
     error.value = null;
 
     try {
-      // 检查网络连接状态和mock模式
-      if (!navigator.onLine && !isMockMode) {
-        localStorage.setItem('offline_mode', 'true');
-        error.value = '网络连接已断开，显示离线模式';
-        loading.value = false;
-        return;
-      }
+      // 使用本地的模拟数据
+      const { getVideoById } = await import('./mockData');
+      const result = getVideoById(videoId);
 
-      // 获取视频详情
-      const response = await videoService.getVideoById(videoId as string);
-
-      if (response.success && response.data) {
-        video.value = response.data;
-
-        // 获取视频互动状态
-        if (userStore.isLoggedIn && video.value) {
-          await fetchVideoInteraction();
-        }
-
-        // 获取保存的播放进度
-        savedProgress.value = historyStore.getVideoProgress(videoId as string);
-
-        // 记录观看历史
-        try {
-          if (video.value) {
-            historyStore.addToHistory(video.value);
-          }
-        } catch (err) {
-          console.error('添加到历史记录失败:', err);
-        }
-
-        // 初始加载评论
-        await loadComments();
-
-        // 加载相关视频
-        try {
-          const recResponse = await videoService.getRecommendedVideos(videoId as string, 5);
-          if (recResponse.success && recResponse.data) {
-            relatedVideos.value = recResponse.data;
-          }
-        } catch (err) {
-          console.warn('获取推荐视频失败:', err);
-        }
-
-        // 非模拟模式下更新播放量
-        if (!isMockMode) {
-          updateVideoViews();
-        }
+      if (result) {
+        video.value = result as Video;
+        // 加载评论和推荐视频
+        loadComments();
+        loadRelatedVideos();
       } else {
-        // API请求失败，如果在mock模式下使用模拟数据
-        if (isMockMode) {
-          console.warn('Mock模式：API请求失败，使用模拟数据');
-          // 从videoService中直接获取模拟数据
-          const { getMockVideo } = await import('@/services/mockData');
-          video.value = getMockVideo(videoId as string);
-
-          // 获取模拟的互动状态
-          const { getMockVideoInteraction } = await import('@/services/mockData');
-          const interaction = getMockVideoInteraction(videoId as string);
-          isLiked.value = interaction.isLiked;
-          isFavorited.value = interaction.isFavorited;
-          isSubscribed.value = interaction.isSubscribed;
-
-          // 获取模拟的推荐视频
-          const { getMockRecommendedVideos } = await import('@/services/mockData');
-          relatedVideos.value = getMockRecommendedVideos(videoId as string, 5);
-
-          // 加载模拟评论
-          const { getMockComments } = await import('@/services/mockData');
-          comments.value = getMockComments(videoId as string);
-
-          // 记录到历史
-          if (video.value) {
-            try {
-              historyStore.addToHistory(video.value);
-              savedProgress.value = historyStore.getVideoProgress(videoId as string);
-            } catch (err) {
-              console.error('添加到历史记录失败:', err);
-            }
-          }
-        } else {
-          // 非mock模式下显示错误
-          console.warn('API请求失败:', response.message);
-          error.value = response.message || '加载视频失败，请稍后重试';
-
-          // 检查是否为网络错误
-          if (error.value && (error.value.includes('Network Error') || error.value.includes('Failed to fetch'))) {
-            checkAndEnableOfflineMode(new Error(error.value));
-          }
-        }
+        error.value = '视频不存在';
       }
     } catch (err) {
       console.error('加载视频失败:', err);
-
-      // 在mock模式下使用模拟数据即使出现错误
-      if (isMockMode) {
-        console.warn('Mock模式：错误处理中，使用模拟数据');
-        const { getMockVideo, getMockVideoInteraction, getMockRecommendedVideos, getMockComments } = await import('@/services/mockData');
-
-        video.value = getMockVideo(videoId as string);
-
-        const interaction = getMockVideoInteraction(videoId as string);
-        isLiked.value = interaction.isLiked;
-        isFavorited.value = interaction.isFavorited;
-        isSubscribed.value = interaction.isSubscribed;
-
-        relatedVideos.value = getMockRecommendedVideos(videoId as string, 5);
-        comments.value = getMockComments(videoId as string);
-
-        if (video.value) {
-          try {
-            historyStore.addToHistory(video.value);
-            savedProgress.value = historyStore.getVideoProgress(videoId as string);
-          } catch (histErr) {
-            console.error('添加到历史记录失败:', histErr);
-          }
-        }
-      } else {
-        error.value = err instanceof Error ? err.message : '加载视频失败，请稍后重试';
-        // 设置离线模式标记
-        checkAndEnableOfflineMode(err);
-      }
+      error.value = '加载视频失败';
     } finally {
       loading.value = false;
     }
-  };
+  }
 
   // 加载评论
-  const loadComments = async () => {
+  function loadComments() {
+    // 模拟评论数据
+    comments.value = [
+      {
+        id: 'c1',
+        content: '这个视频太棒了，学到了很多知识！期待更多类似的内容。',
+        createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+        user: {
+          id: 'u1',
+          username: 'user123',
+          nickname: '技术爱好者',
+          avatar: 'https://i.pravatar.cc/150?u=u1'
+        },
+        likes: 42,
+        replyCount: 3,
+        userLiked: false
+      },
+      {
+        id: 'c2',
+        content: '视频质量非常高，讲解清晰易懂。',
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        user: {
+          id: 'u2',
+          username: 'coder999',
+          nickname: '代码狂人',
+          avatar: 'https://i.pravatar.cc/150?u=u2'
+        },
+        likes: 18,
+        replyCount: 1,
+        userLiked: false
+      },
+      {
+        id: 'c3',
+        content: '希望能多出一些进阶教程！',
+        createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+        user: {
+          id: 'u3',
+          username: 'learner',
+          nickname: '学习达人',
+          avatar: 'https://i.pravatar.cc/150?u=u3'
+        },
+        likes: 7,
+        replyCount: 0,
+        userLiked: false
+      }
+    ];
+  }
+
+  // 加载相关视频
+  function loadRelatedVideos() {
+    // 模拟相关视频数据
+    relatedVideos.value = Array(8).fill(0).map((_, index) => ({
+      id: `rv${index + 1}`,
+      title: `推荐视频 ${index + 1}: ${['前端开发进阶指南', 'Vue3核心特性详解', 'TypeScript实战教程', 'CSS动画高级技巧', '响应式设计最佳实践'][index % 5]}`,
+      description: '推荐视频描述...',
+      coverUrl: `https://picsum.photos/id/${(index + 10) % 100}/300/150`,
+      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      duration: 300 + index * 60,
+      views: 5000 + index * 1000,
+      likes: 300 + index * 50,
+      favorites: 100 + index * 10,
+      comments: 50 + index * 5,
+      createdAt: new Date(Date.now() - 86400000 * (index + 1)).toISOString(),
+      author: {
+        id: `a${index + 1}`,
+        username: `creator${index + 1}`,
+        nickname: `创作者 ${index + 1}`,
+        avatar: `https://i.pravatar.cc/150?u=a${index + 1}`,
+        verified: index % 3 === 0
+      },
+      tags: ['编程', '教程', '技术']
+    }));
+  }
+
+  // 处理"更多"按钮的操作
+  function handleMoreAction(key: string) {
+    switch (key) {
+      case 'report':
+        dialog.warning({
+          title: '举报视频',
+          content: '您确定要举报此视频吗？',
+          positiveText: '确定',
+          negativeText: '取消',
+          onPositiveClick: () => {
+            message.success('举报已提交，我们将尽快审核');
+          }
+        });
+        break;
+      case 'not-interested':
+        message.success('已将此视频标记为不感兴趣');
+        break;
+      case 'add-to-playlist':
+        showPlaylistDialog();
+        break;
+      case 'copy-link':
+        copyVideoLink();
+        break;
+    }
+  }
+
+  // 显示播放列表对话框
+  function showPlaylistDialog() {
+    dialog.info({
+      title: '添加到播放列表',
+      content: '选择要添加到的播放列表（功能开发中）',
+      positiveText: '确定',
+      onPositiveClick: () => {
+        message.success('已添加到播放列表');
+      }
+    });
+  }
+
+  // 复制视频链接
+  function copyVideoLink() {
+    const videoUrl = window.location.href;
+    navigator.clipboard.writeText(videoUrl).then(() => {
+      message.success('已复制视频链接到剪贴板');
+    }).catch(err => {
+      message.error('复制失败，请手动复制');
+      console.error('复制失败:', err);
+    });
+  }
+
+  // 切换点赞状态
+  function toggleLike() {
+    // 如果已经不喜欢，先取消不喜欢
+    if (interaction.value.disliked) {
+      interaction.value.disliked = false;
+    }
+
+    // 切换点赞状态
+    interaction.value.liked = !interaction.value.liked;
+
+    // 更新视频点赞数
+    if (video.value && video.value.likes !== undefined) {
+      if (interaction.value.liked) {
+        video.value.likes += 1;
+      } else {
+        video.value.likes -= 1;
+      }
+    }
+
+    message.success(interaction.value.liked ? '已点赞' : '已取消点赞');
+    saveInteraction();
+  }
+
+  // 切换不喜欢状态
+  function toggleDislike() {
+    // 如果已经点赞，先取消点赞
+    if (interaction.value.liked) {
+      interaction.value.liked = false;
+      // 更新视频点赞数
+      if (video.value && video.value.likes !== undefined) {
+        video.value.likes -= 1;
+      }
+    }
+
+    // 切换不喜欢状态
+    interaction.value.disliked = !interaction.value.disliked;
+
+    message.success(interaction.value.disliked ? '已标记为不喜欢' : '已取消不喜欢');
+    saveInteraction();
+  }
+
+  // 切换收藏状态
+  function toggleFavorite() {
+    interaction.value.favorited = !interaction.value.favorited;
+
+    // 更新视频收藏数
+    if (video.value && video.value.favorites !== undefined) {
+      if (interaction.value.favorited) {
+        video.value.favorites += 1;
+      } else {
+        video.value.favorites -= 1;
+      }
+    }
+
+    message.success(interaction.value.favorited ? '已添加到收藏' : '已从收藏中移除');
+    saveInteraction();
+  }
+
+  // 打开分享对话框
+  function openShareDialog() {
+    const shareOptions = [
+      { label: '微信', key: 'wechat' },
+      { label: '微博', key: 'weibo' },
+      { label: 'QQ', key: 'qq' },
+      { label: '复制链接', key: 'copy' }
+    ];
+
+    dialog.info({
+      title: '分享视频',
+      content: '选择分享方式',
+      action: () => {
+        return h('div', { class: 'share-options' },
+          shareOptions.map(option =>
+            h('div', {
+              class: 'share-option',
+              onClick: () => handleShare(option.key)
+            }, option.label)
+          )
+        );
+      },
+      positiveText: '关闭'
+    });
+  }
+
+  // 处理分享
+  function handleShare(platform: string) {
+    const videoUrl = window.location.href;
+
+    switch (platform) {
+      case 'copy':
+        navigator.clipboard.writeText(videoUrl).then(() => {
+          message.success('已复制视频链接到剪贴板');
+        }).catch(err => {
+          message.error('复制失败，请手动复制');
+        });
+        break;
+      default:
+        message.info(`分享到${platform}功能开发中`);
+        break;
+    }
+  }
+
+  // 下载视频
+  function downloadVideo() {
+    message.info('视频下载功能开发中...');
+  }
+
+  // 切换订阅状态
+  function toggleSubscribe() {
+    isSubscribed.value = !isSubscribed.value;
+    message.success(isSubscribed.value ? '订阅成功' : '已取消订阅');
+
+    // 实际应用中这里应该调用API
+  }
+
+  // 添加评论
+  function addComment() {
+    if (commentText.value.trim() === '') return;
+
+    // 创建新评论
+    const newComment: Comment = {
+      id: `c${Date.now()}`,
+      content: commentText.value,
+      createdAt: new Date().toISOString(),
+      user: {
+        id: 'current-user',
+        username: 'current_user',
+        nickname: '当前用户',
+        avatar: userAvatar.value
+      },
+      likes: 0,
+      replyCount: 0,
+      userLiked: false
+    };
+
+    // 添加到评论列表
+    comments.value.unshift(newComment);
+
+    // 更新视频评论数
+    if (video.value && video.value.comments !== undefined) {
+      video.value.comments += 1;
+    }
+
+    // 清空评论框
+    commentText.value = '';
+
+    message.success('评论发布成功');
+  }
+
+  // 点赞评论
+  function likeComment(comment: Comment) {
+    comment.userLiked = !comment.userLiked;
+
+    if (comment.userLiked) {
+      comment.likes += 1;
+    } else {
+      comment.likes -= 1;
+    }
+
+    message.success(comment.userLiked ? '已点赞评论' : '已取消点赞');
+  }
+
+  // 保存互动状态
+  function saveInteraction() {
+    // 实际应用中，这里应该调用API将用户与视频的互动状态保存到服务器
+    localStorage.setItem(`video_interaction_${videoId}`, JSON.stringify(interaction.value));
+  }
+
+  // 加载互动状态
+  function loadInteraction() {
+    const savedInteraction = localStorage.getItem(`video_interaction_${videoId}`);
+    if (savedInteraction) {
+      try {
+        interaction.value = JSON.parse(savedInteraction);
+      } catch (e) {
+        console.error('加载互动状态失败:', e);
+      }
+    }
+  }
+
+  // 在加载视频成功后扩展界面交互功能
+  watch(() => video.value, (newVideo) => {
+    if (newVideo) {
+      // 加载用户与此视频的互动状态
+      loadInteraction();
+      // 为评论添加用户点赞状态
+      addUserLikedFlag();
+    }
+  }, { immediate: true });
+
+  // 添加用户喜欢状态标记
+  function addUserLikedFlag() {
+    comments.value.forEach(comment => {
+      // 这里模拟从服务器获取用户是否已点赞某评论
+      comment.userLiked = false;
+    });
+  }
+
+  // 记录观看历史
+  function recordWatchHistory() {
     if (!video.value) return;
 
-    try {
-      const res = await videoService.getVideoComments(video.value.id, { page: 1, pageSize: 10 });
-      if (res.success && res.data) {
-        comments.value = res.data.comments || [];
-        hasMoreComments.value = (res.data.totalPages || 0) > 1;
-      }
-    } catch (err) {
-      console.error('加载评论失败:', err);
-      message.error('加载评论失败');
+    // 标记为已观看
+    interaction.value.watched = true;
+
+    // 获取当前观看历史
+    let watchHistory = JSON.parse(localStorage.getItem('watch_history') || '[]');
+
+    // 检查是否已在历史记录中
+    const existingIndex = watchHistory.findIndex((item: { id: string }) => item.id === videoId);
+
+    // 创建历史记录条目
+    const historyItem = {
+      id: videoId,
+      title: video.value.title,
+      coverUrl: video.value.coverUrl,
+      author: video.value.author,
+      timestamp: new Date().toISOString()
+    };
+
+    // 如果已存在则移除旧记录
+    if (existingIndex !== -1) {
+      watchHistory.splice(existingIndex, 1);
     }
-  };
 
-  // 加载更多评论
-  const loadMoreComments = async () => {
-    if (!video.value || loadingMoreComments.value) return;
+    // 添加到历史记录开头
+    watchHistory.unshift(historyItem);
 
-    loadingMoreComments.value = true;
-    try {
-      commentPage.value += 1;
-      const res = await videoService.getVideoComments(video.value.id, {
-        page: commentPage.value,
-        pageSize: 10
-      });
-
-      if (res.success && res.data) {
-        comments.value = [...comments.value, ...(res.data.comments || [])];
-        hasMoreComments.value = commentPage.value < (res.data.totalPages || 0);
-      }
-    } catch (err) {
-      console.error('加载更多评论失败:', err);
-      message.error('加载更多评论失败');
-    } finally {
-      loadingMoreComments.value = false;
+    // 限制历史记录数量(保留最近的100条)
+    if (watchHistory.length > 100) {
+      watchHistory = watchHistory.slice(0, 100);
     }
-  };
 
-  // 处理播放结束事件
-  const handleEnded = () => {
+    // 保存历史记录
+    localStorage.setItem('watch_history', JSON.stringify(watchHistory));
+    saveInteraction();
+  }
+
+  // 视频播放进度更新
+  function handleVideoProgress(time: number) {
+    if (!video.value || !video.value.duration) return;
+
+    // 更新进度
+    interaction.value.progress = time;
+
+    // 计算观看百分比
+    const watchedPercent = (time / video.value.duration) * 100;
+
+    // 如果观看超过50%，记录到历史
+    if (watchedPercent > 50 && !interaction.value.watched) {
+      recordWatchHistory();
+    }
+
+    // 每30秒保存一次进度
+    if (Math.floor(time) % 30 === 0) {
+      saveInteraction();
+    }
+  }
+
+  // 处理视频加载完成
+  function handleVideoLoaded(videoData: any) {
+    console.log('视频加载完成:', videoData);
+  }
+
+  // 处理视频播放结束
+  function handleVideoEnded() {
     console.log('视频播放结束');
+    // 标记为已观看
+    interaction.value.watched = true;
+    saveInteraction();
 
-    // 通知历史记录系统
-    if (video.value && video.value.id) {
-      historyStore.saveVideoProgress(video.value.id, 0);
-    }
-
-    // 如果开启了自动播放，播放下一个视频
-    if (autoplayEnabled.value && nextVideo.value) {
-      startAutoplayCountdown();
-    }
-  };
-
-  // 监听下一个视频的变化，预缓冲下一个视频
-  watch(() => nextVideo.value, (newVal, oldVal) => {
-    if (newVal && newVal.id !== oldVal?.id && navigator.onLine && !isOfflineMode.value) {
-      // 如果视频已经播放了一半以上，开始预加载下一个视频
-      if (playerRef.value && video.value) {
-        const currentProgress = playerRef.value.currentTime / (video.value.duration || 1);
-        if (currentProgress > 0.5) {
-          console.log('[VideoDetailPage] 开始预缓冲下一个视频:', newVal.title);
-          playerRef.value.preBufferNextVideo(newVal.id);
-        }
-      }
-    }
-  });
-
-  // 视频播放进度变化时，判断是否需要预加载下一个视频
-  const handleTimeUpdate = (time: number) => {
-    if (video.value) {
-      try {
-        // 本地保存播放进度
-        historyStore.saveVideoProgress(video.value.id, time);
-
-        // 如果不是离线模式，同时保存到服务器
-        if (!isOfflineMode.value && time % 5 < 1) { // 每5秒左右同步一次进度
-          videoService.saveWatchHistory(video.value.id, time).catch(err => {
-            console.warn('[VideoDetailPage] 同步播放进度到服务器失败:', err);
-          });
-        }
-
-        // 如果播放进度超过75%且有下一个视频，尝试预加载
-        if (video.value.duration && time / video.value.duration > 0.75 && nextVideo.value) {
-          playerRef.value?.preBufferNextVideo(nextVideo.value.id);
-        }
-      } catch (err) {
-        console.error('[VideoDetailPage] 保存播放进度失败:', err);
-      }
-    }
-  };
-
-  // 处理播放开始事件
-  const handlePlay = () => {
-    console.log('视频开始播放');
-    // 如果需要可以在这里添加更多逻辑
-  };
-
-  // 处理暂停事件
-  const handlePause = () => {
-    console.log('视频已暂停');
-    // 如果需要可以在这里添加更多逻辑
-  };
-
-  // 执行需要登录权限的操作
-  const requireLogin = (callback: () => void) => {
-    if (isOfflineMode.value) {
-      message.info('离线模式下，该操作仅在本地显示，不会同步到服务器');
-      return callback();
-    }
-
-    if (!userStore.isLoggedIn) {
-      message.info('请先登录');
-      router.push('/login?redirect=' + route.fullPath);
-      return;
-    }
-
-    return callback();
-  };
-
-  // 处理视频互动
-  const handleLike = () => {
-    requireLogin(() => {
-      if (isOfflineMode.value) {
-        isLiked.value = !isLiked.value;
-        return;
-      }
-
-      if (!video.value) return;
-
-      videoService.likeVideo(video.value.id, isLiked.value ? 'unlike' : 'like')
-        .then(res => {
-          if (res.success) {
-            isLiked.value = !isLiked.value;
-            message.success(isLiked.value ? '点赞成功' : '已取消点赞');
-
-            // 更新点赞数
-            if (video.value) {
-              video.value.likes = isLiked.value
-                ? (video.value.likes || 0) + 1
-                : Math.max(0, (video.value.likes || 0) - 1);
-            }
-          } else {
-            message.error(res.message || '操作失败，请稍后重试');
-          }
-        })
-        .catch(err => {
-          console.error('点赞失败:', err);
-          message.error('点赞失败，请稍后重试');
-        });
-    });
-  };
-
-  // 处理收藏
-  const handleFavorite = () => {
-    requireLogin(() => {
-      if (isOfflineMode.value) {
-        isFavorited.value = !isFavorited.value;
-        return;
-      }
-
-      if (!video.value) return;
-
-      const action = isFavorited.value ? 'unfavorite' : 'favorite';
-      videoService.favoriteVideo(video.value.id, action)
-        .then(res => {
-          if (res.success) {
-            isFavorited.value = !isFavorited.value;
-            if (video.value) {
-              video.value.favorites += isFavorited.value ? 1 : -1;
-            }
-            message.success(isFavorited.value ? '收藏成功' : '已取消收藏');
-          } else {
-            message.error(res.message || '操作失败');
-          }
-        })
-        .catch(err => {
-          console.error('收藏操作失败:', err);
-          message.error('操作失败，请重试');
-        });
-    });
-  };
-
-  // 处理订阅
-  const handleSubscribe = () => {
-    requireLogin(() => {
-      if (isOfflineMode.value) {
-        isSubscribed.value = !isSubscribed.value;
-        return;
-      }
-
-      if (!video.value) return;
-
-      const action = isSubscribed.value ? 'unsubscribe' : 'subscribe';
-      videoService.subscribeAuthor(video.value.author.id, action)
-        .then(res => {
-          if (res.success) {
-            isSubscribed.value = !isSubscribed.value;
-
-            // 确保作者属性存在并安全地更新粉丝数
-            if (video.value && 'author' in video.value) {
-              const author = video.value.author as any;
-              if (author && 'followersCount' in author) {
-                author.followersCount = (author.followersCount || 0) + (isSubscribed.value ? 1 : -1);
-              }
-            }
-
-            message.success(isSubscribed.value ? '关注成功' : '已取消关注');
-          } else {
-            message.error(res.message || '操作失败');
-          }
-        })
-        .catch(err => {
-          console.error('关注操作失败:', err);
-          message.error('操作失败，请重试');
-        });
-    });
-  };
-
-  // 处理评论
-  const handleComment = (content: string) => {
-    requireLogin(() => {
-      if (isOfflineMode.value) {
-        message.info('离线模式下无法发表评论');
-        return;
-      }
-
-      if (!video.value) return;
-
-      videoService.addComment(video.value.id, content)
-        .then(res => {
-          if (res.success) {
-            message.success('评论成功');
-            // 重新加载评论列表
-            commentPage.value = 1;
-            loadComments();
-          } else {
-            message.error(res.message || '评论失败');
-          }
-        })
-        .catch(err => {
-          console.error('发表评论失败:', err);
-          message.error('评论失败，请重试');
-        });
-    });
-  };
-
-  // 切换自动播放
-  const toggleAutoplay = (value: boolean) => {
-    autoplayEnabled.value = value;
-    localStorage.setItem('autoplay_enabled', value ? 'true' : 'false');
-  };
-
-  // 添加到播放队列
-  const addToPlayQueue = (video: Video) => {
-    // 避免重复添加
-    if (!playQueue.value.some(v => v.id === video.id)) {
-      playQueue.value.push(video);
-      message.success(`已添加 "${video.title}" 到播放队列`);
-      savePlayQueue();
-    } else {
-      message.info('该视频已在播放队列中');
-    }
-  };
-
-  // 从播放队列移除
-  const removeFromPlayQueue = (index: number) => {
-    playQueue.value.splice(index, 1);
-    savePlayQueue();
-  };
-
-  // 清空播放队列
-  const clearPlayQueue = () => {
-    playQueue.value = [];
-    savePlayQueue();
-  };
-
-  // 使用推荐视频填充队列
-  const fillQueueWithRecommended = () => {
+    // 自动播放下一个推荐视频
     if (relatedVideos.value.length > 0) {
-      playQueue.value = [...relatedVideos.value].filter(v => v.id !== video.value?.id);
-      savePlayQueue();
-      message.success('已使用推荐视频填充播放队列');
-    } else {
-      message.warning('没有可用的推荐视频');
-    }
-  };
+      const nextVideo = relatedVideos.value[0];
 
-  // 保存播放队列
-  const savePlayQueue = () => {
-    const queueIds = playQueue.value.map(v => v.id);
-    localStorage.setItem('play_queue', JSON.stringify(queueIds));
-  };
-
-  // 加载播放队列
-  const loadPlayQueue = async () => {
-    try {
-      const queueJson = localStorage.getItem('play_queue');
-      if (queueJson) {
-        const queueIds = JSON.parse(queueJson) as string[];
-        playQueue.value = [];
-
-        for (const id of queueIds) {
-          if (id === video.value?.id) continue; // 跳过当前播放的视频
-
-          try {
-            const response = await videoService.getVideoById(id);
-            if (response.success && response.data) {
-              playQueue.value.push(response.data);
-            }
-          } catch (err) {
-            console.warn(`无法加载队列中的视频: ${id}`, err);
-          }
+      dialog.info({
+        title: '自动播放下一个视频',
+        content: `即将播放: ${nextVideo.title}`,
+        positiveText: '播放',
+        negativeText: '取消',
+        onPositiveClick: () => {
+          router.push(`/video/${nextVideo.id}`);
         }
-      }
-
-      // 加载自动播放设置
-      const autoplaySetting = localStorage.getItem('autoplay_enabled');
-      if (autoplaySetting !== null) {
-        autoplayEnabled.value = autoplaySetting === 'true';
-      }
-    } catch (err) {
-      console.error('加载播放队列失败:', err);
-    }
-  };
-
-  // 处理推荐视频点击
-  const handleRecommendedVideoClick = (recommendedVideo: Video) => {
-    try {
-      // 尝试使用命名路由导航
-      router.push({
-        name: 'video-detail',
-        params: { id: recommendedVideo.id }
       });
-    } catch (err) {
-      console.error('路由跳转错误:', err);
-      // 回退到常规URL导航
-      router.push(`/video/${recommendedVideo.id}`);
     }
-  };
+  }
 
-  // 开始自动播放倒计时
-  const startAutoplayCountdown = () => {
-    showAutoplayCountdown.value = true;
-    countdownSeconds.value = countdownDuration;
-
-    countdownTimer.value = window.setInterval(() => {
-      countdownSeconds.value -= 1;
-
-      if (countdownSeconds.value <= 0) {
-        clearInterval(countdownTimer.value!);
-        countdownTimer.value = null;
-        playNextVideoNow();
-      }
-    }, 1000) as unknown as number;
-  };
-
-  // 取消自动播放
-  const cancelAutoplay = () => {
-    if (countdownTimer.value) {
-      clearInterval(countdownTimer.value);
-      countdownTimer.value = null;
-    }
-    showAutoplayCountdown.value = false;
-  };
-
-  // 立即播放下一个视频
-  const playNextVideoNow = () => {
-    cancelAutoplay();
-
-    if (nextVideo.value) {
-      // 如果来自播放队列，移除第一个视频
-      if (playQueue.value.length > 0) {
-        playQueue.value.shift();
-        savePlayQueue();
-      }
-
-      // 导航到下一个视频
-      try {
-        router.push({
-          name: 'video-detail',
-          params: { id: nextVideo.value.id }
-        });
-      } catch (err) {
-        console.error('路由跳转错误:', err);
-        // 回退到常规URL导航
-        router.push(`/video/${nextVideo.value.id}`);
-      }
-    }
-  };
-
-  // 保存为播放列表
-  const savePlayQueueAsPlaylist = () => {
-    if (playQueue.value.length === 0) {
-      message.warning('播放队列为空，无法保存');
-      return;
-    }
-
-    showSavePlaylistModal.value = true;
-  };
-
-  // 保存播放列表
-  const savePlaylist = () => {
-    if (!newPlaylistName.value.trim()) {
-      message.warning('请输入播放列表名称');
-      return;
-    }
-
-    // 在实际应用中，这里应该调用API保存播放列表
-    // 这里为了演示，我们只是显示成功消息
-    message.success(`播放列表 "${newPlaylistName.value}" 已保存`);
-    showSavePlaylistModal.value = false;
-
-    // 重置表单
-    newPlaylistName.value = '';
-    newPlaylistDescription.value = '';
-    newPlaylistPrivacy.value = 'public';
-  };
-
-  // 在组件挂载时获取视频数据
-  onMounted(async () => {
-    console.log('[VideoDetailPage] 组件开始挂载');
-
-    // 先检查是否有videoId
-    const videoId = route.params.id;
-    if (!videoId) {
-      router.push('/');
-      return;
-    }
-
-    // 检查是否处于mock模式
-    const isMock = isMockMode;
-    console.log(`[VideoDetailPage] 当前模式: ${isMock ? 'Mock模式' : '正常模式'}`);
-
-    // 检查网络状态
-    if (!navigator.onLine && !isMock) {
-      console.warn('[VideoDetailPage] 网络离线，将使用离线模式');
-      localStorage.setItem('offline_mode', 'true');
-    }
-
-    // 获取视频数据
-    await fetchVideoData();
-
-    // 路由参数变化时重新加载数据
-    watch(() => route.params.id, () => {
-      // 只有当路由ID实际变化时才重新获取
-      if (route.params.id !== videoId) {
-        console.log('[VideoDetailPage] 视频ID变化，重新加载数据');
-        fetchVideoData();
-      }
-    });
-
-    // 如果处于模拟数据模式，加载推荐视频
-    if (isMock) {
-      const currentVideoId = route.params.id as string;
-      if (currentVideoId) {
-        console.log('[VideoDetailPage] 加载模拟推荐视频');
-        videoService.getRecommendedVideos(currentVideoId)
-          .then(res => {
-            if (res.success && res.data) {
-              relatedVideos.value = res.data;
-            }
-          })
-          .catch(err => console.error('[VideoDetailPage] 加载推荐视频失败:', err));
-      }
-    }
-
-    console.log('[VideoDetailPage] 组件已挂载完成');
-
-    // 如果处于离线模式，尝试定时检测网络
-    if (isOfflineMode.value && networkRetryTimer.value === null) {
-      checkNetworkAndRefresh();
-    }
-
-    // 加载播放队列
-    await loadPlayQueue();
-  });
-
-  // 组件卸载时清除定时器
-  onBeforeUnmount(() => {
-    if (networkRetryTimer.value !== null) {
-      clearInterval(networkRetryTimer.value);
-      networkRetryTimer.value = null;
-    }
-
-    // 清除倒计时
-    if (countdownTimer.value !== null) {
-      clearInterval(countdownTimer.value);
-      countdownTimer.value = null;
-    }
+  onMounted(() => {
+    loadVideo();
   });
 </script>
 
 <style scoped>
-  .video-detail-page {
-    max-width: 1280px;
+  .video-detail-container {
+    max-width: 1750px;
     margin: 0 auto;
-    padding: 16px;
-    color: var(--text-primary);
-    background-color: var(--primary-bg);
-    transition: background-color var(--transition-normal), color var(--transition-normal);
+    padding: 20px;
   }
 
-  .offline-alert {
-    margin-bottom: 16px;
-    border-radius: var(--radius-lg);
-    background-color: #fff7e6;
-    /* 保持警告色不变 */
-    border: 1px solid #ffe58f;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .offline-alert .n-icon {
-    color: #faad14;
-    font-size: 20px;
-  }
-
-  .offline-alert span {
-    flex: 1;
-    color: #d48806;
-  }
-
-  .offline-alert .n-button {
-    margin-left: auto;
-  }
-
-  .loading-card,
-  .error-card {
-    border-radius: var(--radius-lg);
-    margin-bottom: 16px;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-medium);
-  }
-
-  .video-content {
-    display: flex;
-    gap: 24px;
-  }
-
-  .primary-column {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .secondary-column {
-    width: 320px;
-    flex-shrink: 0;
-    transition: background-color var(--transition-normal), border-color var(--transition-normal);
-  }
-
-  .video-player {
-    margin-bottom: 16px;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    background-color: var(--video-player-bg);
-  }
-
-  .video-detail {
-    border-radius: var(--radius-lg);
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-medium);
-  }
-
-  .related-videos {
-    background-color: var(--related-videos-bg);
-    border: 1px solid var(--related-videos-border);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-    transition: background-color var(--transition-normal), border-color var(--transition-normal);
-    height: 100%;
-  }
-
-  .related-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0 0 16px;
-    color: var(--text-primary);
-  }
-
-  /* 添加空状态样式 */
-  .empty-state {
+  .loading-state,
+  .error-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px;
-    background-color: var(--empty-state-bg);
-    border-radius: var(--radius-lg);
-    text-align: center;
-    height: 200px;
+    min-height: 400px;
+    gap: 20px;
   }
 
-  .empty-state .n-icon {
-    color: var(--empty-state-icon);
-    margin-bottom: 16px;
+  .video-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
   }
 
-  .empty-state p {
-    color: var(--empty-state-text);
-    font-size: 14px;
-  }
-
-  /* 推荐视频列表样式 */
-  .video-suggestions {
+  .main-content {
     display: flex;
     flex-direction: column;
     gap: 16px;
   }
 
-  @media (max-width: 1100px) {
+  .player-wrapper {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #000;
+    margin-bottom: 16px;
+  }
+
+  .video-primary-info {
+    padding-bottom: 16px;
+  }
+
+  .video-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .video-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .view-count {
+    color: #606060;
+    font-size: 14px;
+  }
+
+  .dot-separator {
+    margin: 0 4px;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 12px;
+    color: #606060;
+  }
+
+  .channel-info {
+    display: flex;
+    align-items: center;
+    padding: 16px 0;
+  }
+
+  .owner-badge {
+    margin-right: 16px;
+  }
+
+  .owner-info {
+    flex: 1;
+  }
+
+  .owner-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .owner-name h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .subscriber-count {
+    font-size: 12px;
+    color: #606060;
+  }
+
+  .subscribe-button {
+    margin-left: 16px;
+  }
+
+  .video-description {
+    position: relative;
+    padding: 12px 0;
+    margin-bottom: 16px;
+  }
+
+  .description-content {
+    transition: max-height 0.3s;
+  }
+
+  .description-text {
+    margin: 0;
+    white-space: pre-line;
+    line-height: 1.4;
+  }
+
+  .video-description.collapsed .description-content {
+    max-height: 80px;
+    overflow: hidden;
+  }
+
+  .show-more {
+    margin-top: 8px;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .comments-section {
+    margin-top: 24px;
+  }
+
+  .comments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .comments-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .comment-add {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+    align-items: flex-start;
+  }
+
+  .comment-input {
+    flex: 1;
+  }
+
+  .comment-actions {
+    display: none;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .comment-actions.active {
+    display: flex;
+  }
+
+  .comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .comment-item {
+    display: flex;
+    gap: 16px;
+  }
+
+  .comment-content {
+    flex: 1;
+  }
+
+  .comment-header {
+    margin-bottom: 4px;
+  }
+
+  .comment-author {
+    font-weight: 500;
+    margin-right: 8px;
+  }
+
+  .comment-time {
+    font-size: 12px;
+    color: #606060;
+  }
+
+  .comment-text {
+    margin: 8px 0;
+    line-height: 1.4;
+  }
+
+  .comment-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .like-count {
+    font-size: 12px;
+    color: #606060;
+    margin-right: 8px;
+  }
+
+  .replies {
+    margin-top: 8px;
+  }
+
+  .comments-empty {
+    color: #606060;
+    text-align: center;
+    padding: 32px 0;
+  }
+
+  .side-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .related-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+  }
+
+  .related-videos {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .related-video-item {
+    display: flex;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .thumbnail-container {
+    position: relative;
+    width: 168px;
+    height: 94px;
+    flex-shrink: 0;
+  }
+
+  .thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .video-duration {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 12px;
+  }
+
+  .video-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .video-info .video-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .channel-name {
+    font-size: 12px;
+    color: #606060;
+    margin: 0;
+  }
+
+  .video-metadata {
+    font-size: 12px;
+    color: #606060;
+    margin: 0;
+  }
+
+  /* 响应式布局 */
+  @media (max-width: 1200px) {
     .video-content {
-      flex-direction: column;
+      grid-template-columns: 1fr;
     }
 
-    .secondary-column {
+    .side-content {
+      margin-top: 24px;
+    }
+
+    .related-videos {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .related-video-item {
       width: 100%;
     }
   }
 
   @media (max-width: 768px) {
-    .video-detail-page {
-      padding: 8px;
+    .video-stats {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .channel-info {
+      flex-wrap: wrap;
+    }
+
+    .subscribe-button {
+      margin-left: 0;
+      margin-top: 16px;
+      width: 100%;
+    }
+
+    .subscribe-button button {
+      width: 100%;
+    }
+
+    .related-videos {
+      grid-template-columns: 1fr;
     }
   }
 
-  /* 播放设置 */
-  .playback-settings {
+  .share-options {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding: 12px;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-medium);
-    border-radius: var(--radius-lg);
-  }
-
-  /* 视频卡片动作 */
-  .video-card {
-    position: relative;
-  }
-
-  .video-card-actions {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 8px;
-    background-color: rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    padding: 2px;
-  }
-
-  .autoplay-next-tag {
-    background-color: var(--primary-color) !important;
-    color: white !important;
-  }
-
-  /* 播放队列样式 */
-  .play-queue-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 16px;
-  }
-
-  .empty-queue {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     justify-content: center;
-    padding: 32px 16px;
-    color: var(--text-secondary);
+    margin-top: 16px;
+  }
+
+  .share-option {
+    padding: 10px 20px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
     text-align: center;
   }
 
-  .empty-queue p {
-    margin: 16px 0;
-  }
-
-  .queue-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .queue-item {
-    display: flex;
-    align-items: center;
-    padding: 8px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-  }
-
-  .queue-item:hover {
-    background-color: var(--hover-color);
-  }
-
-  .queue-item.currently-playing {
-    background-color: var(--primary-color-lighter);
-  }
-
-  .queue-item-index {
-    width: 24px;
-    text-align: center;
-    color: var(--text-secondary);
-  }
-
-  .queue-thumbnail {
-    margin-right: 12px;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .queue-item-details {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .queue-item-title {
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .queue-item-author {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .queue-item-actions {
-    margin-left: 8px;
-  }
-
-  /* 保存播放列表表单 */
-  .save-playlist-form {
-    margin: 16px 0;
-  }
-
-  /* 自动播放倒计时 */
-  .autoplay-countdown {
-    padding: 16px;
-  }
-
-  .countdown-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .countdown-title {
-    font-size: 18px;
-    font-weight: 600;
-  }
-
-  .countdown-info {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .countdown-thumbnail {
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .countdown-details {
-    flex: 1;
-  }
-
-  .countdown-video-title {
-    font-weight: 500;
-    margin-bottom: 4px;
-  }
-
-  .countdown-video-author {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .countdown-progress {
-    margin-bottom: 16px;
-  }
-
-  .countdown-progress-text {
-    margin-bottom: 8px;
-    text-align: center;
-    font-weight: 500;
-  }
-
-  .countdown-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+  .share-option:hover {
+    background-color: #e5e5e5;
   }
 </style>

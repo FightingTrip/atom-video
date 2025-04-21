@@ -16,8 +16,19 @@ import type {
 // 用于存储用户观看进度
 const userVideoProgress: Record<string, Record<string, VideoProgress>> = {};
 
-// 视频类别列表
-const videoCategories = ['全部', '音乐', '游戏', '教育', '娱乐', '体育', '科技', '生活'];
+// 视频类别列表 - 开发者教育平台相关类别
+const videoCategories = [
+  '全部',
+  '前端',
+  '后端',
+  'DevOps',
+  '移动开发',
+  '数据库',
+  'UI设计',
+  '人工智能',
+  '架构设计',
+  '网络安全',
+];
 
 // 模拟延迟函数
 const mockDelay = async (ms: number = Math.floor(Math.random() * 300) + 100) => {
@@ -58,7 +69,7 @@ export async function getVideos(
     await mockDelay(300);
 
     // 生成模拟视频数据
-    let videos = generateMockVideos(limit || 12, 0, params?.keyword || '全部视频标题');
+    let videos = generateMockVideos(limit || 12, 0, params?.keyword || '开发教程');
 
     // 如果有搜索参数，进行过滤
     if (params) {
@@ -414,7 +425,19 @@ export async function getVideoCategories(): Promise<string[]> {
   // 模拟API请求延迟
   await mockDelay(200);
 
-  return videoCategories;
+  // 返回预设的类别列表
+  return [
+    '全部',
+    '前端',
+    '后端',
+    'DevOps',
+    '移动开发',
+    '数据库',
+    'UI设计',
+    '人工智能',
+    '架构设计',
+    '网络安全',
+  ];
 }
 
 /**

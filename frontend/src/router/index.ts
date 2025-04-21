@@ -51,7 +51,38 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/video/:id',
         name: 'video-detail',
-        component: () => import('@/pages/video/VideoDetailPage.vue'),
+        component: () => {
+          console.log('正在加载视频详情页面...');
+          return new Promise(resolve => {
+            // 先尝试使用页面路径加载
+            import('@/pages/video/VideoDetailPage.vue')
+              .then(component => {
+                console.log('视频详情页面加载成功');
+                resolve(component);
+              })
+              .catch(err => {
+                console.error('视频详情页面加载失败:', err);
+                // 失败时使用备用页面
+                import('@/pages/video/VideoPlayerTemp.vue')
+                  .then(component => {
+                    console.log('使用备用视频播放器');
+                    resolve(component);
+                  })
+                  .catch(() => {
+                    // 如果备用组件也失败，返回一个简单的组件
+                    resolve({
+                      template: `
+                        <div style="padding: 20px; text-align: center;">
+                          <h2>视频加载中...</h2>
+                          <p>视频ID: {{ $route.params.id }}</p>
+                          <button @click="$router.push('/')">返回首页</button>
+                        </div>
+                      `,
+                    });
+                  });
+              });
+          });
+        },
         props: true,
         meta: {
           title: '视频详情 - Atom Video',

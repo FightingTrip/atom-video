@@ -1,489 +1,221 @@
-import type {
-  User as IUser,
-  AuthResponse as IAuthResponse,
-  ApiResponse as IApiResponse,
-} from '@/types';
-import { generateId } from '@/utils/format';
-import { faker } from '@faker-js/faker';
-import type { Channel as IChannel, Playlist as IPlaylist } from '@/types';
+/**
+ * @file users.ts
+ * @description 用户相关的模拟数据和API
+ */
 
-// // 设置中文语言
-// faker.setLocale('zh_CN');
+import type { User } from '@/types';
+import { generateRandomId } from './data';
 
-// 本地使用的User接口，确保与types/index.ts中的定义兼容
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  nickname?: string;
-  avatar: string;
-  bio?: string;
-  verified?: boolean;
-  isVerified?: boolean; // 兼容现有代码
-  subscribers?: number;
-  subscribing?: number;
-  totalViews?: number;
-  joinedAt?: string;
-  social?: {
-    website?: string;
-    twitter?: string;
-    github?: string;
-    instagram?: string;
-  };
-}
-
-// 本地使用的Channel接口
-export interface Channel {
-  id: string;
-  userId: string;
-  name: string;
-  description: string;
-  banner: string;
-  playlists: Playlist[];
-}
-
-// 本地使用的Playlist接口
-export interface Playlist {
-  id: string;
-  name: string;
-  description: string;
-  videoCount: number;
-  visibility: 'public' | 'private' | 'unlisted';
-  createdAt: string;
-  updatedAt: string;
-}
-
-// 模拟用户数据
-export const mockUsers: User[] = [
+// 测试账号
+const testUsers = [
   {
     id: '1',
     username: 'admin',
-    email: 'admin@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    isVerified: true,
+    email: 'admin@atomvideo.com',
+    password: 'Admin@123',
+    nickname: '管理员',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    verified: true,
+    bio: '系统管理员账号',
+    subscribers: 1200,
+    subscribing: 15,
+    totalViews: 52000,
+    joinedAt: '2024-01-01T00:00:00Z',
   },
   {
     id: '2',
     username: 'creator',
-    email: 'creator@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    isVerified: true,
+    email: 'creator@atomvideo.com',
+    password: 'Password123',
+    nickname: '内容创作者',
+    avatar: 'https://i.pravatar.cc/150?u=creator',
+    verified: true,
+    bio: '专业视频创作者，分享各种教程和经验',
+    subscribers: 8500,
+    subscribing: 32,
+    totalViews: 350000,
+    joinedAt: '2024-01-15T00:00:00Z',
   },
   {
     id: '3',
     username: 'user',
-    email: 'user@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    isVerified: true,
-  },
-  {
-    id: '4',
-    username: 'demo',
-    email: 'demo@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    isVerified: true,
-  },
-  {
-    id: '5',
-    username: 'test',
-    email: 'test@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    isVerified: true,
+    email: 'user@atomvideo.com',
+    password: 'Password123',
+    nickname: '普通用户',
+    avatar: 'https://i.pravatar.cc/150?u=user',
+    verified: false,
+    bio: '喜欢观看各种视频',
+    subscribers: 50,
+    subscribing: 120,
+    totalViews: 0,
+    joinedAt: '2024-02-01T00:00:00Z',
   },
 ];
 
-// 模拟的用户密码映射 (在实际应用中密码会加密保存)
-const userPasswords = {
-  'admin@example.com': 'admin123',
-  'creator@example.com': 'creator123',
-  'user@example.com': 'user123',
-  'demo@example.com': 'demo123',
-  'test@example.com': 'test123',
-  'admin@atomvideo.com': 'Admin@123',
-  'creator@atomvideo.com': 'Password123',
-  'user@atomvideo.com': 'Password123',
-};
+// 存储已注册的用户
+const registeredUsers = [...testUsers];
 
-// 模拟token存储
-export const tokens = new Map<string, string>();
+// 模拟 token 存储
+const tokenUserMap = new Map();
 
-// 模拟验证码存储
-const verificationCodes = new Map<string, string>();
+/**
+ * 模拟登录API
+ * @param param0
+ * @returns
+ */
+export async function login({ username, password }: { username: string; password: string }) {
+  // 延迟模拟网络请求
+  await new Promise(resolve => setTimeout(resolve, 500));
 
-// 生成唯一ID
-export function generateId() {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
+  // 查找匹配的用户
+  const user = registeredUsers.find(
+    u => (u.username === username || u.email === username) && u.password === password
+  );
 
-// API 响应类型 - 确保与types/index.ts兼容
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data: T | null;
-  error?: string;
-  message?: string;
-}
-
-// 认证响应类型
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
-
-// 模拟登录
-export async function login(data: {
-  username: string;
-  password: string;
-}): Promise<ApiResponse<AuthResponse>> {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // 添加测试账号支持
-  if (data.username.includes('@atomvideo.com') && userPasswords[data.username] === data.password) {
-    const username = data.username.split('@')[0];
-    const user: User = {
-      id: `test-user-${username}`,
-      username: username,
-      email: data.username,
-      avatar: `https://i.pravatar.cc/150?img=${username === 'admin' ? 1 : username === 'creator' ? 2 : 3}`,
-      isVerified: true,
-      nickname: username.charAt(0).toUpperCase() + username.slice(1),
-    };
-
-    const token = generateId();
-    tokens.set(user.id, token);
+  if (user) {
+    // 创建 token 并关联用户
+    const token = `token-${generateRandomId()}`;
+    const { password, ...userWithoutPassword } = user;
+    tokenUserMap.set(token, userWithoutPassword);
 
     return {
       success: true,
       data: {
         token,
-        user,
+        user: userWithoutPassword,
       },
-    };
-  }
-
-  // 检查是否是邮箱登录
-  const isEmail = data.username.includes('@');
-  let user;
-
-  if (isEmail) {
-    // 通过邮箱查找用户
-    user = mockUsers.find(u => u.email === data.username);
-    // 验证密码
-    if (user && userPasswords[data.username] !== data.password) {
-      user = null;
-    }
-  } else {
-    // 通过用户名查找用户
-    user = mockUsers.find(u => u.username === data.username);
-    // 验证密码
-    if (user && userPasswords[user.email] !== data.password) {
-      user = null;
-    }
-  }
-
-  if (!user) {
-    return {
-      success: false,
-      data: null,
-      error: '用户名或密码错误',
-    };
-  }
-
-  // 生成token
-  const token = generateId();
-  tokens.set(user.id, token);
-
-  return {
-    success: true,
-    data: {
-      token,
-      user,
-    },
-  };
-}
-
-// 模拟注册
-export async function register(data: {
-  username: string;
-  password: string;
-  nickname?: string;
-}): Promise<ApiResponse<User>> {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // 检查用户名是否已存在
-  if (mockUsers.some(u => u.username === data.username)) {
-    return {
-      success: false,
-      data: null,
-      error: '用户名已存在',
-    };
-  }
-
-  // 创建新用户
-  const newUser: User = {
-    id: (mockUsers.length + 1).toString(),
-    username: data.username,
-    email: `${data.username}@example.com`,
-    avatar: `https://i.pravatar.cc/150?img=${mockUsers.length + 1}`,
-    isVerified: false,
-  };
-
-  // 添加到模拟数据
-  mockUsers.push(newUser);
-
-  // 添加密码映射
-  userPasswords[newUser.email] = data.password;
-
-  return {
-    success: true,
-    data: newUser,
-  };
-}
-
-// 通过token获取用户
-export async function getUserByToken(token: string): Promise<ApiResponse<User>> {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // 查找token对应的用户
-  const userId = [...tokens.entries()].find(([, t]) => t === token)?.[0];
-  if (!userId) {
-    return {
-      success: false,
-      data: null,
-      error: '无效的token',
-    };
-  }
-
-  const user = mockUsers.find(u => u.id === userId);
-  if (!user) {
-    return {
-      success: false,
-      data: null,
-      error: '用户不存在',
-    };
-  }
-
-  return {
-    success: true,
-    data: user,
-  };
-}
-
-// 模拟发送验证码
-export async function sendVerificationCode(email: string): Promise<ApiResponse<string>> {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  // 生成6位验证码
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // 在实际应用中，这里会调用邮件服务发送验证码
-  console.log(`[模拟] 向 ${email} 发送验证码: ${code}`);
-
-  // 存储验证码 (实际应用中应存储在后端)
-  verificationCodes.set(email, code);
-
-  // 在模拟模式下，返回验证码方便测试
-  return {
-    success: true,
-    data: code,
-    message: `验证码已发送到 ${email}`,
-  };
-}
-
-// 验证邮箱验证码
-export async function verifyEmailCode(email: string, code: string): Promise<ApiResponse<boolean>> {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  // 获取存储的验证码
-  const storedCode = verificationCodes.get(email);
-
-  // 验证码正确或固定测试码 "123456"
-  if (storedCode === code || code === '123456') {
-    return {
-      success: true,
-      data: true,
-      message: '验证成功',
     };
   }
 
   return {
     success: false,
-    data: false,
+    error: '用户名或密码不正确',
+  };
+}
+
+/**
+ * 模拟注册API
+ */
+export async function register({
+  username,
+  password,
+  nickname,
+  email,
+}: {
+  username: string;
+  password: string;
+  nickname?: string;
+  email?: string;
+}) {
+  // 延迟模拟网络请求
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  // 检查是否已存在同名用户
+  if (
+    registeredUsers.some(u => u.username === username || u.email === email || u.email === username)
+  ) {
+    return {
+      success: false,
+      error: '用户名或邮箱已被注册',
+    };
+  }
+
+  // 创建新用户
+  const newUser = {
+    id: generateRandomId(),
+    username,
+    email: email || `${username}@example.com`,
+    password,
+    nickname: nickname || username,
+    avatar: `https://i.pravatar.cc/150?u=${username}`,
+    verified: false,
+    bio: '',
+    subscribers: 0,
+    subscribing: 0,
+    totalViews: 0,
+    joinedAt: new Date().toISOString(),
+  };
+
+  // 添加到注册用户列表
+  registeredUsers.push(newUser);
+
+  return {
+    success: true,
+    data: {
+      message: '注册成功',
+    },
+  };
+}
+
+/**
+ * 通过token获取用户信息
+ */
+export async function getUserByToken(token: string) {
+  // 延迟模拟网络请求
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  const user = tokenUserMap.get(token);
+
+  if (user) {
+    return {
+      success: true,
+      data: user,
+    };
+  }
+
+  return {
+    success: false,
+    error: 'token无效或已过期',
+  };
+}
+
+/**
+ * 模拟发送邮箱验证码
+ */
+export async function sendVerificationCode(email: string) {
+  // 延迟模拟网络请求
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  // 生成6位随机验证码
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // 在真实应用中，这里会发送邮件
+  console.log(`向 ${email} 发送验证码: ${verificationCode}`);
+
+  // 在localStorage中存储验证码，用于验证（仅用于模拟）
+  localStorage.setItem(`verify_code_${email}`, verificationCode);
+
+  return {
+    success: true,
+    data: {
+      message: '验证码已发送',
+      // 仅用于开发环境
+      code: import.meta.env.DEV ? verificationCode : undefined,
+    },
+  };
+}
+
+/**
+ * 验证邮箱验证码
+ */
+export async function verifyEmailCode(email: string, code: string) {
+  // 延迟模拟网络请求
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const storedCode = localStorage.getItem(`verify_code_${email}`);
+
+  if (storedCode === code) {
+    localStorage.removeItem(`verify_code_${email}`);
+    return {
+      success: true,
+      data: {
+        verified: true,
+      },
+    };
+  }
+
+  return {
+    success: false,
     error: '验证码不正确或已过期',
   };
 }
-
-// 模拟验证token
-export function validateToken(token: string): boolean {
-  return Array.from(tokens.values()).includes(token);
-}
-
-// 生成模拟用户数据
-export const generateMockUsers = (count: number): User[] => {
-  return Array.from({ length: count }, () => ({
-    id: faker.string.uuid(),
-    username: faker.internet.username(),
-    email: faker.internet.email(),
-    nickname: faker.person.fullName(),
-    avatar: faker.image.avatar(),
-    bio: faker.lorem.paragraph(),
-    verified: faker.datatype.boolean(0.2),
-    subscribers: faker.number.int({ min: 100, max: 1000000 }),
-    subscribing: faker.number.int({ min: 10, max: 500 }),
-    totalViews: faker.number.int({ min: 1000, max: 10000000 }),
-    joinedAt: faker.date.past({ years: 3 }).toISOString(),
-    social: {
-      website: faker.helpers.maybe(() => faker.internet.url()),
-      twitter: faker.helpers.maybe(() => faker.internet.username()),
-      github: faker.helpers.maybe(() => faker.internet.username()),
-      instagram: faker.helpers.maybe(() => faker.internet.username()),
-    },
-  }));
-};
-
-// 生成频道数据
-const generateChannels = (userId: string): Channel => ({
-  id: faker.string.uuid(),
-  userId,
-  name: faker.company.name(),
-  description: faker.lorem.paragraphs(2),
-  banner: `https://picsum.photos/seed/${faker.string.alphanumeric(8)}/1920/180`,
-  playlists: Array.from({ length: faker.number.int({ min: 2, max: 8 }) }, () => ({
-    id: faker.string.uuid(),
-    name: faker.lorem.words(3),
-    description: faker.lorem.sentence(),
-    videoCount: faker.number.int({ min: 5, max: 50 }),
-    visibility: faker.helpers.arrayElement(['public', 'private', 'unlisted']),
-    createdAt: faker.date.past({ years: 1 }).toISOString(),
-    updatedAt: faker.date.recent().toISOString(),
-  })),
-});
-
-// 生成初始数据
-const mockUserList = generateMockUsers(50);
-const mockChannelList = mockUserList.map(user => generateChannels(user.id));
-
-// Mock API 函数
-export const mockUserApi = {
-  // 获取用户信息
-  async getUserById(id: string): Promise<User | undefined> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockUserList.find(user => user.id === id);
-  },
-
-  // 获取用户列表
-  async getUsers(page = 1, limit = 20) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    return {
-      users: mockUserList.slice(start, end),
-      total: mockUserList.length,
-      hasMore: end < mockUserList.length,
-    };
-  },
-
-  // 获取频道信息
-  async getChannelByUserId(userId: string): Promise<Channel | undefined> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return mockChannelList.find(channel => channel.userId === userId);
-  },
-
-  // 获取用户播放列表
-  async getUserPlaylists(userId: string) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const channel = mockChannelList.find(channel => channel.userId === userId);
-    return channel?.playlists || [];
-  },
-
-  // 搜索用户
-  async searchUsers(query: string, page = 1, limit = 20) {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const filtered = mockUserList.filter(
-      user =>
-        user.nickname.toLowerCase().includes(query.toLowerCase()) ||
-        user.username.toLowerCase().includes(query.toLowerCase())
-    );
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    return {
-      users: filtered.slice(start, end),
-      total: filtered.length,
-      hasMore: end < filtered.length,
-    };
-  },
-};
-
-// 导出一些测试数据用于开发
-export const testUserData = {
-  users: mockUserList.slice(0, 5),
-  channels: mockChannelList.slice(0, 5),
-};
-
-// 模拟获取用户信息
-export async function getUserInfo(userId: string): Promise<ApiResponse<User>> {
-  const user = mockUsers.find(u => u.id === userId);
-
-  if (!user) {
-    return {
-      success: false,
-      data: null,
-      error: '用户不存在',
-    };
-  }
-
-  return {
-    success: true,
-    data: user,
-  };
-}
-
-// 模拟更新用户信息
-export async function updateUserInfo(
-  userId: string,
-  data: Partial<User>
-): Promise<ApiResponse<User>> {
-  const userIndex = mockUsers.findIndex(u => u.id === userId);
-
-  if (userIndex === -1) {
-    return {
-      success: false,
-      data: null,
-      error: '用户不存在',
-    };
-  }
-
-  // 更新用户信息
-  mockUsers[userIndex] = {
-    ...mockUsers[userIndex],
-    ...data,
-    id: userId, // 防止 id 被修改
-    username: mockUsers[userIndex].username, // 防止用户名被修改
-  };
-
-  return {
-    success: true,
-    data: mockUsers[userIndex],
-  };
-}
-
-// 模拟 API 函数
-export const getUserById = async (id: string) => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockUsers.find(user => user.id === id);
-};
-
-export const getChannelByUserId = async (userId: string) => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockChannelList.find(channel => channel.userId === userId);
-};
-
-export const getUserPlaylists = async (userId: string) => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  const channel = mockChannelList.find(channel => channel.userId === userId);
-  return channel?.playlists || [];
-};
