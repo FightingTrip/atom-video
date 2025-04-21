@@ -36,6 +36,8 @@
 * - subscribe: 关注操作
 * - comment: 发表评论
 * - load-more-comments: 加载更多评论
+* - preview-clip: 预览视频片段
+* - jump-to-time: 跳转到指定时间
 */
 <template>
   <div class="video-detail">
@@ -147,6 +149,129 @@
       <span>离线模式下，互动功能将在本地模拟，不会同步到服务器</span>
     </div>
 
+    <!-- 新增: 分享模态框 -->
+    <n-modal v-model:show="showShareModal" preset="card" style="width: 420px" :title="shareModalTitle">
+      <div class="share-modal-content">
+        <!-- 正常分享 -->
+        <template v-if="!isClipSharingMode">
+          <div class="share-options">
+            <div class="share-option" @click="shareVia('copy')">
+              <n-icon size="24">
+                <CopyOutline />
+              </n-icon>
+              <span>复制链接</span>
+            </div>
+            <div class="share-option" @click="shareVia('wechat')">
+              <n-icon size="24">
+                <LogoWechat />
+              </n-icon>
+              <span>微信</span>
+            </div>
+            <div class="share-option" @click="shareVia('weibo')">
+              <n-icon size="24">
+                <LogoWeibo />
+              </n-icon>
+              <span>微博</span>
+            </div>
+            <div class="share-option" @click="shareVia('qq')">
+              <n-icon size="24">
+                <LogoQq />
+              </n-icon>
+              <span>QQ</span>
+            </div>
+            <div class="share-option" @click="shareVia('twitter')">
+              <n-icon size="24">
+                <LogoTwitter />
+              </n-icon>
+              <span>Twitter</span>
+            </div>
+            <div class="share-option" @click="shareVia('facebook')">
+              <n-icon size="24">
+                <LogoFacebook />
+              </n-icon>
+              <span>Facebook</span>
+            </div>
+          </div>
+
+          <div class="advanced-sharing">
+            <n-divider>高级分享选项</n-divider>
+
+            <div class="start-at">
+              <span>从特定时间开始播放:</span>
+              <div class="time-input-group">
+                <n-input-number v-model:value="shareStartMinutes" :min="0" :max="Math.floor((video.duration || 0) / 60)"
+                  placeholder="分钟" size="small" />
+                <span>:</span>
+                <n-input-number v-model:value="shareStartSeconds" :min="0" :max="59" placeholder="秒" size="small" />
+                <n-button size="small" @click="setCurrentTimeAsStart">当前时间</n-button>
+              </div>
+            </div>
+
+            <div class="share-clip">
+              <n-button @click="enableClipSharing">分享视频片段</n-button>
+            </div>
+          </div>
+
+          <div class="share-link">
+            <n-input :value="shareUrl" readonly>
+              <template #suffix>
+                <n-button quaternary @click="copyShareUrl">
+                  <n-icon>
+                    <CopyOutline />
+                  </n-icon>
+                </n-button>
+              </template>
+            </n-input>
+          </div>
+        </template>
+
+        <!-- 视频片段分享模式 -->
+        <template v-else>
+          <div class="clip-editor">
+            <div class="clip-preview">
+              <img :src="clipPreviewImage || video.coverUrl" alt="视频预览" class="clip-preview-image" />
+              <div class="clip-preview-overlay">
+                <n-button @click="previewClip">播放预览</n-button>
+              </div>
+            </div>
+
+            <div class="clip-time-range">
+              <div class="clip-start">
+                <span>开始时间:</span>
+                <div class="time-input-group">
+                  <n-input-number v-model:value="clipStartMinutes" :min="0"
+                    :max="Math.floor((video.duration || 0) / 60)" placeholder="分钟" size="small" />
+                  <span>:</span>
+                  <n-input-number v-model:value="clipStartSeconds" :min="0" :max="59" placeholder="秒" size="small" />
+                </div>
+              </div>
+
+              <div class="clip-end">
+                <span>结束时间:</span>
+                <div class="time-input-group">
+                  <n-input-number v-model:value="clipEndMinutes" :min="0" :max="Math.floor((video.duration || 0) / 60)"
+                    placeholder="分钟" size="small" />
+                  <span>:</span>
+                  <n-input-number v-model:value="clipEndSeconds" :min="0" :max="59" placeholder="秒" size="small" />
+                </div>
+              </div>
+            </div>
+
+            <div class="clip-duration">
+              <span>片段长度: {{ formatDuration(clipDuration) }}</span>
+              <n-slider v-model:value="[clipStartTime, clipEndTime]" range :min="0" :max="video.duration || 600"
+                :step="1" :tooltip="false" @update:value="updateClipTimes" />
+            </div>
+
+            <div class="clip-actions">
+              <n-button @click="cancelClipSharing">取消</n-button>
+              <n-button type="primary" @click="shareClip" :disabled="clipDuration <= 0">分享片段</n-button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </n-modal>
+
     <!-- 评论区 -->
     <div class="comments">
       <h2 class="comments-title">
@@ -156,8 +281,41 @@
       <!-- 评论输入 -->
       <div class="comment-input">
         <n-avatar round :size="40" :src="userAvatar" :fallback-src="fallbackUserAvatar" />
-        <n-input v-model:value="commentText" type="textarea" placeholder="添加评论..."
-          :autosize="{ minRows: 2, maxRows: 6 }" @keydown.enter.prevent="handleComment" />
+        <div class="comment-input-wrapper">
+          <n-input v-model:value="commentText" type="textarea" placeholder="添加评论..."
+            :autosize="{ minRows: 2, maxRows: 6 }" @keydown.enter.prevent="handleComment" />
+
+          <!-- 时间戳按钮 -->
+          <div class="comment-tools">
+            <n-tooltip trigger="hover" placement="top">
+              <template #trigger>
+                <n-button quaternary size="small" @click="insertCurrentTimestamp">
+                  <template #icon>
+                    <n-icon>
+                      <TimeOutline />
+                    </n-icon>
+                  </template>
+                  添加时间戳
+                </n-button>
+              </template>
+              在评论中插入当前播放时间
+            </n-tooltip>
+
+            <n-tooltip trigger="hover" placement="top">
+              <template #trigger>
+                <n-button quaternary size="small" @click="insertMention">
+                  <template #icon>
+                    <n-icon>
+                      <PersonAddOutline />
+                    </n-icon>
+                  </template>
+                  @用户
+                </n-button>
+              </template>
+              在评论中@其他用户
+            </n-tooltip>
+          </div>
+        </div>
         <n-button type="primary" :disabled="!commentText.trim()" @click="handleComment">
           评论
         </n-button>
@@ -173,7 +331,7 @@
               <span class="comment-author">{{ comment.author.nickname }}</span>
               <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
             </div>
-            <p class="comment-text">{{ comment.content }}</p>
+            <p class="comment-text" v-html="formatCommentWithTimestamps(comment.content)"></p>
             <div class="comment-actions">
               <n-button quaternary size="small">
                 <template #icon>
@@ -207,19 +365,16 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, h } from 'vue'
-  import { NButton, NButtonGroup, NIcon, NInput, NAvatar, NTag, NTooltip } from 'naive-ui'
+  import { ref, computed, h, inject } from 'vue'
   import {
-    ThumbsUp,
-    Bookmark,
-    Share,
-    Chatbubble,
-    ThumbsUpOutline,
-    HeartOutline,
-    Heart,
-    ShareSocialOutline,
-    DownloadOutline,
-    CloudOfflineOutline
+    NButton, NButtonGroup, NIcon, NInput, NAvatar, NTag, NTooltip,
+    NModal, NDivider, NInputNumber, NSlider, useMessage
+  } from 'naive-ui'
+  import {
+    ThumbsUp, Bookmark, Share, Chatbubble, ThumbsUpOutline, HeartOutline,
+    Heart, ShareSocialOutline, DownloadOutline, CloudOfflineOutline,
+    CopyOutline, TimeOutline, PersonAddOutline, LogoWechat, LogoTwitter,
+    LogoFacebook, LogoWeibo, LogoQq
   } from '@vicons/ionicons5'
   import type { Video, Comment, PropType } from '@/types'
   import { useAuthStore } from '@/stores/auth'
@@ -273,6 +428,8 @@
     (e: 'subscribe'): void
     (e: 'comment', content: string): void
     (e: 'load-more-comments'): void
+    (e: 'preview-clip', range: { startTime: number, endTime: number }): void
+    (e: 'jump-to-time', seconds: number): void
   }>()
 
   // 状态
@@ -290,6 +447,272 @@
   const fallbackUserAvatar = computed(() => {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${authStore.user?.id}`
   })
+
+  // 消息组件
+  const message = useMessage();
+
+  // 注入当前播放时间
+  const currentPlayerTime = inject<number>('currentPlayerTime', 0);
+
+  // 分享功能状态
+  const showShareModal = ref(false);
+  const isClipSharingMode = ref(false);
+  const shareStartMinutes = ref(0);
+  const shareStartSeconds = ref(0);
+  const clipStartMinutes = ref(0);
+  const clipStartSeconds = ref(0);
+  const clipEndMinutes = ref(0);
+  const clipEndSeconds = ref(0);
+  const clipStartTime = ref(0);
+  const clipEndTime = ref(0);
+  const clipPreviewImage = ref('');
+
+  // 计算分享标题
+  const shareModalTitle = computed(() => {
+    return isClipSharingMode.value ? '分享视频片段' : '分享视频';
+  });
+
+  // 计算分享URL
+  const shareUrl = computed(() => {
+    let url = `https://atomvideo.example.com/video/${props.video.id}`;
+
+    // 添加开始时间参数
+    const startSeconds = shareStartMinutes.value * 60 + shareStartSeconds.value;
+    if (startSeconds > 0) {
+      url += `?t=${startSeconds}`;
+    }
+
+    return url;
+  });
+
+  // 计算片段时长
+  const clipDuration = computed(() => {
+    return clipEndTime.value - clipStartTime.value;
+  });
+
+  // 格式化持续时间
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // 显示分享模态框
+  const openShareModal = () => {
+    showShareModal.value = true;
+    isClipSharingMode.value = false;
+
+    // 重置分享参数
+    shareStartMinutes.value = 0;
+    shareStartSeconds.value = 0;
+  };
+
+  // 复制分享链接
+  const copyShareUrl = () => {
+    navigator.clipboard.writeText(shareUrl.value)
+      .then(() => {
+        message.success('链接已复制到剪贴板');
+      })
+      .catch(() => {
+        message.error('复制失败，请手动复制');
+      });
+  };
+
+  // 通过特定渠道分享
+  const shareVia = (platform: string) => {
+    let shareLink = '';
+    const title = encodeURIComponent(props.video.title);
+    const url = encodeURIComponent(shareUrl.value);
+
+    switch (platform) {
+      case 'copy':
+        copyShareUrl();
+        return;
+      case 'wechat':
+        message.info('请使用微信扫一扫功能');
+        // 实际应用中应该显示二维码
+        return;
+      case 'weibo':
+        shareLink = `https://service.weibo.com/share/share.php?url=${url}&title=${title}`;
+        break;
+      case 'qq':
+        shareLink = `https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${title}`;
+        break;
+      case 'twitter':
+        shareLink = `https://twitter.com/intent/tweet?text=${title}&url=${url}`;
+        break;
+      case 'facebook':
+        shareLink = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        break;
+    }
+
+    if (shareLink) {
+      window.open(shareLink, '_blank');
+    }
+  };
+
+  // 设置当前播放时间为分享起始时间
+  const setCurrentTimeAsStart = () => {
+    const currentTime = currentPlayerTime;
+    shareStartMinutes.value = Math.floor(currentTime / 60);
+    shareStartSeconds.value = Math.floor(currentTime % 60);
+  };
+
+  // 启用片段分享模式
+  const enableClipSharing = () => {
+    isClipSharingMode.value = true;
+
+    // 初始化片段时间范围
+    const currentTime = currentPlayerTime;
+    clipStartTime.value = Math.max(0, currentTime - 5); // 当前时间前5秒
+    clipEndTime.value = Math.min(props.video.duration || 600, currentTime + 15); // 当前时间后15秒
+
+    // 更新分钟和秒数输入框
+    updateClipTimeInputs();
+  };
+
+  // 取消片段分享
+  const cancelClipSharing = () => {
+    isClipSharingMode.value = false;
+  };
+
+  // 预览片段
+  const previewClip = () => {
+    // 这里应该调用视频播放器组件的方法播放片段
+    // 在实际实现中需要与播放器组件通信
+    message.info(`预览 ${formatDuration(clipStartTime.value)} 到 ${formatDuration(clipEndTime.value)} 的片段`);
+
+    // 发出事件通知播放器
+    emit('preview-clip', {
+      startTime: clipStartTime.value,
+      endTime: clipEndTime.value
+    });
+  };
+
+  // 分享片段
+  const shareClip = () => {
+    // 构建带有片段参数的分享链接
+    const clipUrl = `https://atomvideo.example.com/video/${props.video.id}?start=${clipStartTime.value}&end=${clipEndTime.value}`;
+
+    // 复制链接到剪贴板
+    navigator.clipboard.writeText(clipUrl)
+      .then(() => {
+        message.success('视频片段链接已复制到剪贴板');
+        isClipSharingMode.value = false;
+      })
+      .catch(() => {
+        message.error('复制失败，请手动复制');
+      });
+  };
+
+  // 更新片段时间输入
+  const updateClipTimeInputs = () => {
+    clipStartMinutes.value = Math.floor(clipStartTime.value / 60);
+    clipStartSeconds.value = Math.floor(clipStartTime.value % 60);
+    clipEndMinutes.value = Math.floor(clipEndTime.value / 60);
+    clipEndSeconds.value = Math.floor(clipEndTime.value % 60);
+  };
+
+  // 从输入更新片段时间
+  const updateClipTimes = (values: number[]) => {
+    clipStartTime.value = values[0];
+    clipEndTime.value = values[1];
+    updateClipTimeInputs();
+  };
+
+  // 插入当前时间戳到评论
+  const insertCurrentTimestamp = () => {
+    const currentTime = currentPlayerTime;
+    const formattedTime = formatDuration(currentTime);
+    commentText.value += ` [${formattedTime}] `;
+  };
+
+  // 插入@提及
+  const insertMention = () => {
+    commentText.value += ' @用户 ';
+    // 在实际应用中，这里应该弹出用户选择器
+  };
+
+  // 格式化评论，将时间戳转为可点击链接
+  const formatCommentWithTimestamps = (content: string) => {
+    if (!content) return '';
+
+    // 匹配形如 [0:00] 或 [00:00] 或 [0:00:00] 的时间戳
+    const timeRegex = /\[(\d+:)?(\d+:\d+)\]/g;
+
+    // 替换为可点击的时间链接
+    return content.replace(timeRegex, (match, p1, p2) => {
+      const timeString = p1 ? `${p1}${p2}` : p2;
+
+      // 解析时间为秒数
+      let seconds = 0;
+      const parts = timeString.split(':').map(Number);
+
+      if (parts.length === 3) {
+        // 时:分:秒
+        seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      } else if (parts.length === 2) {
+        // 分:秒
+        seconds = parts[0] * 60 + parts[1];
+      }
+
+      return `<a href="javascript:void(0)" class="timestamp-link" data-time="${seconds}" onclick="window.jumpToVideoTime(${seconds})">${match}</a>`;
+    });
+  };
+
+  // 方法重写
+  const showShareModal = () => {
+    openShareModal();
+  };
+
+  // 导出jumpToVideoTime到window对象
+  if (typeof window !== 'undefined') {
+    window.jumpToVideoTime = (seconds: number) => {
+      emit('jump-to-time', seconds);
+    };
+  }
+
+  // 交互按钮（更新）
+  const actionButtons = [
+    {
+      icon: () => h(ThumbsUpOutline),
+      activeIcon: () => h(ThumbsUp),
+      text: '点赞',
+      active: props.isLiked,
+      count: computed(() => formatNumber(props.video.likes)),
+      click: () => emit('like'),
+      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isLiked ? '取消点赞' : '点赞')),
+      disabled: false
+    },
+    {
+      icon: () => h(HeartOutline),
+      activeIcon: () => h(Heart),
+      text: '收藏',
+      active: props.isFavorited,
+      count: computed(() => formatNumber(props.video.favorites)),
+      click: () => emit('favorite'),
+      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isFavorited ? '取消收藏' : '收藏')),
+      disabled: false
+    },
+    {
+      icon: () => h(ShareSocialOutline),
+      text: '分享',
+      active: false,
+      count: null,
+      click: () => openShareModal(),
+      tooltip: '分享视频',
+      disabled: props.offlineMode // 离线模式下禁用分享
+    },
+    {
+      icon: () => h(DownloadOutline),
+      text: '下载',
+      active: false,
+      count: null,
+      click: handleDownload,
+      tooltip: props.offlineMode ? '离线模式下无法下载' : '下载视频',
+      disabled: props.offlineMode // 离线模式下禁用下载
+    }
+  ]
 
   // 方法
   const handleLike = () => {
@@ -339,59 +762,11 @@
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`
   }
 
-  // 显示分享模态框
-  const showShareModal = ref(() => {
-    // 实现分享功能
-    alert('分享功能暂未实现');
-  })
-
   // 下载视频
   const handleDownload = () => {
     // 实现下载功能
     alert('下载功能暂未实现');
   }
-
-  // 交互按钮
-  const actionButtons = [
-    {
-      icon: () => h(ThumbsUpOutline),
-      activeIcon: () => h(ThumbsUp),
-      text: '点赞',
-      active: props.isLiked,
-      count: computed(() => formatNumber(props.video.likes)),
-      click: () => emit('like'),
-      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isLiked ? '取消点赞' : '点赞')),
-      disabled: false
-    },
-    {
-      icon: () => h(HeartOutline),
-      activeIcon: () => h(Heart),
-      text: '收藏',
-      active: props.isFavorited,
-      count: computed(() => formatNumber(props.video.favorites)),
-      click: () => emit('favorite'),
-      tooltip: computed(() => props.offlineMode ? '离线模式下，操作仅在本地显示' : (props.isFavorited ? '取消收藏' : '收藏')),
-      disabled: false
-    },
-    {
-      icon: () => h(ShareSocialOutline),
-      text: '分享',
-      active: false,
-      count: null,
-      click: () => showShareModal.value(),
-      tooltip: '分享视频',
-      disabled: props.offlineMode // 离线模式下禁用分享
-    },
-    {
-      icon: () => h(DownloadOutline),
-      text: '下载',
-      active: false,
-      count: null,
-      click: handleDownload,
-      tooltip: props.offlineMode ? '离线模式下无法下载' : '下载视频',
-      disabled: props.offlineMode // 离线模式下禁用下载
-    }
-  ]
 </script>
 
 <style scoped>
@@ -667,6 +1042,172 @@
 
     .comment-input {
       flex-direction: column;
+    }
+  }
+
+  /* 评论工具 */
+  .comment-input-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .comment-tools {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  /* 时间戳链接样式 */
+  :deep(.timestamp-link) {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    background-color: var(--primary-color-light);
+    padding: 2px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  :deep(.timestamp-link:hover) {
+    text-decoration: underline;
+    background-color: var(--primary-color-lighter);
+  }
+
+  /* 分享模态框样式 */
+  .share-modal-content {
+    padding: 16px 0;
+  }
+
+  .share-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .share-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .share-option:hover {
+    background-color: var(--hover-color);
+  }
+
+  .advanced-sharing {
+    margin: 16px 0;
+  }
+
+  .start-at {
+    margin: 16px 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .time-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .share-clip {
+    margin: 16px 0;
+  }
+
+  .share-link {
+    margin-top: 16px;
+  }
+
+  /* 视频片段编辑器 */
+  .clip-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .clip-preview {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #000;
+  }
+
+  .clip-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .clip-preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .clip-preview:hover .clip-preview-overlay {
+    opacity: 1;
+  }
+
+  .clip-time-range {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .clip-start,
+  .clip-end {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .clip-duration {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .clip-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    /* ... existing code ... */
+
+    .comment-tools {
+      justify-content: space-between;
+    }
+
+    .share-options {
+      gap: 8px;
+    }
+
+    .clip-time-range {
+      flex-direction: column;
+      gap: 12px;
     }
   }
 </style>

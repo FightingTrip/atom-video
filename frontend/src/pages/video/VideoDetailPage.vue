@@ -37,13 +37,32 @@
 
     <div v-else-if="video" class="video-content">
       <div class="primary-column">
-        <VideoPlayerComponent :video="video" :current-time="savedProgress" @time-update="handleTimeUpdate"
-          @play="handlePlay" @pause="handlePause" @ended="handleEnded" class="video-player" />
+        <VideoPlayerComponent ref="playerRef" :video="video" :current-time="savedProgress"
+          @time-update="handleTimeUpdate" @play="handlePlay" @pause="handlePause" @ended="handleEnded"
+          class="video-player" />
 
         <VideoDetailComponent :video="video" :is-liked="isLiked" :is-favorited="isFavorited"
           :is-subscribed="isSubscribed" :offline-mode="isOfflineMode" @like="handleLike" @favorite="handleFavorite"
           @subscribe="handleSubscribe" @comment="handleComment" @load-more-comments="loadMoreComments"
           class="video-detail" />
+
+        <!-- 自动播放和播放队列设置 -->
+        <div class="playback-settings">
+          <div class="autoplay-toggle">
+            <n-switch v-model:value="autoplayEnabled" @update:value="toggleAutoplay">
+              <template #checked>自动播放已开启</template>
+              <template #unchecked>自动播放已关闭</template>
+            </n-switch>
+          </div>
+          <n-button quaternary @click="showPlayQueueDrawer = true">
+            <template #icon>
+              <n-icon>
+                <ListOutline />
+              </n-icon>
+            </template>
+            播放队列 ({{ playQueue.length }})
+          </n-button>
+        </div>
       </div>
       <div class="secondary-column">
         <div class="related-videos">
@@ -65,20 +84,159 @@
 
           <!-- 推荐视频列表 -->
           <div v-else class="video-suggestions">
-            <video-card-small v-for="video in relatedVideos" :key="video.id" :video="video"
-              @click="$router.push(`/video/${video.id}`)" />
+            <video-card-small v-for="(video, index) in relatedVideos" :key="video.id" :video="video"
+              @click="$router.push(`/video/${video.id}`)" class="video-card">
+              <template #extra>
+                <div class="video-card-actions">
+                  <n-tooltip trigger="hover" placement="top">
+                    <template #trigger>
+                      <n-button circle quaternary size="small" @click.stop="addToPlayQueue(video)">
+                        <template #icon>
+                          <n-icon>
+                            <AddOutline />
+                          </n-icon>
+                        </template>
+                      </n-button>
+                    </template>
+                    添加到播放队列
+                  </n-tooltip>
+                  <n-tooltip v-if="index === 0 && autoplayEnabled" trigger="hover" placement="top">
+                    <template #trigger>
+                      <n-tag size="small" type="info" class="autoplay-next-tag">
+                        即将播放
+                      </n-tag>
+                    </template>
+                    此视频将在当前视频结束后自动播放
+                  </n-tooltip>
+                </div>
+              </template>
+            </video-card-small>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 播放队列抽屉 -->
+    <n-drawer v-model:show="showPlayQueueDrawer" :width="350" placement="right">
+      <n-drawer-content title="播放队列" closable>
+        <div class="play-queue-header">
+          <n-button quaternary size="small" @click="clearPlayQueue" :disabled="playQueue.length === 0">
+            清空队列
+          </n-button>
+          <n-button quaternary size="small" @click="savePlayQueueAsPlaylist" :disabled="playQueue.length === 0">
+            保存为播放列表
+          </n-button>
+        </div>
+
+        <div v-if="playQueue.length === 0" class="empty-queue">
+          <n-icon size="48">
+            <ListOutline />
+          </n-icon>
+          <p>播放队列为空</p>
+          <n-button tertiary @click="fillQueueWithRecommended">
+            使用推荐视频填充队列
+          </n-button>
+        </div>
+
+        <div v-else class="queue-list">
+          <div v-for="(queueItem, index) in playQueue" :key="queueItem.id" class="queue-item"
+            :class="{ 'currently-playing': video && video.id === queueItem.id }">
+
+            <div class="queue-item-index">{{ index + 1 }}</div>
+            <n-image :src="queueItem.coverUrl" class="queue-thumbnail" :preview-disabled="true" object-fit="cover"
+              width="80" height="45" :alt="queueItem.title" />
+            <div class="queue-item-details">
+              <div class="queue-item-title">{{ queueItem.title }}</div>
+              <div class="queue-item-author">{{ queueItem.author.nickname }}</div>
+            </div>
+            <div class="queue-item-actions">
+              <n-button circle quaternary size="small" @click="removeFromPlayQueue(index)">
+                <template #icon>
+                  <n-icon>
+                    <CloseOutline />
+                  </n-icon>
+                </template>
+              </n-button>
+            </div>
+          </div>
+        </div>
+      </n-drawer-content>
+    </n-drawer>
+
+    <!-- 保存播放列表对话框 -->
+    <n-modal v-model:show="showSavePlaylistModal" preset="dialog" title="保存播放列表">
+      <template #content>
+        <div class="save-playlist-form">
+          <n-form>
+            <n-form-item label="播放列表名称">
+              <n-input v-model:value="newPlaylistName" placeholder="请输入播放列表名称" />
+            </n-form-item>
+            <n-form-item label="描述">
+              <n-input v-model:value="newPlaylistDescription" type="textarea" placeholder="描述这个播放列表（可选）" />
+            </n-form-item>
+            <n-form-item label="隐私设置">
+              <n-radio-group v-model:value="newPlaylistPrivacy">
+                <n-radio-button value="public">公开</n-radio-button>
+                <n-radio-button value="unlisted">不公开</n-radio-button>
+                <n-radio-button value="private">私有</n-radio-button>
+              </n-radio-group>
+            </n-form-item>
+          </n-form>
+        </div>
+      </template>
+      <template #action>
+        <div>
+          <n-button @click="showSavePlaylistModal = false">取消</n-button>
+          <n-button type="primary" @click="savePlaylist" :disabled="!newPlaylistName">
+            保存
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 自动播放倒计时 -->
+    <n-modal v-model:show="showAutoplayCountdown" preset="card" style="width: 350px" :mask-closable="false">
+      <div class="autoplay-countdown">
+        <div class="countdown-header">
+          <n-icon size="32">
+            <PlayOutline />
+          </n-icon>
+          <div class="countdown-title">即将自动播放</div>
+        </div>
+        <div class="countdown-info">
+          <n-image :src="nextVideo?.coverUrl" class="countdown-thumbnail" :preview-disabled="true" object-fit="cover"
+            width="120" height="68" />
+          <div class="countdown-details">
+            <div class="countdown-video-title">{{ nextVideo?.title }}</div>
+            <div class="countdown-video-author">{{ nextVideo?.author?.nickname }}</div>
+          </div>
+        </div>
+        <div class="countdown-progress">
+          <div class="countdown-progress-text">{{ countdownSeconds }}秒后播放</div>
+          <n-progress type="line" :percentage="(countdownDuration - countdownSeconds) / countdownDuration * 100"
+            :show-indicator="false" />
+        </div>
+        <div class="countdown-actions">
+          <n-button quaternary @click="cancelAutoplay">取消</n-button>
+          <n-button type="primary" @click="playNextVideoNow">立即播放</n-button>
+        </div>
+      </div>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import { NCard, NSpace, NSpin, NButton, NIcon, NAlert, NSkeleton, useMessage } from 'naive-ui';
-  import { WarningOutline, CloudOfflineOutline, VideocamOutline } from '@vicons/ionicons5';
+  import {
+    NCard, NSpace, NSpin, NButton, NIcon, NAlert, NSkeleton, useMessage,
+    NSwitch, NDrawer, NDrawerContent, NModal, NImage, NProgress, NForm,
+    NFormItem, NInput, NRadioGroup, NRadioButton, NTag, NTooltip
+  } from 'naive-ui';
+  import {
+    WarningOutline, CloudOfflineOutline, VideocamOutline,
+    ListOutline, AddOutline, CloseOutline, ChevronDown, PlayOutline
+  } from '@vicons/ionicons5';
   import { videoService } from '@/services/video';
   import { useHistoryStore } from '@/stores/history';
   import { useUserStore } from '@/stores/user';
@@ -88,7 +246,7 @@
   import VideoDetailComponent from '@/components/business/video/VideoDetailComponent.vue';
   import VideoCardSmall from '@/components/common/video/VideoCardSmall.vue';
   import CommentListComponent from '@/components/business/comment/CommentListComponent.vue';
-  import type { Video, VideoInteraction, Comment } from '@/types';
+  import type { Video, VideoInteraction, Comment, VideoChapter } from '@/types';
 
   const route = useRoute();
   const router = useRouter();
@@ -113,6 +271,32 @@
 
   // 离线模式状态 
   const isOfflineMode = computed(() => checkOfflineMode());
+
+  // 自动播放和播放队列
+  const autoplayEnabled = ref(true);
+  const playQueue = ref<Video[]>([]);
+  const showPlayQueueDrawer = ref(false);
+  const showSavePlaylistModal = ref(false);
+  const newPlaylistName = ref('');
+  const newPlaylistDescription = ref('');
+  const newPlaylistPrivacy = ref<'public' | 'unlisted' | 'private'>('public');
+
+  // 自动播放倒计时
+  const showAutoplayCountdown = ref(false);
+  const countdownSeconds = ref(10);
+  const countdownDuration = 10;
+  const countdownTimer = ref<number | null>(null);
+  const nextVideo = computed(() => {
+    if (playQueue.value.length > 0) {
+      return playQueue.value[0];
+    } else if (relatedVideos.value.length > 0) {
+      return relatedVideos.value[0];
+    }
+    return null;
+  });
+
+  // 视频播放器引用
+  const playerRef = ref<InstanceType<typeof VideoPlayerComponent> | null>(null);
 
   // 检查网络并刷新页面
   const checkNetworkAndRefresh = async () => {
@@ -350,7 +534,36 @@
     }
   };
 
-  // 记录播放进度
+  // 处理播放结束事件
+  const handleEnded = () => {
+    console.log('视频播放结束');
+
+    // 通知历史记录系统
+    if (video.value && video.value.id) {
+      historyStore.saveVideoProgress(video.value.id, 0);
+    }
+
+    // 如果开启了自动播放，播放下一个视频
+    if (autoplayEnabled.value && nextVideo.value) {
+      startAutoplayCountdown();
+    }
+  };
+
+  // 监听下一个视频的变化，预缓冲下一个视频
+  watch(() => nextVideo.value, (newVal, oldVal) => {
+    if (newVal && newVal.id !== oldVal?.id && navigator.onLine && !isOfflineMode.value) {
+      // 如果视频已经播放了一半以上，开始预加载下一个视频
+      if (playerRef.value && video.value) {
+        const currentProgress = playerRef.value.currentTime / (video.value.duration || 1);
+        if (currentProgress > 0.5) {
+          console.log('[VideoDetailPage] 开始预缓冲下一个视频:', newVal.title);
+          playerRef.value.preBufferNextVideo(newVal.id);
+        }
+      }
+    }
+  });
+
+  // 视频播放进度变化时，判断是否需要预加载下一个视频
   const handleTimeUpdate = (time: number) => {
     if (video.value) {
       try {
@@ -359,11 +572,14 @@
 
         // 如果不是离线模式，同时保存到服务器
         if (!isOfflineMode.value && time % 5 < 1) { // 每5秒左右同步一次进度
-          // 使用刚才添加的服务器端历史记录保存方法
           videoService.saveWatchHistory(video.value.id, time).catch(err => {
             console.warn('[VideoDetailPage] 同步播放进度到服务器失败:', err);
-            // 失败时不需要显示给用户，因为本地已保存
           });
+        }
+
+        // 如果播放进度超过75%且有下一个视频，尝试预加载
+        if (video.value.duration && time / video.value.duration > 0.75 && nextVideo.value) {
+          playerRef.value?.preBufferNextVideo(nextVideo.value.id);
         }
       } catch (err) {
         console.error('[VideoDetailPage] 保存播放进度失败:', err);
@@ -381,12 +597,6 @@
   const handlePause = () => {
     console.log('视频已暂停');
     // 如果需要可以在这里添加更多逻辑
-  };
-
-  // 处理播放结束事件
-  const handleEnded = () => {
-    console.log('视频播放结束');
-    // 如果需要可以在这里添加逻辑，例如自动播放下一个视频等
   };
 
   // 执行需要登录权限的操作
@@ -532,6 +742,154 @@
     });
   };
 
+  // 切换自动播放
+  const toggleAutoplay = (value: boolean) => {
+    autoplayEnabled.value = value;
+    localStorage.setItem('autoplay_enabled', value ? 'true' : 'false');
+  };
+
+  // 添加到播放队列
+  const addToPlayQueue = (video: Video) => {
+    // 避免重复添加
+    if (!playQueue.value.some(v => v.id === video.id)) {
+      playQueue.value.push(video);
+      message.success(`已添加 "${video.title}" 到播放队列`);
+      savePlayQueue();
+    } else {
+      message.info('该视频已在播放队列中');
+    }
+  };
+
+  // 从播放队列移除
+  const removeFromPlayQueue = (index: number) => {
+    playQueue.value.splice(index, 1);
+    savePlayQueue();
+  };
+
+  // 清空播放队列
+  const clearPlayQueue = () => {
+    playQueue.value = [];
+    savePlayQueue();
+  };
+
+  // 使用推荐视频填充队列
+  const fillQueueWithRecommended = () => {
+    if (relatedVideos.value.length > 0) {
+      playQueue.value = [...relatedVideos.value].filter(v => v.id !== video.value?.id);
+      savePlayQueue();
+      message.success('已使用推荐视频填充播放队列');
+    } else {
+      message.warning('没有可用的推荐视频');
+    }
+  };
+
+  // 保存播放队列
+  const savePlayQueue = () => {
+    const queueIds = playQueue.value.map(v => v.id);
+    localStorage.setItem('play_queue', JSON.stringify(queueIds));
+  };
+
+  // 加载播放队列
+  const loadPlayQueue = async () => {
+    try {
+      const queueJson = localStorage.getItem('play_queue');
+      if (queueJson) {
+        const queueIds = JSON.parse(queueJson) as string[];
+        playQueue.value = [];
+
+        for (const id of queueIds) {
+          if (id === video.value?.id) continue; // 跳过当前播放的视频
+
+          try {
+            const response = await videoService.getVideoById(id);
+            if (response.success && response.data) {
+              playQueue.value.push(response.data);
+            }
+          } catch (err) {
+            console.warn(`无法加载队列中的视频: ${id}`, err);
+          }
+        }
+      }
+
+      // 加载自动播放设置
+      const autoplaySetting = localStorage.getItem('autoplay_enabled');
+      if (autoplaySetting !== null) {
+        autoplayEnabled.value = autoplaySetting === 'true';
+      }
+    } catch (err) {
+      console.error('加载播放队列失败:', err);
+    }
+  };
+
+  // 开始自动播放倒计时
+  const startAutoplayCountdown = () => {
+    showAutoplayCountdown.value = true;
+    countdownSeconds.value = countdownDuration;
+
+    countdownTimer.value = window.setInterval(() => {
+      countdownSeconds.value -= 1;
+
+      if (countdownSeconds.value <= 0) {
+        clearInterval(countdownTimer.value!);
+        countdownTimer.value = null;
+        playNextVideoNow();
+      }
+    }, 1000) as unknown as number;
+  };
+
+  // 取消自动播放
+  const cancelAutoplay = () => {
+    if (countdownTimer.value) {
+      clearInterval(countdownTimer.value);
+      countdownTimer.value = null;
+    }
+    showAutoplayCountdown.value = false;
+  };
+
+  // 立即播放下一个视频
+  const playNextVideoNow = () => {
+    cancelAutoplay();
+
+    if (nextVideo.value) {
+      // 如果来自播放队列，移除第一个视频
+      if (playQueue.value.length > 0) {
+        playQueue.value.shift();
+        savePlayQueue();
+      }
+
+      // 导航到下一个视频
+      router.push(`/video/${nextVideo.value.id}`);
+    }
+  };
+
+  // 保存为播放列表
+  const savePlayQueueAsPlaylist = () => {
+    if (playQueue.value.length === 0) {
+      message.warning('播放队列为空，无法保存');
+      return;
+    }
+
+    showSavePlaylistModal.value = true;
+  };
+
+  // 保存播放列表
+  const savePlaylist = () => {
+    if (!newPlaylistName.value.trim()) {
+      message.warning('请输入播放列表名称');
+      return;
+    }
+
+    // 在实际应用中，这里应该调用API保存播放列表
+    // 这里为了演示，我们只是显示成功消息
+    message.success(`播放列表 "${newPlaylistName.value}" 已保存`);
+    showSavePlaylistModal.value = false;
+
+    // 重置表单
+    newPlaylistName.value = '';
+    newPlaylistDescription.value = '';
+    newPlaylistPrivacy.value = 'public';
+  };
+
   // 在组件挂载时获取视频数据
   onMounted(async () => {
     console.log('[VideoDetailPage] 组件开始挂载');
@@ -586,6 +944,9 @@
     if (isOfflineMode.value && networkRetryTimer.value === null) {
       checkNetworkAndRefresh();
     }
+
+    // 加载播放队列
+    await loadPlayQueue();
   });
 
   // 组件卸载时清除定时器
@@ -593,6 +954,12 @@
     if (networkRetryTimer.value !== null) {
       clearInterval(networkRetryTimer.value);
       networkRetryTimer.value = null;
+    }
+
+    // 清除倒计时
+    if (countdownTimer.value !== null) {
+      clearInterval(countdownTimer.value);
+      countdownTimer.value = null;
     }
   });
 </script>
@@ -730,5 +1097,179 @@
     .video-detail-page {
       padding: 8px;
     }
+  }
+
+  /* 播放设置 */
+  .playback-settings {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+  }
+
+  /* 视频卡片动作 */
+  .video-card {
+    position: relative;
+  }
+
+  .video-card-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    padding: 2px;
+  }
+
+  .autoplay-next-tag {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+  }
+
+  /* 播放队列样式 */
+  .play-queue-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .empty-queue {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  .empty-queue p {
+    margin: 16px 0;
+  }
+
+  .queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .queue-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .queue-item:hover {
+    background-color: var(--hover-color);
+  }
+
+  .queue-item.currently-playing {
+    background-color: var(--primary-color-lighter);
+  }
+
+  .queue-item-index {
+    width: 24px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .queue-thumbnail {
+    margin-right: 12px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .queue-item-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .queue-item-title {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .queue-item-author {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .queue-item-actions {
+    margin-left: 8px;
+  }
+
+  /* 保存播放列表表单 */
+  .save-playlist-form {
+    margin: 16px 0;
+  }
+
+  /* 自动播放倒计时 */
+  .autoplay-countdown {
+    padding: 16px;
+  }
+
+  .countdown-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .countdown-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .countdown-info {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .countdown-thumbnail {
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .countdown-details {
+    flex: 1;
+  }
+
+  .countdown-video-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .countdown-video-author {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .countdown-progress {
+    margin-bottom: 16px;
+  }
+
+  .countdown-progress-text {
+    margin-bottom: 8px;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .countdown-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
   }
 </style>

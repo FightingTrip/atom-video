@@ -196,3 +196,22 @@ export interface VideoInteraction {
   isFavorited: boolean;
   isSubscribed: boolean;
 }
+
+/**
+ * 视频章节类型
+ */
+export interface VideoChapter {
+  id: string;
+  title: string;
+  time: number;
+  duration: number;
+}
+
+/**
+ * 视频片段类型
+ */
+export interface VideoClip {
+  startTime: number;
+  endTime: number;
+  title?: string;
+}

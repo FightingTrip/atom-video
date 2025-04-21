@@ -25,7 +25,8 @@
     </div>
 
     <!-- 播放器 -->
-    <div v-else class="player-container">
+    <div v-else class="player-container" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
+      @touchend="handleTouchEnd" @dblclick="togglePlayPause">
       <!-- 视频播放器 -->
       <vue-plyr ref="playerRef" :options="playerOptions" @ready="handleReady" @error="handleError"
         @timeupdate="handleTimeUpdate" @play="handlePlay" @pause="handlePause" @ended="handleEnded">
@@ -57,6 +58,22 @@
                 </n-icon>
               </template>
               发送弹幕
+            </n-button>
+            <n-button quaternary @click="togglePictureInPicture" class="youtube-btn">
+              <template #icon>
+                <n-icon>
+                  <ScanOutline />
+                </n-icon>
+              </template>
+              画中画
+            </n-button>
+            <n-button quaternary @click="captureScreenshot" class="youtube-btn">
+              <template #icon>
+                <n-icon>
+                  <CameraOutline />
+                </n-icon>
+              </template>
+              截图
             </n-button>
           </n-button-group>
         </div>
@@ -99,29 +116,72 @@
         </n-icon>
         <span>您当前处于离线状态</span>
       </div>
+
+      <!-- 触摸反馈 -->
+      <div v-if="touchFeedbackVisible" class="touch-feedback visible">
+        {{ touchFeedbackText }}
+      </div>
+
+      <!-- 截图模式 -->
+      <div v-if="isScreenshotMode" class="screenshot-mode">
+        <img :src="screenshotUrl" alt="Screenshot" class="screenshot-image">
+        <div class="screenshot-actions">
+          <n-button type="primary" @click="isScreenshotMode = false">
+            关闭
+          </n-button>
+          <n-button type="primary" @click="captureScreenshot">
+            重新截图
+          </n-button>
+        </div>
+      </div>
     </div>
 
     <!-- 底部控制栏 -->
     <div class="bottom-controls" v-if="!loading && !error">
       <div class="quality-control">
-        <n-select v-model:value="currentQuality" :options="availableQualities" @update:value="handleQualityChange"
-          size="small" style="width: 80px" />
+        <n-dropdown :options="qualityOptions" :value="currentQuality" @select="handleQualitySelect" trigger="click">
+          <n-button quaternary size="small">
+            {{ currentQuality === 'auto' ? '自动' : currentQuality }}
+            <template #suffix>
+              <n-icon>
+                <ChevronDownOutline />
+              </n-icon>
+            </template>
+          </n-button>
+        </n-dropdown>
+      </div>
+
+      <!-- 触摸反馈 -->
+      <div class="touch-feedback" :class="{ visible: touchFeedbackVisible }">
+        {{ touchFeedbackText }}
+      </div>
+
+      <!-- 添加预缓冲指示器 -->
+      <div class="prebuffer-indicator" v-if="isPreBuffering">
+        <n-icon size="16">
+          <BufferingOutline />
+        </n-icon>
+        <span>正在预加载下个视频...</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch, provide } from 'vue'
   import VuePlyr from 'vue-plyr'
   import 'vue-plyr/dist/vue-plyr.css'
-  import { NButton, NButtonGroup, NIcon, NInput, NSpin, NSelect } from 'naive-ui'
+  import { NButton, NButtonGroup, NIcon, NInput, NSpin, NSelect, NMessage, NDropdown } from 'naive-ui'
   import {
     AlertCircleOutline,
     ChatbubbleOutline,
     PaperPlaneOutline,
     WifiOutline,
-    CloudOfflineOutline
+    CloudOfflineOutline,
+    ScanOutline,
+    CameraOutline,
+    ChevronDownOutline,
+    BufferingOutline
   } from '@vicons/ionicons5'
   import type { Video } from '@/types'
   import { useHistoryStore } from '@/stores/history'
@@ -159,6 +219,36 @@
   }>>([])
   const networkStatus = ref<'online' | 'offline' | 'slow'>('online')
   const currentRetryCount = ref(0)
+
+  // 新增: 触摸状态
+  const touchStartX = ref<number | null>(null)
+  const touchStartY = ref<number | null>(null)
+  const touchStartTime = ref<number | null>(null)
+  const lastTapTime = ref<number>(0)
+  const gestureType = ref<'none' | 'seek' | 'volume'>('none')
+  const seekDirection = ref<'forward' | 'backward' | null>(null)
+  const touchProgress = ref<number | null>(null)
+  const isTouching = ref(false)
+  const touchFeedbackVisible = ref(false)
+  const touchFeedbackText = ref('')
+  const touchFeedbackTimeout = ref<number | null>(null)
+
+  // 新增: 截图状态
+  const screenshotCanvas = ref<HTMLCanvasElement | null>(null)
+  const isScreenshotMode = ref(false)
+  const screenshotUrl = ref('')
+
+  // 新增: 自动质量调节相关状态
+  const autoQualityEnabled = ref(true)
+  const detectedBandwidth = ref(0)
+  const idealQuality = ref('720p')
+  const isPreBuffering = ref(false)
+  const preBufferProgress = ref(0)
+  const videoPreBuffer = ref<HTMLVideoElement | null>(null)
+  const bandwidthSamples = ref<number[]>([])
+
+  // 提供当前播放时间给其他组件
+  provide('currentPlayerTime', computed(() => videoRef.value?.currentTime || 0))
 
   // 测试视频数据（提供不同质量的测试视频）
   const testVideos = [
@@ -278,10 +368,18 @@
 
       // 其次查找video.sources数组
       if (props.video.sources && props.video.sources.length > 0) {
-        // 根据当前选择的清晰度过滤
-        const source = props.video.sources.find(s => s.label === currentQuality.value);
-        if (source && source.url) {
-          return source.url;
+        if (currentQuality.value === 'auto') {
+          // 使用根据网络状况自动选择的质量
+          const source = props.video.sources.find(s => s.label === idealQuality.value);
+          if (source && source.url) {
+            return source.url;
+          }
+        } else {
+          // 根据用户选择的清晰度
+          const source = props.video.sources.find(s => s.label === currentQuality.value);
+          if (source && source.url) {
+            return source.url;
+          }
         }
         // 如果没找到匹配的清晰度，使用第一个
         return props.video.sources[0].url;
@@ -290,8 +388,13 @@
 
     // 所有情况都没有，使用测试视频
     if (useTestVideo.value) {
-      const testVideo = testVideos.find(v => v.label === currentQuality.value);
-      return testVideo ? testVideo.url : testVideos[0].url;
+      if (currentQuality.value === 'auto') {
+        const testVideo = testVideos.find(v => v.label === idealQuality.value);
+        return testVideo ? testVideo.url : testVideos[0].url;
+      } else {
+        const testVideo = testVideos.find(v => v.label === currentQuality.value);
+        return testVideo ? testVideo.url : testVideos[0].url;
+      }
     }
 
     // 都没有则返回空字符串，会触发错误处理
@@ -561,149 +664,308 @@
   }
 
   // 新增：画质切换
-  const handleQualityChange = (value: string) => {
-    currentQuality.value = value
-    emit('quality-change', value)
+  const handleQualitySelect = (value: string) => {
+    currentQuality.value = value;
+    if (value === 'auto') {
+      // 重置理想质量
+      estimateIdealQuality();
+    } else {
+      // 保存用户质量选择
+      saveUserQualityPreference(value);
+    }
 
     // 保存当前播放进度
-    const currentTime = videoRef.value?.currentTime || 0
+    const currentTime = videoRef.value?.currentTime || 0;
 
     // 切换对应清晰度的视频源
     if (videoRef.value) {
-      let sourceUrl = ''
+      videoRef.value.src = videoSrc.value;
+      videoRef.value.load();
 
-      if (useTestVideo.value) {
-        // 使用测试视频源
-        const source = testVideos.find(s => s.label === value)
-        if (source) sourceUrl = source.url
-      } else if (props.video.sources) {
-        // 使用实际视频源
-        const source = props.video.sources.find(s => s.label === value)
-        if (source) sourceUrl = source.url
+      // 重新加载后恢复播放进度和状态
+      videoRef.value.addEventListener('loadedmetadata', () => {
+        if (videoRef.value) {
+          videoRef.value.currentTime = currentTime;
+          if (!videoRef.value.paused) {
+            videoRef.value.play().catch(err => {
+              console.error('恢复播放失败:', err);
+            });
+          }
+        }
+      }, { once: true });
+    }
+  };
+
+  // 估算理想质量
+  const estimateIdealQuality = () => {
+    if (bandwidthSamples.value.length === 0) {
+      // 如果没有带宽样本，默认使用720p
+      idealQuality.value = '720p';
+      return;
+    }
+
+    // 计算平均带宽 (Mbps)
+    const avgBandwidth = bandwidthSamples.value.reduce((a, b) => a + b, 0) / bandwidthSamples.value.length;
+    detectedBandwidth.value = avgBandwidth;
+
+    // 根据带宽选择最佳质量
+    if (avgBandwidth < 1.5) {
+      idealQuality.value = '480p';
+    } else if (avgBandwidth < 5) {
+      idealQuality.value = '720p';
+    } else {
+      idealQuality.value = '1080p';
+    }
+
+    console.log(`[VideoPlayer] 估算理想质量: ${idealQuality.value} (带宽: ${avgBandwidth.toFixed(2)} Mbps)`);
+  };
+
+  // 保存用户质量偏好
+  const saveUserQualityPreference = (quality: string) => {
+    if (quality === 'auto') {
+      localStorage.removeItem('preferred_video_quality');
+    } else {
+      localStorage.setItem('preferred_video_quality', quality);
+    }
+  };
+
+  // 加载用户质量偏好
+  const loadUserQualityPreference = () => {
+    const savedQuality = localStorage.getItem('preferred_video_quality');
+    if (savedQuality) {
+      // 验证保存的质量选项是否有效
+      const isValidQuality = qualityOptions.value.some(option => option.value === savedQuality);
+      if (isValidQuality) {
+        currentQuality.value = savedQuality;
+        return;
       }
+    }
 
-      if (sourceUrl) {
-        videoRef.value.src = sourceUrl
-        videoRef.value.load()
+    // 默认使用自动模式
+    currentQuality.value = 'auto';
+  };
 
-        // 重新加载后恢复播放进度和状态
-        videoRef.value.addEventListener('loadedmetadata', () => {
-          if (videoRef.value) {
-            videoRef.value.currentTime = currentTime
-            if (!videoRef.value.paused) {
-              videoRef.value.play()
+  // 测量网络带宽
+  const measureBandwidth = () => {
+    if (!videoRef.value || videoRef.value.readyState < 3) return;
+
+    try {
+      const videoElem = videoRef.value;
+      const loadStart = performance.now();
+
+      // 获取当前缓冲范围
+      const buffered = videoElem.buffered;
+      if (buffered.length === 0) return;
+
+      const initialBufferedEnd = buffered.end(buffered.length - 1);
+
+      // 设置超时，等待缓冲增加
+      setTimeout(() => {
+        if (!videoElem) return;
+
+        const buffered = videoElem.buffered;
+        if (buffered.length === 0) return;
+
+        const newBufferedEnd = buffered.end(buffered.length - 1);
+        const loadedBytes = (newBufferedEnd - initialBufferedEnd) * videoElem.videoWidth * videoElem.videoHeight * 3; // 估算加载的字节数
+
+        if (loadedBytes <= 0) return;
+
+        const loadTime = (performance.now() - loadStart) / 1000; // 转换为秒
+        const bandwidth = (loadedBytes * 8) / loadTime / 1000000; // Mbps
+
+        // 添加到带宽样本
+        bandwidthSamples.value.push(bandwidth);
+
+        // 保留最近10个样本
+        if (bandwidthSamples.value.length > 10) {
+          bandwidthSamples.value.shift();
+        }
+
+        // 重新估算理想质量
+        if (currentQuality.value === 'auto') {
+          estimateIdealQuality();
+        }
+
+        console.log(`[VideoPlayer] 网络带宽: ${bandwidth.toFixed(2)} Mbps`);
+      }, 5000);
+
+    } catch (err) {
+      console.error('[VideoPlayer] 测量带宽失败:', err);
+    }
+  };
+
+  // 预缓冲下一个视频
+  const preBufferNextVideo = (nextVideoId: string) => {
+    if (!navigator.onLine || isPreBuffering.value) return;
+
+    try {
+      isPreBuffering.value = true;
+      preBufferProgress.value = 0;
+
+      // 获取下一个视频的信息
+      import('@/services/video').then(async ({ videoService }) => {
+        try {
+          const response = await videoService.getVideoById(nextVideoId);
+
+          if (response.success && response.data) {
+            const nextVideo = response.data;
+
+            // 创建一个隐藏的video元素用于预缓冲
+            if (!videoPreBuffer.value) {
+              videoPreBuffer.value = document.createElement('video');
+              videoPreBuffer.value.style.display = 'none';
+              videoPreBuffer.value.preload = 'auto';
+              document.body.appendChild(videoPreBuffer.value);
+            }
+
+            // 选择合适的质量
+            let sourceUrl = '';
+            if (nextVideo.sources && nextVideo.sources.length > 0) {
+              // 使用比当前低一级的质量进行预加载
+              const qualityIndex = nextVideo.sources.findIndex(s => s.label === idealQuality.value);
+              if (qualityIndex > 0) {
+                // 使用低一级的质量
+                sourceUrl = nextVideo.sources[qualityIndex - 1].url;
+              } else {
+                // 使用最低质量
+                sourceUrl = nextVideo.sources[nextVideo.sources.length - 1].url;
+              }
+            } else if (nextVideo.videoUrl) {
+              sourceUrl = nextVideo.videoUrl;
+            }
+
+            if (sourceUrl) {
+              videoPreBuffer.value.src = sourceUrl;
+              videoPreBuffer.value.load();
+
+              // 监听进度
+              const handleProgress = () => {
+                if (!videoPreBuffer.value) return;
+                const buffered = videoPreBuffer.value.buffered;
+                if (buffered.length > 0) {
+                  const duration = videoPreBuffer.value.duration || 1;
+                  preBufferProgress.value = (buffered.end(buffered.length - 1) / duration) * 100;
+
+                  // 预缓冲30%后停止
+                  if (preBufferProgress.value >= 30) {
+                    isPreBuffering.value = false;
+                    videoPreBuffer.value.removeEventListener('progress', handleProgress);
+                    console.log(`[VideoPlayer] 预缓冲完成 ${preBufferProgress.value.toFixed(1)}%: ${nextVideo.title}`);
+                  }
+                }
+              };
+
+              videoPreBuffer.value.addEventListener('progress', handleProgress);
             }
           }
-        }, { once: true })
-      }
-    }
-  }
-
-  // 键盘快捷键
-  const handleKeydown = (event: KeyboardEvent) => {
-    if (!videoRef.value) return
-
-    switch (event.key) {
-      case ' ':
-        event.preventDefault()
-        if (videoRef.value.paused) {
-          videoRef.value.play()
-        } else {
-          videoRef.value.pause()
+        } catch (err) {
+          console.error('[VideoPlayer] 预缓冲失败:', err);
+          isPreBuffering.value = false;
         }
-        break
-      case 'ArrowLeft':
-        event.preventDefault()
-        videoRef.value.currentTime -= 5
-        break
-      case 'ArrowRight':
-        event.preventDefault()
-        videoRef.value.currentTime += 5
-        break
-      case 'ArrowUp':
-        event.preventDefault()
-        videoRef.value.volume = Math.min(1, videoRef.value.volume + 0.1)
-        break
-      case 'ArrowDown':
-        event.preventDefault()
-        videoRef.value.volume = Math.max(0, videoRef.value.volume - 0.1)
-        break
+      });
+    } catch (err) {
+      console.error('[VideoPlayer] 预缓冲初始化失败:', err);
+      isPreBuffering.value = false;
     }
-  }
+  };
 
-  // 监听视频ID变化，加载新视频
-  watch(() => props.video.id, () => {
-    if (videoRef.value) {
-      loading.value = true
-      error.value = null
-      videoRef.value.load()
-    }
-  })
+  // 处理视频预加载
+  const setupLazyLoading = () => {
+    // 根据用户设备和网络状况决定预加载策略
+    if ('connection' in navigator) {
+      const conn = (navigator as any).connection;
+      if (conn) {
+        if (conn.saveData) {
+          // 用户开启了数据节省模式，禁用预加载
+          console.log('[VideoPlayer] 用户开启了数据节省模式，禁用预加载');
+          return;
+        }
 
-  // 生命周期钩子
-  onMounted(() => {
-    // 检测浏览器对视频格式的支持
-    const checkVideoSupport = () => {
-      const video = document.createElement('video')
-      const canPlayH264 = video.canPlayType('video/mp4; codecs="avc1.42E01E"')
-      const canPlayHEVC = video.canPlayType('video/mp4; codecs="hev1.1.6.L93.B0"')
-      const canPlayVP9 = video.canPlayType('video/webm; codecs="vp9"')
-
-      console.log('Video format support:', {
-        h264: canPlayH264,
-        hevc: canPlayHEVC,
-        vp9: canPlayVP9
-      })
-    }
-
-    // 检测网络状态
-    const updateNetworkStatus = () => {
-      if (navigator.onLine) {
-        networkStatus.value = 'online'
-      } else {
-        networkStatus.value = 'offline'
+        // 根据网络类型设置预加载
+        if (conn.effectiveType === '4g') {
+          // 高速网络，允许完整预加载
+        } else if (conn.effectiveType === '3g') {
+          // 中速网络，减少预加载
+        } else {
+          // 低速网络，最小化预加载
+          console.log('[VideoPlayer] 网络较慢，最小化预加载');
+        }
       }
     }
+  };
 
-    checkVideoSupport()
-    updateNetworkStatus()
+  // 优化视频初始加载
+  const optimizeInitialLoad = () => {
+    if (!videoRef.value) return;
 
-    window.addEventListener('keydown', handleKeydown)
-    window.addEventListener('online', updateNetworkStatus)
-    window.addEventListener('offline', updateNetworkStatus)
+    // 对于较长的视频，设置初始播放时禁用自动质量调整
+    if (props.video.duration && props.video.duration > 1800) { // > 30分钟
+      console.log('[VideoPlayer] 长视频优化: 初始加载使用较低质量');
 
-    // 将视频添加到播放历史
-    if (props.video && props.video.id) {
-      try {
-        // 检查是否处于离线模式
-        const isOfflineMode = localStorage.getItem('offline_mode') === 'true'
-
-        if (isOfflineMode) {
-          // 在离线模式下，仅保存到本地历史记录
-          const watchHistory = JSON.parse(localStorage.getItem('watch_history') || '[]')
-          const existingIndex = watchHistory.findIndex((v: any) => v.id === props.video.id)
-
-          if (existingIndex >= 0) {
-            watchHistory.splice(existingIndex, 1)
+      // 播放开始后再进行质量调整
+      const handlePlaying = () => {
+        videoRef.value?.removeEventListener('playing', handlePlaying);
+        setTimeout(() => {
+          if (currentQuality.value === 'auto') {
+            estimateIdealQuality();
           }
+        }, 5000);
+      };
 
-          watchHistory.unshift(props.video)
-          localStorage.setItem('watch_history', JSON.stringify(watchHistory.slice(0, 30)))
-        } else {
-          // 正常模式下使用historyStore
-          historyStore.addToHistory(props.video)
-        }
-      } catch (err) {
-        console.error('添加到历史记录失败:', err)
-      }
+      videoRef.value.addEventListener('playing', handlePlaying, { once: true });
     }
-  })
+  };
 
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown)
-    window.removeEventListener('online', () => { })
-    window.removeEventListener('offline', () => { })
-  })
+  // 组件挂载
+  onMounted(() => {
+    // ... existing code ...
+
+    // 加载用户质量偏好
+    loadUserQualityPreference();
+
+    // 设置带宽测量间隔
+    const bandwidthInterval = setInterval(() => {
+      if (videoRef.value && !videoRef.value.paused) {
+        measureBandwidth();
+      }
+    }, 30000); // 每30秒测量一次
+
+    // 优化初始加载
+    optimizeInitialLoad();
+
+    // 设置预加载策略
+    setupLazyLoading();
+
+    // 卸载时清除定时器
+    onUnmounted(() => {
+      clearInterval(bandwidthInterval);
+
+      // 移除预缓冲视频元素
+      if (videoPreBuffer.value) {
+        document.body.removeChild(videoPreBuffer.value);
+        videoPreBuffer.value = null;
+      }
+    });
+  });
+
+  // 监听视频加载事件以测量带宽
+  watch(() => videoRef.value, (newVal) => {
+    if (newVal) {
+      newVal.addEventListener('progress', () => {
+        if (currentQuality.value === 'auto') {
+          measureBandwidth();
+        }
+      });
+    }
+  });
+
+  // 导出preBufferNextVideo方法供外部调用
+  defineExpose({
+    preBufferNextVideo
+  });
+
+  // ... existing code ...
 </script>
 
 <style scoped>
@@ -763,7 +1025,8 @@
     background-color: #000;
     overflow: hidden;
     aspect-ratio: 16 / 9;
-    /* 保持16:9比例 */
+    touch-action: none;
+    /* 防止浏览器默认的触摸行为 */
   }
 
   /* 确保plyr播放器内容始终保持比例并居中 */
@@ -900,5 +1163,99 @@
       font-size: 12px;
       padding: 4px 8px;
     }
+  }
+
+  /* 触摸反馈 */
+  .touch-feedback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .touch-feedback.visible {
+    opacity: 1;
+  }
+
+  /* 截图模式 */
+  .screenshot-mode {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .screenshot-image {
+    max-width: 90%;
+    max-height: 70%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .screenshot-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 16px;
+  }
+
+  /* 预缓冲指示器 */
+  .prebuffer-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 12px;
+  }
+
+  /* 画质下拉按钮 */
+  .quality-control .n-button {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #fff;
+  }
+
+  /* 确保播放器正确响应 */
+  :deep(.plyr__video-wrapper) {
+    height: 100% !important;
+  }
+
+  /* 提高移动设备上的控件可点击区域 */
+  @media (max-width: 768px) {
+
+    :deep(.plyr__controls button),
+    :deep(.plyr__control) {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* 启用硬件加速 */
+  .player-container,
+  .danmaku-area,
+  .danmaku-item,
+  :deep(.plyr),
+  :deep(.plyr__video-wrapper) {
+    transform: translateZ(0);
+    will-change: transform;
   }
 </style>
