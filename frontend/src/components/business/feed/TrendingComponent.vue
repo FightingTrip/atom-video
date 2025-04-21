@@ -19,8 +19,17 @@
       </n-button>
     </div>
 
-    <div class="trending-list">
-      <div v-for="(item, index) in trendingItems" :key="item.id" class="trending-item">
+    <div v-if="loading" class="loading-state">
+      <n-spin size="large" />
+      <p>加载中...</p>
+    </div>
+
+    <div v-else-if="trendingItems.length === 0" class="empty-state">
+      <n-empty description="暂无热门内容" />
+    </div>
+
+    <div v-else class="trending-list">
+      <div v-for="(item, index) in trendingItems" :key="item.id" class="trending-item" @click="goToVideo(item.id)">
         <div class="trending-rank" :class="{ 'top-rank': index < 3 }">{{ index + 1 }}</div>
         <div class="trending-content">
           <div class="trending-info">
@@ -44,23 +53,18 @@
         </div>
       </div>
     </div>
-
-    <div v-if="loading" class="loading-state">
-      <n-spin />
-    </div>
-
-    <div v-else-if="trendingItems.length === 0" class="empty-state">
-      <n-empty description="暂无热门内容" />
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref, onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
   import { NButton, NAvatar, NIcon, NSpin, NEmpty } from 'naive-ui';
   import { RefreshOutline, EyeOutline, HeartOutline } from '@vicons/ionicons5';
   import type { TrendingItem } from '@/types';
+  import videoService from '@/services/videoService';
 
+  const router = useRouter();
   const loading = ref(false);
   const trendingItems = ref<TrendingItem[]>([]);
 
@@ -68,14 +72,21 @@
     if (num >= 10000) {
       return (num / 10000).toFixed(1) + '万';
     }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'k';
+    }
     return num.toString();
+  };
+
+  const goToVideo = (videoId: string) => {
+    router.push(`/video/${videoId}`);
   };
 
   const fetchTrending = async () => {
     loading.value = true;
     try {
-      // TODO: 实现获取热门内容的API调用
-      trendingItems.value = [];
+      // 使用videoService获取热门视频数据
+      trendingItems.value = await videoService.getTrendingVideos(10);
     } catch (error) {
       console.error('获取热门内容失败:', error);
     } finally {
@@ -94,6 +105,8 @@
 
 <style scoped>
   .trending-section {
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-lg);
@@ -140,6 +153,7 @@
     background-color: var(--bg-color-secondary);
     border-radius: var(--radius-md);
     transition: transform var(--transition-normal);
+    cursor: pointer;
   }
 
   .trending-item:hover {
@@ -202,12 +216,26 @@
 
   .loading-state {
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    padding: var(--spacing-xl) 0;
+    min-height: 300px;
   }
 
   .empty-state {
     padding: var(--spacing-xl) 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    .trending-section {
+      padding: var(--spacing-md);
+    }
+
+    .section-title {
+      font-size: var(--text-lg);
+    }
   }
 
   /* 暗色模式特定样式 */

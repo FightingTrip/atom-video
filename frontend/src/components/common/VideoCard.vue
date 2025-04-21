@@ -14,7 +14,7 @@
 
       <!-- 播放进度条 (仅当有进度时显示) -->
       <div v-if="videoProgress" class="progress-bar">
-        <div class="progress" :style="{ width: `${videoProgress.percentage}%` }"></div>
+        <div class="progress" :style="{ width: `${calculateProgressPercentage(videoProgress)}%` }"></div>
       </div>
     </div>
 
@@ -111,36 +111,55 @@
 
   // 格式化日期
   function formatDate(dateString: string): string {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    try {
+      if (!dateString) return '';
 
-    if (diffInSeconds < 60) {
-      return '刚刚';
+      const now = new Date();
+      const date = new Date(dateString);
+
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+      if (diffInSeconds < 60) {
+        return '刚刚';
+      }
+
+      const diffInMinutes = Math.floor(diffInSeconds / 60);
+      if (diffInMinutes < 60) {
+        return `${diffInMinutes}分钟前`;
+      }
+
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      if (diffInHours < 24) {
+        return `${diffInHours}小时前`;
+      }
+
+      const diffInDays = Math.floor(diffInHours / 24);
+      if (diffInDays < 30) {
+        return `${diffInDays}天前`;
+      }
+
+      const diffInMonths = Math.floor(diffInDays / 30);
+      if (diffInMonths < 12) {
+        return `${diffInMonths}个月前`;
+      }
+
+      const diffInYears = Math.floor(diffInMonths / 12);
+      return `${diffInYears}年前`;
+    } catch (e) {
+      console.error('日期格式化错误:', e);
+      return '';
     }
+  }
 
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes}分钟前`;
-    }
-
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) {
-      return `${diffInHours}小时前`;
-    }
-
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 30) {
-      return `${diffInDays}天前`;
-    }
-
-    const diffInMonths = Math.floor(diffInDays / 30);
-    if (diffInMonths < 12) {
-      return `${diffInMonths}个月前`;
-    }
-
-    const diffInYears = Math.floor(diffInMonths / 12);
-    return `${diffInYears}年前`;
+  // 计算视频进度百分比
+  function calculateProgressPercentage(progress: VideoProgress): number {
+    if (!progress || progress.duration <= 0) return 0;
+    return Math.min(100, Math.max(0, (progress.currentTime / progress.duration) * 100));
   }
 </script>
 

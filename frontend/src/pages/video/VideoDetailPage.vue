@@ -85,7 +85,7 @@
           <!-- 推荐视频列表 -->
           <div v-else class="video-suggestions">
             <video-card-small v-for="(video, index) in relatedVideos" :key="video.id" :video="video"
-              @click="$router.push(`/video/${video.id}`)" class="video-card">
+              @click="handleRecommendedVideoClick(video)" class="video-card">
               <template #extra>
                 <div class="video-card-actions">
                   <n-tooltip trigger="hover" placement="top">
@@ -821,6 +821,21 @@
     }
   };
 
+  // 处理推荐视频点击
+  const handleRecommendedVideoClick = (recommendedVideo: Video) => {
+    try {
+      // 尝试使用命名路由导航
+      router.push({
+        name: 'video-detail',
+        params: { id: recommendedVideo.id }
+      });
+    } catch (err) {
+      console.error('路由跳转错误:', err);
+      // 回退到常规URL导航
+      router.push(`/video/${recommendedVideo.id}`);
+    }
+  };
+
   // 开始自动播放倒计时
   const startAutoplayCountdown = () => {
     showAutoplayCountdown.value = true;
@@ -858,7 +873,16 @@
       }
 
       // 导航到下一个视频
-      router.push(`/video/${nextVideo.value.id}`);
+      try {
+        router.push({
+          name: 'video-detail',
+          params: { id: nextVideo.value.id }
+        });
+      } catch (err) {
+        console.error('路由跳转错误:', err);
+        // 回退到常规URL导航
+        router.push(`/video/${nextVideo.value.id}`);
+      }
     }
   };
 

@@ -661,7 +661,7 @@
   };
 
   // 方法重写
-  const showShareModal = () => {
+  const openShareModalAction = () => {
     openShareModal();
   };
 
@@ -699,7 +699,7 @@
       text: '分享',
       active: false,
       count: null,
-      click: () => openShareModal(),
+      click: () => openShareModalAction(),
       tooltip: '分享视频',
       disabled: props.offlineMode // 离线模式下禁用分享
     },
