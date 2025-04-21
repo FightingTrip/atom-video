@@ -25,6 +25,9 @@ import {
 // 导入样式 - 统一使用样式入口文件
 import '@/styles/index.scss';
 
+// 导入并初始化模拟数据
+import { initMockData } from './utils/mockData';
+
 // 设置默认的环境变量
 if (process.env.NODE_ENV === 'development') {
   console.log('App running in development mode');
@@ -45,6 +48,9 @@ if (process.env.NODE_ENV === 'development') {
 
 // 设置网络状态监听
 setupNetworkStatusListeners();
+
+// 初始化模拟数据 (用于演示)
+initMockData();
 
 // 创建Vue应用实例
 const app = createApp(App);

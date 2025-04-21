@@ -11,8 +11,9 @@
       <div class="footer-links">
         <div class="footer-section">
           <a href="/about" class="footer-link">关于我们</a>
-          <a href="/terms" class="footer-link">服务条款</a>
-          <a href="/privacy" class="footer-link">隐私政策</a>
+          <router-link to="/legal/terms"  class="footer-link">服务条款</router-link> 
+           <router-link to="/legal/privacy"  class="footer-link">隐私政策</router-link>
+    
         </div>
         <div class="footer-section">
           <a href="https://github.com/FightingTrip/atom-video/" target="_blank" rel="noopener noreferrer" class="footer-link">
