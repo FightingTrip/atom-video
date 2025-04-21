@@ -10,6 +10,7 @@
       <n-dialog-provider>
         <n-notification-provider>
           <n-message-provider>
+            <app-message-registrar />
             <router-view v-slot="{ Component }">
               <transition name="fade" mode="out-in">
                 <component :is="Component" />
@@ -23,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch, markRaw, defineComponent } from 'vue'
   import { useThemeStore } from '@/stores/theme'
   import { useUserStore } from '@/stores/user'
   import {
@@ -34,8 +35,21 @@
     NLoadingBarProvider,
     darkTheme,
     zhCN,
-    dateZhCN
+    dateZhCN,
+    useMessage
   } from 'naive-ui'
+  import { setGlobalMessage } from '@/composables/useToast'
+
+  // 注册全局消息组件
+  const AppMessageRegistrar = defineComponent({
+    name: 'AppMessageRegistrar',
+    setup() {
+      const message = useMessage()
+      // 设置全局消息实例，用于非组件上下文
+      setGlobalMessage(markRaw(message))
+      return () => null
+    }
+  })
 
   // 全局状态
   const themeStore = useThemeStore()

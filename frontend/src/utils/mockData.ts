@@ -556,6 +556,7 @@ export function saveVideoProgress(
     currentTime,
     duration,
     percentage: Math.floor((currentTime / duration) * 100),
+    lastPlayedAt: new Date().toISOString(),
   };
 
   // 保存到localStorage
@@ -723,3 +724,14 @@ export function getMockRecommendedVideos(videoId: string, count: number = 5): Vi
   // 截取需要的数量
   return recommendedVideos.slice(0, count).map(video => ({ ...video }));
 }
+
+/**
+ * 模拟异步请求延迟
+ * @param minDelay 最小延迟时间（毫秒）
+ * @param maxDelay 最大延迟时间（毫秒）
+ * @returns Promise对象
+ */
+export const mockDelay = (minDelay = 300, maxDelay = 1200): Promise<void> => {
+  const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+  return new Promise(resolve => setTimeout(resolve, delay));
+};

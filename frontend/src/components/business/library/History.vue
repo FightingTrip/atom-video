@@ -1,196 +1,423 @@
 /**
 * @file History.vue
-* @description 观看历史页面组件，用于展示用户的视频观看历史
+* @description 用户观看历史组件
 * @author Atom Video Team
-* @date 2025-04-06
-*
-* @features
-* - 历史记录：展示用户观看过的视频
-* - 时间筛选：支持按时间范围筛选历史记录
-* - 记录排序：支持按观看时间排序
-* - 记录搜索：支持搜索视频标题
-* - 分页加载：支持分页加载更多记录
-* - 响应式设计：适配不同屏幕尺寸
-* - 主题适配：支持明暗主题
-*
-* @dependencies
-* - useVideoStore: 视频状态管理
-* - useUserStore: 用户状态管理
-* - naive-ui: UI组件库
-* - vue-i18n: 国际化支持
-* - vue-router: 路由管理
+* @date 2025-04-08
 */
+
 <template>
   <div class="history-container">
     <div class="history-header">
-      <h2>观看历史</h2>
+      <h1 class="history-title">观看历史</h1>
       <div class="history-actions">
-        <n-button text @click="clearHistory">清空历史记录</n-button>
-        <n-button text @click="pauseHistory">{{ isHistoryPaused ? '恢复记录历史' : '暂停记录历史' }}</n-button>
+        <n-button @click="refreshHistory" :loading="loading">
+          <template #icon>
+            <n-icon>
+              <RefreshIcon />
+            </n-icon>
+          </template>
+          刷新
+        </n-button>
+        <n-button v-if="history.length > 0" @click="showClearConfirm" type="error" ghost>
+          <template #icon>
+            <n-icon>
+              <TrashIcon />
+            </n-icon>
+          </template>
+          清空历史
+        </n-button>
       </div>
     </div>
 
-    <div class="history-content">
-      <n-tabs v-model:value="activeTab" type="line" animated>
-        <n-tab-pane name="all" tab="全部">
-          <div class="video-list">
-            <div v-for="video in filteredVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
-            </div>
-            <n-empty v-if="filteredVideos.length === 0" description="暂无观看历史" />
-          </div>
-        </n-tab-pane>
-        <n-tab-pane name="today" tab="今天">
-          <div class="video-list">
-            <div v-for="video in todayVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
-            </div>
-            <n-empty v-if="todayVideos.length === 0" description="今天暂无观看记录" />
-          </div>
-        </n-tab-pane>
-        <n-tab-pane name="week" tab="本周">
-          <div class="video-list">
-            <div v-for="video in weekVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
-            </div>
-            <n-empty v-if="weekVideos.length === 0" description="本周暂无观看记录" />
-          </div>
-        </n-tab-pane>
-        <n-tab-pane name="earlier" tab="更早">
-          <div class="video-list">
-            <div v-for="video in earlierVideos" :key="video.id" class="video-card-wrapper">
-              <VideoCardComponent :video="video" @click="handleVideoClick(video)" />
-            </div>
-            <n-empty v-if="earlierVideos.length === 0" description="暂无更早观看记录" />
-          </div>
-        </n-tab-pane>
-      </n-tabs>
+    <div v-if="loading" class="loading-container">
+      <n-spin size="large" />
+      <p>加载历史记录中...</p>
     </div>
 
-    <div class="history-pagination">
-      <n-pagination v-model:page="currentPage" v-model:page-size="pageSize" :item-count="total"
-        :page-sizes="[12, 24, 36, 48]" show-size-picker @update:page="handlePageChange"
-        @update:page-size="handleSizeChange" />
+    <div v-else-if="history.length === 0" class="empty-container">
+      <n-empty description="暂无观看历史">
+        <template #icon>
+          <div class="empty-icon">🕒</div>
+        </template>
+        <template #extra>
+          <n-button type="primary" @click="goToExplore">浏览视频</n-button>
+        </template>
+      </n-empty>
     </div>
+
+    <div v-else class="history-list">
+      <div v-for="item in history" :key="item.video.id" class="history-item">
+        <div class="video-card" @click="goToVideo(item.video.id)">
+          <div class="thumbnail-container">
+            <img :src="item.video.coverUrl" :alt="item.video.title" class="thumbnail" />
+            <div class="progress-bar" :style="{ width: `${item.progress.percentage}%` }"></div>
+            <div class="duration">{{ formatDuration(item.video.duration) }}</div>
+          </div>
+          <div class="video-info">
+            <h3 class="video-title">{{ item.video.title }}</h3>
+            <div class="video-meta">
+              <p class="channel-name">{{ item.video.author.nickname }}</p>
+              <p class="video-stats">
+                {{ formatNumber(item.video.views) }}次观看 · {{ formatTimeAgo(item.progress.lastPlayedAt) }}
+              </p>
+            </div>
+            <div class="progress-text">
+              观看至 {{ formatTime(item.progress.currentTime) }} / {{ formatTime(item.progress.duration) }}
+            </div>
+          </div>
+        </div>
+        <div class="item-actions">
+          <n-dropdown :options="getItemActions(item)" @select="handleAction($event, item)" placement="bottom-end">
+            <n-button circle quaternary>
+              <template #icon>
+                <n-icon>
+                  <MoreIcon />
+                </n-icon>
+              </template>
+            </n-button>
+          </n-dropdown>
+        </div>
+      </div>
+
+      <div v-if="hasMore" class="load-more">
+        <n-button @click="loadMore" :loading="loadingMore" :disabled="loadingMore">加载更多</n-button>
+      </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <n-modal v-model:show="showConfirmModal" preset="dialog" title="确认清空观看历史" content="该操作不可撤销，确定要清空所有观看历史记录吗？"
+      positive-text="确认" negative-text="取消" @positive-click="clearHistory" @negative-click="showConfirmModal = false" />
+
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
+  import { ref, onMounted, computed } from 'vue';
   import { useRouter } from 'vue-router';
-  import { NButton, NTabs, NTabPane, NPagination, NEmpty, useMessage } from 'naive-ui';
-  import type { Video } from '@/types';
-  import VideoCardComponent from '@/components/business/video/VideoCardComponent.vue';
-  import { historyApi } from '@/mock/videos';
-  import { useUserStore } from '@/stores/user';
+  import { NButton, NSpin, NEmpty, NIcon, NDropdown, NModal } from 'naive-ui';
+  import { getWatchHistory, getAllVideoProgresses, clearWatchHistory, deleteVideoProgress } from '@/services/video/videoProgress';
+  import type { VideoProgress, Video } from '@/types';
+  import { RefreshOutline as RefreshIcon, TrashOutline as TrashIcon, EllipsisHorizontal as MoreIcon } from '@vicons/ionicons5';
 
+  // 单条历史记录数据结构
+  interface HistoryItem {
+    video: Video;
+    progress: VideoProgress;
+  }
+
+  // 路由
   const router = useRouter();
-  const message = useMessage();
-  const userStore = useUserStore();
 
-  // 状态
-  const activeTab = ref('all');
-  const currentPage = ref(1);
-  const pageSize = ref(12);
-  const total = ref(0);
-  const isHistoryPaused = ref(false);
-  const loading = ref(false);
-  const historyVideos = ref<Video[]>([]);
+  // 页面状态
+  const loading = ref(true);
+  const loadingMore = ref(false);
+  const history = ref<HistoryItem[]>([]);
+  const hasMore = ref(false);
+  const page = ref(1);
+  const pageSize = 10;
+  const showConfirmModal = ref(false);
 
-  // 计算属性
-  const filteredVideos = computed(() => {
-    const start = (currentPage.value - 1) * pageSize.value;
-    const end = start + pageSize.value;
-    return historyVideos.value.slice(start, end);
-  });
+  // 当前用户ID (在实际应用中应从身份验证服务获取)
+  const currentUserId = '1'; // 假设当前登录用户ID为1
 
-  const todayVideos = computed(() => {
-    return historyVideos.value.filter(video => {
-      const today = new Date();
-      const videoDate = new Date(video.createdAt);
-      return videoDate.toDateString() === today.toDateString();
-    });
-  });
-
-  const weekVideos = computed(() => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return historyVideos.value.filter(video => {
-      const videoDate = new Date(video.createdAt);
-      return videoDate >= weekAgo;
-    });
-  });
-
-  const earlierVideos = computed(() => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return historyVideos.value.filter(video => {
-      const videoDate = new Date(video.createdAt);
-      return videoDate < weekAgo;
-    });
-  });
-
-  // 方法
-  const handleVideoClick = (video: Video) => {
-    router.push(`/video/${video.id}`);
-  };
-
-  const clearHistory = async () => {
+  // 从服务获取观看历史和进度信息
+  const fetchHistory = async (isRefresh = false) => {
     try {
-      await historyApi.clearHistory(userStore.userId);
-      historyVideos.value = [];
-      total.value = 0;
-      message.success('历史记录已清空');
+      if (isRefresh) {
+        loading.value = true;
+        page.value = 1;
+        history.value = [];
+      } else {
+        loadingMore.value = true;
+      }
+
+      // 获取当前页码的观看历史
+      const videoIds = await getWatchHistory(currentUserId);
+      const progresses = await getAllVideoProgresses(currentUserId);
+
+      // 创建视频ID到进度的映射
+      const progressMap = new Map<string, VideoProgress>();
+      progresses.forEach(progress => {
+        progressMap.set(progress.videoId, progress);
+      });
+
+      // 计算当前页的起始和结束索引
+      const startIndex = (page.value - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize, videoIds.length);
+      const currentPageIds = videoIds.slice(startIndex, endIndex);
+
+      // 模拟从服务获取视频数据
+      const mockVideos: Video[] = [
+        {
+          id: 'v1',
+          title: '2025年最值得学习的编程语言',
+          description: '本视频探讨了2025年最热门、最有前景的编程语言，包括就业前景、薪资水平和技术趋势分析。',
+          coverUrl: 'https://picsum.photos/id/1/640/360',
+          videoUrl: 'https://example.com/videos/v1',
+          duration: 925,
+          views: 45280,
+          likes: 3840,
+          favorites: 1220,
+          comments: 342,
+          createdAt: '2025-01-10T08:30:00Z',
+          author: {
+            id: '3',
+            username: 'creator',
+            nickname: '内容创作者',
+            avatar: 'https://i.pravatar.cc/150?u=3',
+            verified: true,
+          },
+          tags: ['编程', '技术', '教育'],
+          sources: [],
+          subtitles: [],
+        },
+        {
+          id: 'v2',
+          title: '人工智能初学者完全指南',
+          description: '这是一个为初学者设计的人工智能入门教程，从基础概念到实际应用，循序渐进地介绍AI领域的核心知识。',
+          coverUrl: 'https://picsum.photos/id/2/640/360',
+          videoUrl: 'https://example.com/videos/v2',
+          duration: 1845,
+          views: 32150,
+          likes: 2870,
+          favorites: 1560,
+          comments: 286,
+          createdAt: '2025-01-05T10:15:00Z',
+          author: {
+            id: '3',
+            username: 'creator',
+            nickname: '内容创作者',
+            avatar: 'https://i.pravatar.cc/150?u=3',
+            verified: true,
+          },
+          tags: ['人工智能', 'AI', '技术'],
+          sources: [],
+          subtitles: [],
+        },
+        {
+          id: 'v3',
+          title: '5分钟学会Vue 3核心概念',
+          description: '这个简短的教程让你快速掌握Vue 3的核心概念，包括组合式API、响应式系统和生命周期钩子。',
+          coverUrl: 'https://picsum.photos/id/3/640/360',
+          videoUrl: 'https://example.com/videos/v3',
+          duration: 312,
+          views: 18720,
+          likes: 1530,
+          favorites: 875,
+          comments: 124,
+          createdAt: '2025-01-15T14:20:00Z',
+          author: {
+            id: '3',
+            username: 'creator',
+            nickname: '内容创作者',
+            avatar: 'https://i.pravatar.cc/150?u=3',
+            verified: true,
+          },
+          tags: ['Vue', '前端开发', 'JavaScript'],
+          sources: [],
+          subtitles: [],
+        },
+      ];
+
+      // 创建视频ID到视频数据的映射
+      const videoMap = new Map<string, Video>();
+      mockVideos.forEach(video => {
+        videoMap.set(video.id, video);
+      });
+
+      // 组合历史记录数据
+      const historyItems = currentPageIds.map(videoId => {
+        // 使用模拟视频数据，如果没有对应ID的视频则使用第一个视频的数据并修改ID
+        let video = videoMap.get(videoId);
+        if (!video) {
+          // 创建一个基于第一个视频的新视频对象
+          const randomIndex = Math.floor(Math.random() * mockVideos.length);
+          const baseVideo = mockVideos[randomIndex];
+          video = {
+            ...baseVideo,
+            id: videoId,
+            title: `视频 ${videoId}`,
+            coverUrl: `https://picsum.photos/seed/${videoId}/640/360`,
+            duration: Math.floor(Math.random() * 1200) + 300, // 5-25分钟
+            views: Math.floor(Math.random() * 50000),
+            createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          };
+        }
+
+        // 使用真实进度数据，如果没有则创建一个模拟进度
+        let progress = progressMap.get(videoId);
+        if (!progress) {
+          const duration = video.duration;
+          const currentTime = Math.floor(Math.random() * duration * 0.9); // 观看到0-90%
+          progress = {
+            videoId,
+            currentTime,
+            duration,
+            percentage: Math.floor((currentTime / duration) * 100),
+            lastPlayedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          };
+        }
+
+        return { video, progress };
+      });
+
+      // 更新历史记录
+      if (isRefresh) {
+        history.value = historyItems;
+      } else {
+        history.value = [...history.value, ...historyItems];
+      }
+
+      // 检查是否还有更多数据
+      hasMore.value = endIndex < videoIds.length;
+
+      // 增加页码
+      if (!isRefresh) {
+        page.value++;
+      }
     } catch (error) {
-      message.error('清空历史记录失败');
-      console.error('清空历史记录失败:', error);
+      console.error('获取观看历史失败:', error);
+    } finally {
+      loading.value = false;
+      loadingMore.value = false;
     }
   };
 
-  const pauseHistory = () => {
-    isHistoryPaused.value = !isHistoryPaused.value;
-    message.success(isHistoryPaused.value ? '已暂停记录历史' : '已恢复记录历史');
+  // 刷新历史
+  const refreshHistory = () => {
+    fetchHistory(true);
   };
 
-  const handleSizeChange = (val: number) => {
-    pageSize.value = val;
-    currentPage.value = 1;
-    loadHistory();
+  // 加载更多
+  const loadMore = () => {
+    if (!loadingMore.value && hasMore.value) {
+      fetchHistory(false);
+    }
   };
 
-  const handlePageChange = (val: number) => {
-    currentPage.value = val;
-    loadHistory();
+  // 显示清空确认对话框
+  const showClearConfirm = () => {
+    showConfirmModal.value = true;
   };
 
-  const loadHistory = async () => {
-    if (loading.value) return;
-
-    loading.value = true;
+  // 清空历史
+  const clearHistory = async () => {
     try {
-      const videos = await historyApi.getHistory(userStore.userId);
-      historyVideos.value = videos;
-      total.value = videos.length;
+      loading.value = true;
+      await clearWatchHistory(currentUserId);
+      history.value = [];
+      hasMore.value = false;
     } catch (error) {
-      message.error('加载历史记录失败');
-      console.error('加载历史记录失败:', error);
+      console.error('清空历史失败:', error);
     } finally {
       loading.value = false;
     }
   };
 
-  // 生命周期钩子
+  // 从观看历史中移除单个视频
+  const removeFromHistory = async (item: HistoryItem) => {
+    try {
+      await deleteVideoProgress(currentUserId, item.video.id);
+      history.value = history.value.filter(h => h.video.id !== item.video.id);
+    } catch (error) {
+      console.error('移除历史记录失败:', error);
+    }
+  };
+
+  // 获取下拉菜单选项
+  const getItemActions = (item: HistoryItem) => {
+    return [
+      {
+        label: '从历史记录中移除',
+        key: 'remove',
+      },
+      {
+        label: '稍后观看',
+        key: 'watchLater',
+      },
+      {
+        label: '分享',
+        key: 'share',
+      },
+    ];
+  };
+
+  // 处理下拉菜单操作
+  const handleAction = (key: string, item: HistoryItem) => {
+    switch (key) {
+      case 'remove':
+        removeFromHistory(item);
+        break;
+      case 'watchLater':
+        console.log('添加到稍后观看:', item.video.id);
+        break;
+      case 'share':
+        console.log('分享视频:', item.video.id);
+        break;
+    }
+  };
+
+  // 格式化时长
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // 格式化时间
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // 格式化数字
+  const formatNumber = (num: number): string => {
+    if (num >= 10000) {
+      return (num / 10000).toFixed(1) + '万';
+    }
+    return num.toString();
+  };
+
+  // 格式化相对时间
+  const formatTimeAgo = (timeString?: string): string => {
+    if (!timeString) return '未知时间';
+
+    const date = new Date(timeString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+
+    if (diffSec < 60) return '刚刚';
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}分钟前`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}小时前`;
+    if (diffSec < 2592000) return `${Math.floor(diffSec / 86400)}天前`;
+    if (diffSec < 31536000) return `${Math.floor(diffSec / 2592000)}个月前`;
+    return `${Math.floor(diffSec / 31536000)}年前`;
+  };
+
+  // 导航到探索页面
+  const goToExplore = () => {
+    router.push('/feed/explore');
+  };
+
+  // 导航到视频页面
+  const goToVideo = (videoId: string) => {
+    router.push(`/video/${videoId}`);
+  };
+
+  // 组件挂载时获取数据
   onMounted(() => {
-    loadHistory();
+    fetchHistory(true);
   });
 </script>
 
 <style scoped>
   .history-container {
-    padding: 24px;
+    width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    background-color: var(--bg-color);
+    padding: 20px;
   }
 
   .history-header {
@@ -200,8 +427,8 @@
     margin-bottom: 24px;
   }
 
-  .history-header h2 {
-    font-size: var(--text-xl);
+  .history-title {
+    font-size: 24px;
     font-weight: 600;
     color: var(--text-color);
     margin: 0;
@@ -209,92 +436,171 @@
 
   .history-actions {
     display: flex;
-    gap: var(--spacing-md);
+    gap: 12px;
   }
 
-  .history-content {
-    min-height: 100vh;
-    background-color: var(--bg-color);
+  .loading-container,
+  .empty-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    text-align: center;
+  }
+
+  .loading-container p {
+    margin-top: 16px;
+    color: var(--text-secondary);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .history-item {
+    display: flex;
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .history-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .video-card {
+    display: flex;
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .thumbnail-container {
+    position: relative;
+    width: 240px;
+    min-width: 240px;
+    height: 135px;
+  }
+
+  .thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background-color: var(--primary-color);
+  }
+
+  .duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .video-info {
+    flex: 1;
+    padding: 12px 16px;
+    overflow: hidden;
+  }
+
+  .video-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
     color: var(--text-color);
-    padding: var(--spacing-lg);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
-  .video-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
+  .video-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
-  .video-card-wrapper {
-    transition: transform var(--transition-normal);
+  .channel-name {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
   }
 
-  .video-card-wrapper:hover {
-    transform: scale(1.05);
+  .video-stats {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-tertiary);
   }
 
-  .history-pagination {
-    margin-top: var(--spacing-xl);
+  .progress-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .item-actions {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .load-more {
     display: flex;
     justify-content: center;
+    margin-top: 24px;
   }
 
-  /* 暗色模式特定样式 */
-  :root.dark .history-container,
-  .dark-mode .history-container {
-    background-color: var(--bg-color-dark);
-  }
-
-  :root.dark .history-header h2,
-  .dark-mode .history-header h2 {
-    color: var(--text-color-dark);
-  }
-
-  :root.dark .history-content,
-  .dark-mode .history-content {
-    background-color: var(--bg-color-dark);
-  }
-
-  :root.dark .video-card-wrapper,
-  .dark-mode .video-card-wrapper {
-    background-color: var(--bg-color-darker);
-  }
-
-  :root.dark .n-tabs-tab,
-  .dark-mode .n-tabs-tab {
-    color: var(--text-color-secondary);
-  }
-
-  :root.dark .n-tabs-tab--active,
-  .dark-mode .n-tabs-tab--active {
-    color: var(--text-color);
-  }
-
-  /* 响应式布局 */
   @media (max-width: 768px) {
     .history-container {
       padding: 16px;
     }
 
-    .history-content {
-      padding: var(--spacing-md);
-    }
-
-    .video-list {
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: var(--spacing-sm);
-    }
-
     .history-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: var(--spacing-md);
+      gap: 16px;
     }
 
-    .history-actions {
+    .video-card {
+      flex-direction: column;
+    }
+
+    .thumbnail-container {
       width: 100%;
-      justify-content: space-between;
+      height: 0;
+      padding-top: 56.25%;
+      /* 16:9 aspect ratio */
+      min-width: unset;
+    }
+
+    .thumbnail {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .video-info {
+      padding: 12px;
     }
   }
 </style>

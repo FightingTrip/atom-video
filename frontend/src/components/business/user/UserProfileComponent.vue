@@ -145,9 +145,16 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
+  import { ref, computed, onMounted, watch } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
   import { NButton, NTabs, NTabPane, NEmpty, NSpin, NAvatar, NTag } from 'naive-ui';
+  import type { User } from '@/types';
+
+  // 接收props
+  const props = defineProps<{
+    userId?: string;
+    profileData?: User | null;
+  }>();
 
   // 模拟数据类型
   interface UserProfile {
@@ -195,29 +202,54 @@
     { id: 'about', name: '关于' }
   ];
 
-  // 模拟用户资料数据
-  const userProfile = ref<UserProfile>({
-    id: 'user-1',
-    username: 'atomvideo',
-    nickname: 'Atom Video',
-    avatar: 'https://i.pravatar.cc/300?u=atomvideo',
-    coverImage: 'https://picsum.photos/1200/300?random=1',
-    bio: '热爱编程，分享技术视频和教程。专注于前端和全栈开发，希望能帮助更多人学习编程。',
-    videoCount: 28,
-    followerCount: 1265,
-    followingCount: 42,
-    createdAt: '2023-01-15T08:30:00Z',
-    socialLinks: [
-      { platform: 'GitHub', url: 'https://github.com' },
-      { platform: 'Twitter', url: 'https://twitter.com' }
-    ]
+  // 从props生成用户资料数据
+  const userProfile = computed<UserProfile>(() => {
+    if (props.profileData) {
+      return {
+        id: props.profileData.id,
+        username: props.profileData.username,
+        nickname: props.profileData.nickname,
+        avatar: props.profileData.avatar,
+        coverImage: `https://picsum.photos/1200/300?random=${props.profileData.id}`,
+        bio: props.profileData.bio,
+        videoCount: Math.floor(Math.random() * 50) + 5,
+        followerCount: props.profileData.subscribers,
+        followingCount: props.profileData.subscribing,
+        createdAt: props.profileData.joinedAt,
+        socialLinks: props.profileData.social ?
+          Object.entries(props.profileData.social)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => ({
+              platform: key.charAt(0).toUpperCase() + key.slice(1),
+              url: value as string
+            })) : []
+      };
+    }
+
+    // 默认资料
+    return {
+      id: 'default',
+      username: 'atomvideo',
+      nickname: 'Atom Video',
+      avatar: 'https://i.pravatar.cc/300?u=atomvideo',
+      coverImage: 'https://picsum.photos/1200/300?random=1',
+      bio: '热爱编程，分享技术视频和教程。专注于前端和全栈开发，希望能帮助更多人学习编程。',
+      videoCount: 28,
+      followerCount: 1265,
+      followingCount: 42,
+      createdAt: '2023-01-15T08:30:00Z',
+      socialLinks: [
+        { platform: 'GitHub', url: 'https://github.com' },
+        { platform: 'Twitter', url: 'https://twitter.com' }
+      ]
+    };
   });
 
   // 检查是否是当前登录用户的个人资料
   const isCurrentUser = computed(() => {
     // 这里应该与实际的用户认证系统集成
-    // 暂时模拟为true，表示是当前用户的资料
-    return true;
+    // 暂时模拟，根据传入的userId判断
+    return props.userId === '1'; // 假设ID为1的用户是当前登录用户
   });
 
   // 格式化数字
@@ -356,16 +388,25 @@
 
   // 页面初始化
   onMounted(() => {
-    // 获取URL中的用户ID参数
-    const userId = route.params.id;
-
-    // 根据ID获取用户资料（这里使用模拟数据）
-
     // 根据当前标签页加载对应数据
     fetchUserVideos();
 
     // 检查当前用户是否关注了该用户
-    isFollowing.value = false; // 模拟数据
+    isFollowing.value = Math.random() > 0.5; // 模拟数据
+  });
+
+  // 监听props变化
+  watch(() => props.profileData, (newData) => {
+    if (newData) {
+      // 重置页面状态
+      videoPage.value = 1;
+      favoritePage.value = 1;
+      userVideos.value = [];
+      favoriteVideos.value = [];
+
+      // 重新加载数据
+      fetchUserVideos();
+    }
   });
 </script>
 

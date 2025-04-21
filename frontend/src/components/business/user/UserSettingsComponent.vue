@@ -318,7 +318,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, computed, h, watch } from 'vue';
+  import { ref, computed, h } from 'vue';
   import {
     NMenu,
     NForm,
@@ -336,22 +336,51 @@
     NRadioGroup,
     NRadio,
     NSlider,
-    useMessage,
-    NUpload
+    NUpload,
+    useMessage
   } from 'naive-ui';
   import LanguageSelectorComponent from '@/components/business/user/LanguageSelectorComponent.vue';
-  import { useUserStore } from '@/stores/user';
-  import { useAuthStore } from '@/stores/auth';
+  import { useUserSettings } from '@/composables/useUserSettings';
   import type { User } from '@/types';
-  import { storeToRefs } from 'pinia';
+
+  // Props
+  const props = defineProps<{
+    userData?: User;
+  }>();
+
+  // 使用useUserSettings composable
+  const {
+    isLoading,
+    saveLoading,
+    profileSettings,
+    accountSettings,
+    notificationSettings,
+    privacySettings,
+    appearanceSettings,
+    passwordStrength,
+    passwordStrengthText,
+    passwordStrengthColor,
+    passwordsMatch,
+    loadUserSettings,
+    saveProfileSettings,
+    saveAccountSettings,
+    saveNotificationSettings,
+    savePrivacySettings,
+    saveAppearanceSettings,
+    addSocialLink,
+    removeSocialLink,
+    resetProfileSettings,
+    resetAccountSettings,
+    resetNotificationSettings,
+    resetPrivacySettings,
+    resetAppearanceSettings
+  } = useUserSettings();
 
   // 消息提示
   const message = useMessage();
 
-  // 获取用户存储
-  const userStore = useUserStore();
-  const authStore = useAuthStore();
-  const { currentUser } = storeToRefs(userStore);
+  // 当前活动部分
+  const activeSection = ref('profile');
 
   // 设置部分列表
   const sections = [
@@ -396,443 +425,8 @@
     { label: '禁止评论', value: 'none' }
   ];
 
-  // 当前活动部分
-  const activeSection = ref('profile');
-
-  // 个人资料设置
-  const profileSettings = reactive({
-    avatar: '',
-    coverImage: '',
-    nickname: '',
-    username: '',
-    bio: '',
-    socialLinks: [
-      { platform: 'GitHub', url: '' },
-      { platform: 'Twitter', url: '' }
-    ]
-  });
-
-  // 账号设置
-  const accountSettings = reactive({
-    email: '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-
-  // 密码强度相关
-  const passwordStrength = ref(0);
-  const passwordStrengthText = computed(() => {
-    if (passwordStrength.value === 0) return '请输入密码';
-    if (passwordStrength.value < 30) return '弱';
-    if (passwordStrength.value < 60) return '中';
-    return '强';
-  });
-  const passwordStrengthColor = computed(() => {
-    if (passwordStrength.value < 30) return '#ff4d4f';
-    if (passwordStrength.value < 60) return '#faad14';
-    return '#52c41a';
-  });
-
-  // 计算密码强度
-  function calculatePasswordStrength(password: string): number {
-    if (!password) return 0;
-
-    let strength = 0;
-
-    // 长度检查
-    if (password.length >= 8) strength += 20;
-    else if (password.length >= 6) strength += 10;
-
-    // 复杂度检查
-    if (/[A-Z]/.test(password)) strength += 20; // 大写字母
-    if (/[a-z]/.test(password)) strength += 10; // 小写字母
-    if (/[0-9]/.test(password)) strength += 20; // 数字
-    if (/[^A-Za-z0-9]/.test(password)) strength += 30; // 特殊字符
-
-    return Math.min(100, strength);
-  }
-
-  // 监听密码变化
-  watch(() => accountSettings.newPassword, (newPassword) => {
-    passwordStrength.value = calculatePasswordStrength(newPassword);
-  });
-
-  // 表单验证状态
-  const profileFormValid = computed(() => {
-    return !!profileSettings.nickname && profileSettings.nickname.length <= 30;
-  });
-
-  const accountFormValid = computed(() => {
-    if (!accountSettings.currentPassword) return false;
-    if (accountSettings.newPassword !== accountSettings.confirmPassword) return false;
-    if (accountSettings.newPassword && accountSettings.newPassword.length < 6) return false;
-    return true;
-  });
-
-  // 通知设置
-  const notificationSettings = reactive({
-    likes: true,
-    comments: true,
-    replies: true,
-    follows: true,
-    videoProcessing: true,
-    updates: false,
-    emailNotification: true,
-    browserNotification: false
-  });
-
-  // 隐私设置
-  const privacySettings = reactive({
-    showWatchHistory: false,
-    showFavorites: true,
-    showFollowing: true,
-    showLikes: false,
-    commentPermission: 'everyone'
-  });
-
-  // 外观设置
-  const appearanceSettings = reactive({
-    theme: 'system',
-    fontSize: 16
-  });
-
-  // 加载用户数据到设置中
-  function loadUserDataToSettings() {
-    if (!currentUser.value) return;
-
-    // 更新个人资料设置
-    profileSettings.avatar = currentUser.value.avatar || 'https://i.pravatar.cc/150?u=user1';
-    profileSettings.coverImage = 'https://picsum.photos/1200/300?random=1'; // 假设用户模型中没有封面图片
-    profileSettings.nickname = currentUser.value.nickname || '示例用户';
-    profileSettings.username = currentUser.value.username || 'example_user';
-    profileSettings.bio = currentUser.value.bio || '这是个人简介，可以介绍一下你自己或者分享你感兴趣的内容。';
-
-    // 处理社交链接
-    if (currentUser.value.social) {
-      profileSettings.socialLinks = [];
-      if (currentUser.value.social.github) {
-        profileSettings.socialLinks.push({ platform: 'GitHub', url: currentUser.value.social.github });
-      }
-      if (currentUser.value.social.twitter) {
-        profileSettings.socialLinks.push({ platform: 'Twitter', url: currentUser.value.social.twitter });
-      }
-      if (currentUser.value.social.website) {
-        profileSettings.socialLinks.push({ platform: 'Personal', url: currentUser.value.social.website });
-      }
-    }
-
-    // 更新账号设置
-    accountSettings.email = currentUser.value.email || 'user@example.com';
-  }
-
-  // 加载外观设置
-  function loadAppearanceSettings() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      appearanceSettings.theme = savedTheme;
-    }
-
-    const savedFontSize = localStorage.getItem('fontSize');
-    if (savedFontSize) {
-      appearanceSettings.fontSize = parseInt(savedFontSize);
-    }
-  }
-
-  // 保存外观设置
-  async function saveAppearanceSettings() {
-    try {
-      // 展示加载状态
-      const loadingMsg = message.loading('正在保存外观设置...', {
-        duration: 0
-      });
-
-      // 模拟异步操作
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // 保存到本地存储
-      localStorage.setItem('appearanceSettings', JSON.stringify(appearanceSettings));
-      localStorage.setItem('theme', appearanceSettings.theme);
-      localStorage.setItem('fontSize', appearanceSettings.fontSize.toString());
-
-      // 应用主题和字体大小
-      applyTheme(appearanceSettings.theme);
-      applyFontSize(appearanceSettings.fontSize);
-
-      // 关闭加载提示
-      loadingMsg.destroy();
-      message.success('外观设置已保存');
-    } catch (err) {
-      console.error('保存外观设置时出错:', err);
-      message.error('保存外观设置失败');
-    }
-  }
-
-  // 从本地存储加载设置
-  function loadSettingsFromLocalStorage() {
-    try {
-      // 尝试从localStorage加载通知设置
-      const savedNotificationSettings = localStorage.getItem('notificationSettings');
-      if (savedNotificationSettings) {
-        Object.assign(notificationSettings, JSON.parse(savedNotificationSettings));
-      }
-
-      // 尝试从localStorage加载隐私设置
-      const savedPrivacySettings = localStorage.getItem('privacySettings');
-      if (savedPrivacySettings) {
-        Object.assign(privacySettings, JSON.parse(savedPrivacySettings));
-      }
-
-      // 加载外观设置
-      loadAppearanceSettings();
-    } catch (error) {
-      console.error('从本地存储加载设置时出错:', error);
-    }
-  }
-
-  // 添加社交链接
-  function addLink() {
-    if (profileSettings.socialLinks.length < 5) {
-      profileSettings.socialLinks.push({ platform: 'GitHub', url: '' });
-    }
-  }
-
-  // 删除社交链接
-  function removeLink(index: number) {
-    profileSettings.socialLinks.splice(index, 1);
-  }
-
-  // 保存个人资料设置
-  async function saveProfileSettings() {
-    try {
-      if (!currentUser.value) {
-        message.error('请先登录');
-        return;
-      }
-
-      // 表单验证
-      if (!profileFormValid.value) {
-        message.error('请检查表单信息是否填写正确');
-        return;
-      }
-
-      // 展示加载状态
-      const loadingMsg = message.loading('正在保存个人资料...', {
-        duration: 0
-      });
-
-      // 构建要更新的用户资料
-      const updateData: Partial<User> = {
-        nickname: profileSettings.nickname,
-        bio: profileSettings.bio,
-        avatar: profileSettings.avatar,
-        social: {
-          website: profileSettings.socialLinks.find(link => link.platform === 'Personal')?.url,
-          github: profileSettings.socialLinks.find(link => link.platform === 'GitHub')?.url,
-          twitter: profileSettings.socialLinks.find(link => link.platform === 'Twitter')?.url,
-        }
-      };
-
-      // 模拟异步操作
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // 更新本地存储中的用户数据
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      const updatedUserData = { ...userData, ...updateData };
-      localStorage.setItem('user', JSON.stringify(updatedUserData));
-
-      // 同步到userStore
-      userStore.setUser(updatedUserData);
-
-      // 关闭加载提示
-      loadingMsg.destroy();
-      message.success('个人资料已更新');
-    } catch (err) {
-      console.error('保存个人资料时出错:', err);
-      message.error('保存个人资料失败');
-    }
-  }
-
-  // 重置个人资料设置
-  function resetProfile() {
-    loadUserDataToSettings();
-    message.info('已重置个人资料设置');
-  }
-
-  // 保存账号设置
-  async function saveAccountSettings() {
-    // 验证密码
-    if (!accountFormValid.value) {
-      if (accountSettings.newPassword !== accountSettings.confirmPassword) {
-        message.error('两次输入的密码不一致');
-        return;
-      }
-
-      if (!accountSettings.currentPassword) {
-        message.error('请输入当前密码');
-        return;
-      }
-
-      if (accountSettings.newPassword.length < 6) {
-        message.error('新密码长度至少为6位');
-        return;
-      }
-    }
-
-    try {
-      // 展示加载状态
-      const loadingMsg = message.loading('正在更新密码...', {
-        duration: 0
-      });
-
-      // 模拟密码更新 - 实际项目中应通过API处理
-      // 模拟异步操作
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 关闭加载提示
-      loadingMsg.destroy();
-      message.success('密码已更新');
-
-      // 清空密码字段
-      accountSettings.currentPassword = '';
-      accountSettings.newPassword = '';
-      accountSettings.confirmPassword = '';
-    } catch (err) {
-      console.error('更新密码时出错:', err);
-      message.error('更新密码失败');
-    }
-  }
-
-  // 重置账号设置
-  function resetAccount() {
-    accountSettings.currentPassword = '';
-    accountSettings.newPassword = '';
-    accountSettings.confirmPassword = '';
-    message.info('已重置密码表单');
-  }
-
-  // 保存通知设置
-  async function saveNotificationSettings() {
-    try {
-      // 展示加载状态
-      const loadingMsg = message.loading('正在保存通知设置...', {
-        duration: 0
-      });
-
-      // 模拟异步操作
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // 保存到本地存储
-      localStorage.setItem('notificationSettings', JSON.stringify(notificationSettings));
-
-      // 关闭加载提示
-      loadingMsg.destroy();
-      message.success('通知设置已更新');
-    } catch (err) {
-      console.error('保存通知设置时出错:', err);
-      message.error('保存通知设置失败');
-    }
-  }
-
-  // 重置通知设置
-  function resetNotifications() {
-    Object.assign(notificationSettings, {
-      likes: true,
-      comments: true,
-      replies: true,
-      follows: true,
-      videoProcessing: true,
-      updates: false,
-      emailNotification: true,
-      browserNotification: false
-    });
-    message.info('已重置通知设置');
-  }
-
-  // 保存隐私设置
-  async function savePrivacySettings() {
-    try {
-      // 展示加载状态
-      const loadingMsg = message.loading('正在保存隐私设置...', {
-        duration: 0
-      });
-
-      // 模拟异步操作
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // 保存到本地存储
-      localStorage.setItem('privacySettings', JSON.stringify(privacySettings));
-
-      // 关闭加载提示
-      loadingMsg.destroy();
-      message.success('隐私设置已更新');
-    } catch (err) {
-      console.error('保存隐私设置时出错:', err);
-      message.error('保存隐私设置失败');
-    }
-  }
-
-  // 重置隐私设置
-  function resetPrivacy() {
-    Object.assign(privacySettings, {
-      showWatchHistory: false,
-      showFavorites: true,
-      showFollowing: true,
-      showLikes: false,
-      commentPermission: 'everyone'
-    });
-    message.info('已重置隐私设置');
-  }
-
-  // 应用主题设置
-  function applyTheme(theme: string) {
-    const rootElement = document.documentElement;
-
-    if (theme === 'dark') {
-      rootElement.classList.add('dark');
-      rootElement.classList.remove('light');
-    } else if (theme === 'light') {
-      rootElement.classList.add('light');
-      rootElement.classList.remove('dark');
-    } else {
-      // 系统设置
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) {
-        rootElement.classList.add('dark');
-        rootElement.classList.remove('light');
-      } else {
-        rootElement.classList.add('light');
-        rootElement.classList.remove('dark');
-      }
-    }
-  }
-
-  // 应用字体大小设置
-  function applyFontSize(size: number) {
-    document.documentElement.style.setProperty('--base-font-size', `${size}px`);
-  }
-
-  // 重置外观设置
-  function resetAppearance() {
-    appearanceSettings.theme = 'system';
-    appearanceSettings.fontSize = 16;
-    message.info('已重置外观设置');
-  }
-
-  // 监听外观设置变化，实时应用
-  watch(() => appearanceSettings.theme, (newTheme) => {
-    applyTheme(newTheme);
-  });
-
-  watch(() => appearanceSettings.fontSize, (newSize) => {
-    applyFontSize(newSize);
-  });
-
-  // 上传头像
-  function uploadAvatar(options: any) {
-    const file = options.file.file as File;
-    if (!file) return;
-
+  // 上传头像处理函数
+  function uploadAvatar({ file }: { file: File }) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
@@ -844,11 +438,8 @@
     reader.readAsDataURL(file);
   }
 
-  // 上传封面图片
-  function uploadCoverImage(options: any) {
-    const file = options.file.file as File;
-    if (!file) return;
-
+  // 上传封面图处理函数
+  function uploadCoverImage({ file }: { file: File }) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
@@ -860,45 +451,56 @@
     reader.readAsDataURL(file);
   }
 
-  // 初始化
-  onMounted(() => {
-    // 加载设置
-    loadSettingsFromLocalStorage();
+  // 添加社交链接
+  function addLink() {
+    addSocialLink();
+  }
 
-    // 应用当前外观设置
-    applyTheme(appearanceSettings.theme);
-    applyFontSize(appearanceSettings.fontSize);
+  // 删除社交链接
+  function removeLink(index: number) {
+    removeSocialLink(index);
+  }
 
-    // 如果用户已登录，加载用户数据
-    if (currentUser.value) {
-      loadUserDataToSettings();
+  // 应用主题
+  function applyTheme(theme: string) {
+    const htmlEl = document.documentElement;
+    if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      htmlEl.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     } else {
-      // 从localStorage获取用户数据
-      const savedUserJSON = localStorage.getItem('user');
-      if (savedUserJSON) {
-        try {
-          const savedUser = JSON.parse(savedUserJSON);
-          userStore.setUser(savedUser);
-          loadUserDataToSettings();
-        } catch (e) {
-          console.error('解析保存的用户数据时出错:', e);
-          message.error('加载用户数据失败');
-        }
-      } else {
-        message.info('请先登录');
-      }
+      htmlEl.setAttribute('data-theme', theme);
     }
-  });
+  }
 
-  // 处理社交链接中的url类型问题
-  const socialLink = computed(() => {
-    return profileSettings.socialLinks.map(link => {
-      return {
-        platform: link.platform,
-        url: link.url || ''
-      };
-    });
-  });
+  // 应用字体大小
+  function applyFontSize(size: number) {
+    document.documentElement.style.setProperty('--base-font-size', `${size}px`);
+  }
+
+  // 重置个人资料设置
+  function resetProfile() {
+    resetProfileSettings();
+  }
+
+  // 重置账号设置
+  function resetAccount() {
+    resetAccountSettings();
+  }
+
+  // 重置通知设置
+  function resetNotifications() {
+    resetNotificationSettings();
+  }
+
+  // 重置隐私设置
+  function resetPrivacy() {
+    resetPrivacySettings();
+  }
+
+  // 重置外观设置
+  function resetAppearance() {
+    resetAppearanceSettings();
+  }
 </script>
 
 <style scoped>

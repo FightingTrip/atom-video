@@ -5,18 +5,25 @@ export interface User {
   email: string;
   nickname: string;
   avatar: string;
-  bio: string;
+  bio?: string;
   verified: boolean;
-  subscribers: number;
-  subscribing: number;
-  totalViews: number;
+  subscribers?: number;
+  subscribing?: number;
+  totalViews?: number;
   joinedAt: string;
-  isFollowed?: boolean;
+  role?: 'user' | 'creator' | 'admin';
+  coverImage?: string;
   social?: {
     website?: string;
     github?: string;
     twitter?: string;
+    youtube?: string;
+    instagram?: string;
   };
+  preferences?: UserPreferences;
+  notifications?: UserNotificationSettings;
+  privacy?: UserPrivacySettings;
+  isFollowed?: boolean;
 }
 
 // 视频相关类型
@@ -214,4 +221,41 @@ export interface VideoClip {
   startTime: number;
   endTime: number;
   title?: string;
+}
+
+/**
+ * 视频进度类型
+ */
+export interface VideoProgress {
+  videoId: string;
+  currentTime: number;
+  duration: number;
+  percentage: number;
+  lastPlayedAt?: string;
+}
+
+// 添加用户设置相关类型定义
+export interface UserPreferences {
+  theme: 'system' | 'light' | 'dark';
+  fontSize: number;
+  language: string;
+}
+
+export interface UserNotificationSettings {
+  likes: boolean;
+  comments: boolean;
+  replies: boolean;
+  follows: boolean;
+  videoProcessing: boolean;
+  updates: boolean;
+  emailNotification: boolean;
+  browserNotification: boolean;
+}
+
+export interface UserPrivacySettings {
+  showWatchHistory: boolean;
+  showFavorites: boolean;
+  showFollowing: boolean;
+  showLikes: boolean;
+  commentPermission: 'everyone' | 'followers' | 'following' | 'none';
 }

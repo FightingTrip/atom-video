@@ -5,6 +5,7 @@ import { RouteRecordRaw } from 'vue-router';
 import adminRoutes from './modules/admin';
 // 导入权限守卫
 import { permissionGuard } from './guards/permission';
+import { registerProgressGuard } from './guards/progress';
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -264,56 +265,43 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    // 如果有保存的位置，则使用保存的位置
+    if (savedPosition) {
+      return savedPosition;
+    }
+    // 默认滚动到顶部
+    return { top: 0 };
+  },
 });
 
-// 路由守卫
+// 应用路由守卫
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
-  console.log('[Router] beforeEach', {
-    to: {
-      path: to.path,
-      name: to.name,
-      fullPath: to.fullPath,
-      matched: to.matched.map(record => ({
-        path: record.path,
-        name: record.name,
-        component: record.components?.default?.name || 'Anonymous Component',
-      })),
-    },
-    isAuthRequired: to.meta.requiresAuth,
-    isAuthenticated: authStore.isAuthenticated,
-  });
+  // 更新文档标题
+  document.title = to.meta.title ? to.meta.title : 'Atom Video';
 
-  // 设置页面标题
-  document.title = `${to.meta.title}` || 'Atom Video';
+  // 检查是否需要登录
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
 
-  // 处理需要登录的页面
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.log('[Router] 重定向到登录页面，因为需要认证');
+  if (requiresAuth && !authStore.isAuthenticated) {
+    console.log(`[Auth] Redirecting to login from ${to.fullPath}`);
     next({
-      name: 'login',
+      path: '/auth/login',
       query: { redirect: to.fullPath },
     });
     return;
   }
 
-  // 处理游客页面（已登录用户不能访问）
-  if (to.meta.guest && authStore.isAuthenticated) {
-    console.log('[Router] 重定向到首页，因为用户已登录');
-    next('/');
-    return;
-  }
-
-  // 使用权限守卫检查角色权限
-  if (to.meta.roles && to.meta.roles.length > 0) {
-    return permissionGuard(to, from, next);
-  }
-
-  // 继续路由处理
-  console.log('[Router] 继续导航到', to.path);
   next();
 });
+
+// 应用权限守卫
+router.beforeEach(permissionGuard);
+
+// 注册视频进度守卫
+registerProgressGuard(router);
 
 // 路由后置钩子 - 用于调试
 router.afterEach((to, from) => {
