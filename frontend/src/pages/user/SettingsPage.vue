@@ -36,7 +36,12 @@
   import { useRouter } from 'vue-router';
   import { NSpin, NResult, NButton } from 'naive-ui';
   import UserSettingsComponent from '@/components/business/user/UserSettingsComponent.vue';
+  import { useUserStore } from '@/stores/user';
+  import userProfileService from '@/services/user/profile';
   import type { User } from '@/types';
+
+  // 用户状态
+  const userStore = useUserStore();
 
   // 路由相关
   const router = useRouter();
@@ -47,47 +52,32 @@
   const isAuthenticated = ref(false);
   const userData = ref<User | null>(null);
 
-  // 模拟当前登录用户数据
-  const mockCurrentUser: User = {
-    id: '1',
-    username: 'demo_user',
-    email: 'demo@example.com',
-    nickname: '演示用户',
-    avatar: 'https://i.pravatar.cc/150?u=1',
-    bio: '这是一个用于演示的账号，您可以在这里测试各种功能。',
-    verified: true,
-    subscribers: 1024,
-    subscribing: 42,
-    totalViews: 30240,
-    joinedAt: '2024-01-15T08:00:00Z',
-    social: {
-      website: 'https://example.com',
-      github: 'https://github.com/demo-user',
-      twitter: 'https://twitter.com/demo-user',
-    },
-  };
-
   // 获取用户数据
   const fetchUserData = async () => {
     loading.value = true;
     error.value = '';
 
     try {
-      // 模拟API请求延迟
-      await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 700) + 300));
-
       // 模拟验证登录状态
       // 实际应用中，应该从身份验证服务获取当前登录用户信息
-      const isLoggedIn = true; // 假设用户已登录
+      const currentUserId = userStore.currentUser?.id || '1'; // 默认使用ID为1的用户
+      const isLoggedIn = !!currentUserId;
 
       if (!isLoggedIn) {
         isAuthenticated.value = false;
+        loading.value = false;
         return;
       }
 
-      // 用户已登录
+      // 用户已登录，获取用户数据
       isAuthenticated.value = true;
-      userData.value = mockCurrentUser;
+      const user = await userProfileService.getUserProfile(currentUserId);
+
+      if (!user) {
+        throw new Error('获取用户数据失败');
+      }
+
+      userData.value = user;
     } catch (err) {
       console.error('获取用户数据失败:', err);
       error.value = err instanceof Error ? err.message : '加载用户数据失败';

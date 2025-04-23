@@ -394,8 +394,22 @@
   });
 
   // 方法
-  // 格式化数字，大于1000显示为K，大于1000000显示为M
-  const formatNumber = (num: number): string => {
+  // 格式化数字（添加千位分隔符和缩写）
+  const formatNumber = (value: any): string => {
+    // 处理undefined或null值，返回默认值'0'
+    if (value === undefined || value === null) {
+      return '0';
+    }
+
+    // 确保value是数字
+    const num = typeof value === 'number' ? value : Number(value);
+
+    // 如果NaN，返回'0'
+    if (isNaN(num)) {
+      return '0';
+    }
+
+    // 格式化数字
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     } else if (num >= 1000) {
@@ -406,12 +420,22 @@
 
   // 格式化趋势百分比
   const formatTrend = (trend: number): string => {
+    // 处理undefined或null值
+    if (trend === undefined || trend === null) {
+      return '0.0%';
+    }
+
     const sign = trend > 0 ? '+' : '';
     return `${sign}${trend.toFixed(1)}%`;
   };
 
   // 获取趋势样式类
   const getTrendClass = (trend: number): string => {
+    // 处理undefined或null值
+    if (trend === undefined || trend === null) {
+      return 'trend-neutral';
+    }
+
     if (trend > 0) return 'trend-up';
     if (trend < 0) return 'trend-down';
     return 'trend-neutral';

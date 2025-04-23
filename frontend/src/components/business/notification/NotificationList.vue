@@ -78,10 +78,13 @@
         return 'el-icon-chat-dot-round';
       case 'like':
         return 'el-icon-star-on';
+      case 'subscription':
       case 'subscribe':
         return 'el-icon-video-camera';
       case 'system':
         return 'el-icon-bell';
+      case 'video':
+        return 'el-icon-video-play';
       default:
         return 'el-icon-message';
     }
@@ -94,10 +97,13 @@
         return 'icon-comment';
       case 'like':
         return 'icon-like';
+      case 'subscription':
       case 'subscribe':
         return 'icon-subscribe';
       case 'system':
         return 'icon-system';
+      case 'video':
+        return 'icon-video';
       default:
         return '';
     }
@@ -211,6 +217,11 @@
   .notification-icon.icon-system {
     background-color: #fdf6ec;
     color: #e6a23c;
+  }
+
+  .notification-icon.icon-video {
+    background-color: #f2f2fd;
+    color: #8080ff;
   }
 
   .notification-content {

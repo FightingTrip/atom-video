@@ -482,27 +482,17 @@ export const creatorHandlers = [
 
     await mockDelay();
 
-    // 生成30天的内容趋势数据
-    const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
-    const data = [];
-    const today = new Date();
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - (days - i - 1));
-      data.push({
-        date: date.toISOString().split('T')[0],
-        value: Math.floor(Math.random() * 5), // 每天0-5个视频
-      });
-    }
+    // 生成模拟的内容趋势数据
+    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    const trendData = generateTrendData(days, { min: 0, max: 5 });
 
     return HttpResponse.json({
       success: true,
-      data,
+      data: trendData,
     });
   }),
 
-  // 获取观看趋势数据
+  // 获取观看量趋势数据
   http.get('/api/creator/trends/views', async ({ request }) => {
     const url = new URL(request.url);
     const period = url.searchParams.get('period') || '30d';
@@ -531,23 +521,13 @@ export const creatorHandlers = [
 
     await mockDelay();
 
-    // 生成观看趋势数据
-    const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
-    const data = [];
-    const today = new Date();
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - (days - i - 1));
-      data.push({
-        date: date.toISOString().split('T')[0],
-        value: 100 + Math.floor(Math.random() * 900), // 每天100-1000次观看
-      });
-    }
+    // 生成模拟的观看趋势数据
+    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    const trendData = generateTrendData(days, { min: 50, max: 500 });
 
     return HttpResponse.json({
       success: true,
-      data,
+      data: trendData,
     });
   }),
 
@@ -580,26 +560,13 @@ export const creatorHandlers = [
 
     await mockDelay();
 
-    // 生成互动趋势数据
-    const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
-    const data = [];
-    const today = new Date();
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - (days - i - 1));
-      data.push({
-        date: date.toISOString().split('T')[0],
-        value: 50 + Math.floor(Math.random() * 150), // 总互动
-        likes: 30 + Math.floor(Math.random() * 70), // 点赞
-        comments: 10 + Math.floor(Math.random() * 40), // 评论
-        shares: 5 + Math.floor(Math.random() * 20), // 分享
-      });
-    }
+    // 生成模拟的互动趋势数据
+    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    const trendData = generateEngagementTrendData(days, { min: 20, max: 200 });
 
     return HttpResponse.json({
       success: true,
-      data,
+      data: trendData,
     });
   }),
 
@@ -632,23 +599,13 @@ export const creatorHandlers = [
 
     await mockDelay();
 
-    // 生成收入趋势数据
-    const days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
-    const data = [];
-    const today = new Date();
-
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - (days - i - 1));
-      data.push({
-        date: date.toISOString().split('T')[0],
-        value: 20 + Math.floor(Math.random() * 100), // 每天20-120元收入
-      });
-    }
+    // 生成模拟的收入趋势数据
+    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    const trendData = generateTrendData(days, { min: 10, max: 100 });
 
     return HttpResponse.json({
       success: true,
-      data,
+      data: trendData,
     });
   }),
 
@@ -823,7 +780,36 @@ export const creatorHandlers = [
     }
 
     // 根据指定的指标排序
-    topVideos.sort((a, b) => b[metric] - a[metric]);
+    topVideos.sort((a, b) => {
+      // 使用类型安全的方式访问属性
+      const metricA =
+        metric === 'views'
+          ? a.views
+          : metric === 'likes'
+            ? a.likes
+            : metric === 'comments'
+              ? a.comments
+              : metric === 'shares'
+                ? a.shares
+                : metric === 'revenue'
+                  ? a.revenue
+                  : a.views;
+
+      const metricB =
+        metric === 'views'
+          ? b.views
+          : metric === 'likes'
+            ? b.likes
+            : metric === 'comments'
+              ? b.comments
+              : metric === 'shares'
+                ? b.shares
+                : metric === 'revenue'
+                  ? b.revenue
+                  : b.views;
+
+      return metricB - metricA;
+    });
 
     return HttpResponse.json({
       success: true,
@@ -831,5 +817,51 @@ export const creatorHandlers = [
     });
   }),
 ];
+
+// 辅助函数：生成模拟的趋势数据
+function generateTrendData(days: number, range: { min: number; max: number }) {
+  const trendData: { date: string; value: number }[] = [];
+  const now = new Date();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+
+    trendData.push({
+      date: date.toISOString().split('T')[0],
+      value: Math.floor(Math.random() * (range.max - range.min + 1)) + range.min,
+    });
+  }
+
+  return trendData;
+}
+
+// 生成互动趋势数据，包含likes, comments, shares
+function generateEngagementTrendData(days: number, range: { min: number; max: number }) {
+  const trendData: {
+    date: string;
+    value: number;
+    likes: number;
+    comments: number;
+    shares: number;
+  }[] = [];
+  const now = new Date();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    const value = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+
+    trendData.push({
+      date: date.toISOString().split('T')[0],
+      value,
+      likes: Math.round(value * 0.6),
+      comments: Math.round(value * 0.3),
+      shares: Math.round(value * 0.1),
+    });
+  }
+
+  return trendData;
+}
 
 export default creatorHandlers;

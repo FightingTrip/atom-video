@@ -28,6 +28,7 @@
   import { useRoute, useRouter } from 'vue-router';
   import { NSpin, NResult, NButton } from 'naive-ui';
   import UserProfileComponent from '@/components/business/user/UserProfileComponent.vue';
+  import userProfileService from '@/services/user/profile';
   import type { User } from '@/types';
 
   // 路由相关
@@ -40,62 +41,6 @@
   const userId = ref('');
   const userData = ref<User | null>(null);
 
-  // 模拟用户数据
-  const mockUsers: User[] = [
-    {
-      id: '1',
-      username: 'demo_user',
-      email: 'demo@example.com',
-      nickname: '演示用户',
-      avatar: 'https://i.pravatar.cc/150?u=1',
-      bio: '这是一个用于演示的账号，您可以在这里测试各种功能。',
-      verified: true,
-      subscribers: 1024,
-      subscribing: 42,
-      totalViews: 30240,
-      joinedAt: '2024-01-15T08:00:00Z',
-      social: {
-        website: 'https://example.com',
-        github: 'https://github.com/demo-user',
-        twitter: 'https://twitter.com/demo-user',
-      },
-    },
-    {
-      id: '2',
-      username: 'admin_user',
-      email: 'admin@example.com',
-      nickname: '管理员',
-      avatar: 'https://i.pravatar.cc/150?u=2',
-      bio: '系统管理员账号，拥有所有权限。',
-      verified: true,
-      subscribers: 5000,
-      subscribing: 10,
-      totalViews: 100000,
-      joinedAt: '2023-12-01T08:00:00Z',
-      social: {
-        github: 'https://github.com/admin-user',
-      },
-    },
-    {
-      id: '3',
-      username: 'creator',
-      email: 'creator@example.com',
-      nickname: '内容创作者',
-      avatar: 'https://i.pravatar.cc/150?u=3',
-      bio: '专业视频创作者，分享有趣的科技内容和教程。',
-      verified: true,
-      subscribers: 25000,
-      subscribing: 120,
-      totalViews: 2500000,
-      joinedAt: '2023-10-15T08:00:00Z',
-      social: {
-        website: 'https://creator-tech.com',
-        github: 'https://github.com/tech-creator',
-        twitter: 'https://twitter.com/tech-creator',
-      },
-    },
-  ];
-
   // 获取用户数据
   const fetchUserData = async () => {
     loading.value = true;
@@ -105,13 +50,12 @@
       // 从路由参数中获取用户ID
       userId.value = route.params.id as string;
 
-      // 模拟API请求延迟
-      await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 700) + 300));
+      if (!userId.value) {
+        throw new Error('未指定用户ID');
+      }
 
-      // 查找用户
-      const user = userId.value ?
-        mockUsers.find(u => u.id === userId.value) :
-        mockUsers[0];
+      // 获取用户数据
+      const user = await userProfileService.getUserProfile(userId.value);
 
       if (!user) {
         throw new Error('用户不存在');
