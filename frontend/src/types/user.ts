@@ -55,6 +55,7 @@ export interface UserSocialLinks {
   instagram?: string;
   linkedin?: string;
   facebook?: string;
+  location?: string;
 }
 
 /**

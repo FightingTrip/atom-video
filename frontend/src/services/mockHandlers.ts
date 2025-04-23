@@ -11,6 +11,10 @@ import {
   getMockVideoInteraction,
 } from './mockData';
 import { localStorageSupport, safeGetItem, safeSetItem } from '@/utils/storageUtils';
+import { registerAdminMockHandlers } from './mockHandlers/admin';
+import { registerCreatorMockHandlers } from './mockHandlers/creator';
+// 导入MSW的处理程序
+import { handlers as mswHandlers } from '@/mock/handlers';
 
 // 参数接口定义
 interface QueryParams {
@@ -49,6 +53,15 @@ const initLocalStorage = () => {
 export const registerAllMockHandlers = () => {
   // 初始化本地存储
   initLocalStorage();
+
+  // 注册管理后台处理器
+  registerAdminMockHandlers();
+
+  // 注册创作者处理器
+  registerCreatorMockHandlers();
+
+  // 注册MSW处理程序 (这里不需要特别操作，因为MSW处理程序在setupMockWorker()时会自动注册)
+  console.log('Registered MSW handlers:', mswHandlers.length);
 
   // 1. 视频相关API
   registerMockHandler({

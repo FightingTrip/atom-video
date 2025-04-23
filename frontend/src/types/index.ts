@@ -234,6 +234,7 @@ export interface VideoProgress {
   duration: number;
   percentage: number;
   lastPlayedAt?: string;
+  lastUpdated?: string;
 }
 
 // 添加用户设置相关类型定义

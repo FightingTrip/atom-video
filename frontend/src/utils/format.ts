@@ -25,7 +25,7 @@ export function formatDate(date: string | Date, format: string = 'YYYY-MM-DD HH:
  * @returns 格式化后的数字字符串
  */
 export function formatNumber(
-  num: number,
+  num: number | undefined,
   options?: {
     useGrouping?: boolean; // 是否使用千位分隔符
     useUnit?: boolean; // 是否使用万/亿单位
@@ -67,8 +67,8 @@ export function formatNumber(
  * @param showHours 是否始终显示小时位
  * @returns 格式化后的时长字符串
  */
-export function formatDuration(seconds: number, showHours: boolean = false): string {
-  if (!seconds && seconds !== 0) return '--:--';
+export function formatDuration(seconds: number | undefined, showHours: boolean = false): string {
+  if (seconds === undefined || seconds === null) return '--:--';
 
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -87,8 +87,8 @@ export function formatDuration(seconds: number, showHours: boolean = false): str
  * @param precision 小数位数
  * @returns 格式化后的文件大小字符串
  */
-export function formatFileSize(bytes: number, precision: number = 2): string {
-  if (bytes === 0) return '0 B';
+export function formatFileSize(bytes: number | undefined, precision: number = 2): string {
+  if (bytes === undefined || bytes === 0) return '0 B';
 
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
@@ -114,8 +114,9 @@ export function truncateText(text: string, maxLength: number): string {
  * @param phoneNumber 手机号码
  * @returns 格式化后的手机号码
  */
-export function formatPhoneNumber(phoneNumber: string): string {
-  if (!phoneNumber || phoneNumber.length !== 11) return phoneNumber;
+export function formatPhoneNumber(phoneNumber: string | undefined): string {
+  if (!phoneNumber) return '';
+  if (phoneNumber.length !== 11) return phoneNumber;
   return phoneNumber.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
 }
 
@@ -124,8 +125,8 @@ export function formatPhoneNumber(phoneNumber: string): string {
  * @param email 邮箱地址
  * @returns 格式化后的邮箱
  */
-export function formatEmail(email: string): string {
-  if (!email || !email.includes('@')) return email;
+export function formatEmail(email: string | undefined): string {
+  if (!email || !email.includes('@')) return email || '';
 
   const [username, domain] = email.split('@');
   let maskedUsername = username;
@@ -146,4 +147,37 @@ export function formatEmail(email: string): string {
  */
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+/**
+ * 格式化金额
+ * @param amount 金额数值
+ * @param currency 货币符号，默认为 ¥
+ * @param decimals 小数位数，默认为 2
+ * @returns 格式化后的金额字符串
+ */
+export function formatCurrency(
+  amount: number | undefined,
+  currency: string = '¥',
+  decimals: number = 2
+): string {
+  if (amount === undefined) return `${currency}0.00`;
+
+  const formattedAmount = amount.toFixed(decimals);
+  const parts = formattedAmount.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  return `${currency}${parts.join('.')}`;
+}
+
+/**
+ * 格式化百分比
+ * @param value 需要格式化的值（0-1之间）
+ * @param decimals 小数位数，默认为 2
+ * @returns 格式化后的百分比字符串
+ */
+export function formatPercent(value: number | undefined, decimals: number = 2): string {
+  if (value === undefined) return '0%';
+
+  return (value * 100).toFixed(decimals) + '%';
 }

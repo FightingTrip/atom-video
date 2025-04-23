@@ -28,6 +28,12 @@ interface UpdateProfilePayload {
   };
 }
 
+interface UserPreferences {
+  categories?: string[];
+  tags?: string[];
+  lastWatched?: string[];
+}
+
 interface UserState {
   user: User | null;
   isLoading: boolean;
@@ -42,7 +48,7 @@ export const useUserStore = defineStore('user', () => {
 
   // 计算属性
   const isLoggedIn = computed(() => !!currentUser.value);
-  const userName = computed(() => currentUser.value?.name || '游客');
+  const userName = computed(() => currentUser.value?.nickname || '游客');
 
   // 初始化用户状态
   async function initUser() {

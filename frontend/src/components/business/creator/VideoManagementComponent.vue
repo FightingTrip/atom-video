@@ -48,8 +48,9 @@
 </template>
 
 <script setup lang="ts">
-  import { h, ref, computed } from 'vue';
+  import { h, ref, computed, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
+  import { useMessage } from 'naive-ui';
   import {
     NDataTable,
     NButton,
@@ -74,6 +75,8 @@
     SearchOutline,
     ShareSocialOutline
   } from '@vicons/ionicons5';
+  import creatorService from '@/services/creator/creatorService';
+  import type { CreatorVideo } from '@/services/creator/types';
 
   const props = defineProps({
     title: {
@@ -83,71 +86,11 @@
   });
 
   const router = useRouter();
+  const message = useMessage();
 
   // 视频列表状态
   const loading = ref(false);
-  const videos = ref([
-    {
-      id: '1',
-      title: 'Vue 3 完全指南 - 组合式API详解',
-      thumbnail: 'https://picsum.photos/id/237/400/225',
-      status: 'published',
-      privacy: 'public',
-      uploadDate: '2024-06-10T15:30:00Z',
-      views: 1250,
-      likes: 98,
-      comments: 34,
-      duration: '18:24'
-    },
-    {
-      id: '2',
-      title: 'TypeScript 高级类型系统详解',
-      thumbnail: 'https://picsum.photos/id/238/400/225',
-      status: 'published',
-      privacy: 'public',
-      uploadDate: '2024-06-08T10:15:00Z',
-      views: 980,
-      likes: 76,
-      comments: 22,
-      duration: '22:15'
-    },
-    {
-      id: '3',
-      title: 'Pinia 状态管理入门',
-      thumbnail: 'https://picsum.photos/id/239/400/225',
-      status: 'draft',
-      privacy: 'private',
-      uploadDate: '2024-06-01T08:20:00Z',
-      views: 0,
-      likes: 0,
-      comments: 0,
-      duration: '15:08'
-    },
-    {
-      id: '4',
-      title: 'Vite 构建工具深入解析',
-      thumbnail: 'https://picsum.photos/id/240/400/225',
-      status: 'processing',
-      privacy: 'private',
-      uploadDate: '2024-06-15T14:45:00Z',
-      views: 0,
-      likes: 0,
-      comments: 0,
-      duration: '20:30'
-    },
-    {
-      id: '5',
-      title: 'Vue 3 和 React 18 对比分析',
-      thumbnail: 'https://picsum.photos/id/241/400/225',
-      status: 'scheduled',
-      privacy: 'public',
-      uploadDate: '2024-06-20T10:00:00Z', // 这是计划发布时间
-      views: 0,
-      likes: 0,
-      comments: 0,
-      duration: '25:42'
-    }
-  ]);
+  const videos = ref<CreatorVideo[]>([]);
 
   // 搜索和筛选
   const searchQuery = ref('');
@@ -157,7 +100,8 @@
     { label: '已发布', value: 'published' },
     { label: '草稿', value: 'draft' },
     { label: '处理中', value: 'processing' },
-    { label: '计划发布', value: 'scheduled' }
+    { label: '计划发布', value: 'scheduled' },
+    { label: '已拒绝', value: 'rejected' }
   ];
 
   // 删除确认
@@ -175,7 +119,7 @@
       {
         title: '视频',
         key: 'title',
-        render(row: any) {
+        render(row: CreatorVideo) {
           return h('div', { class: 'video-info-cell' }, [
             h('img', {
               src: row.thumbnail,
@@ -197,12 +141,13 @@
         title: '状态',
         key: 'status',
         width: 120,
-        render(row: any) {
+        render(row: CreatorVideo) {
           const statusMap: Record<string, { text: string, type: 'success' | 'warning' | 'info' | 'error' | 'default' }> = {
             published: { text: '已发布', type: 'success' },
             draft: { text: '草稿', type: 'default' },
             processing: { text: '处理中', type: 'warning' },
-            scheduled: { text: '计划发布', type: 'info' }
+            scheduled: { text: '计划发布', type: 'info' },
+            rejected: { text: '已拒绝', type: 'error' }
           };
 
           const status = statusMap[row.status] || { text: row.status, type: 'default' };
@@ -218,10 +163,11 @@
         title: '可见性',
         key: 'privacy',
         width: 100,
-        render(row: any) {
+        render(row: CreatorVideo) {
           const privacyMap: Record<string, { text: string, icon: any }> = {
             public: { text: '公开', icon: EyeOutline },
-            private: { text: '私有', icon: LockClosedOutline }
+            private: { text: '私有', icon: LockClosedOutline },
+            unlisted: { text: '不公开', icon: LockClosedOutline }
           };
 
           const privacy = privacyMap[row.privacy] || { text: row.privacy, icon: EyeOutline };
@@ -241,14 +187,14 @@
         title: '上传日期',
         key: 'uploadDate',
         width: 120,
-        render(row: any) {
+        render(row: CreatorVideo) {
           return formatDate(row.uploadDate);
         }
       },
       {
         title: '数据',
         key: 'stats',
-        render(row: any) {
+        render(row: CreatorVideo) {
           return h('div', { class: 'video-stats' }, [
             h('span', { class: 'stat-item' }, [
               h(NIcon, { size: 16 }, { default: () => h(EyeOutline) }),
@@ -269,7 +215,7 @@
         title: '操作',
         key: 'actions',
         width: 250,
-        render(row: any) {
+        render(row: CreatorVideo) {
           return h(NSpace, { align: 'center' }, {
             default: () => [
               h(NButton, {
@@ -316,24 +262,28 @@
 
   // 计算列和筛选后的视频列表
   const columns = createColumns();
-  const filteredVideos = computed(() => {
-    let result = videos.value;
+  const filteredVideos = computed(() => videos.value);
 
-    // 应用搜索
-    if (searchQuery.value) {
-      const query = searchQuery.value.toLowerCase();
-      result = result.filter(video =>
-        video.title.toLowerCase().includes(query)
-      );
+  // 获取视频列表
+  const fetchVideos = async () => {
+    loading.value = true;
+    try {
+      const params = {
+        page: 1,
+        pageSize: 10,
+        status: filterStatus.value || undefined,
+        query: searchQuery.value || undefined
+      };
+
+      const result = await creatorService.getCreatorVideos(params);
+      videos.value = result.data;
+    } catch (error) {
+      console.error('获取视频失败:', error);
+      message.error('获取视频列表失败');
+    } finally {
+      loading.value = false;
     }
-
-    // 应用状态筛选
-    if (filterStatus.value) {
-      result = result.filter(video => video.status === filterStatus.value);
-    }
-
-    return result;
-  });
+  };
 
   // 功能实现
   const handleUploadVideo = () => {
@@ -360,17 +310,31 @@
     console.log('分享视频', id);
   };
 
-  const handleDelete = (video: any) => {
+  const handleDelete = (video: CreatorVideo) => {
     videoToDelete.value = { id: video.id, title: video.title };
     showDeleteModal.value = true;
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (videoToDelete.value) {
-      // 实际开发中应调用API删除视频
-      videos.value = videos.value.filter(v => v.id !== videoToDelete.value?.id);
-      videoToDelete.value = null;
-      showDeleteModal.value = false;
+      loading.value = true;
+      try {
+        const result = await creatorService.deleteVideo(videoToDelete.value.id);
+        if (result.success) {
+          message.success('视频已成功删除');
+          // 重新获取视频列表
+          await fetchVideos();
+        } else {
+          message.error(`删除失败: ${result.message}`);
+        }
+      } catch (error) {
+        console.error('删除视频失败:', error);
+        message.error('删除视频失败，请稍后重试');
+      } finally {
+        videoToDelete.value = null;
+        showDeleteModal.value = false;
+        loading.value = false;
+      }
     }
   };
 
@@ -379,9 +343,29 @@
     showDeleteModal.value = false;
   };
 
+  // 搜索视频
+  const handleSearch = () => {
+    fetchVideos();
+  };
+
+  // 监听搜索和筛选变化
+  watch([searchQuery, filterStatus], () => {
+    fetchVideos();
+  }, { debounce: 300 });
+
+  // 初始化
+  onMounted(() => {
+    fetchVideos();
+  });
+
   // 工具函数
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN');
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date);
   };
 
   const formatNumber = (num: number) => {
@@ -392,6 +376,7 @@
     ThumbsUpOutline,
     ChatbubbleOutline
   } from '@vicons/ionicons5';
+  import { watch } from 'vue';
 </script>
 
 <style scoped>
@@ -497,16 +482,6 @@
     .management-header {
       flex-direction: column;
       align-items: flex-start;
-    }
-
-    .video-thumbnail {
-      width: 80px;
-      height: 45px;
-    }
-
-    .header-actions {
-      width: 100%;
-      justify-content: space-between;
     }
   }
 </style>

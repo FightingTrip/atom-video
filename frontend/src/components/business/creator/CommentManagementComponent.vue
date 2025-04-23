@@ -1,15 +1,32 @@
 <template>
   <div class="comments-management">
+    <div class="comments-header">
+      <h3 class="section-title">{{ title || '评论管理' }}</h3>
+      <div class="filters">
+        <n-input v-model:value="searchQuery" placeholder="搜索评论..." class="search-input">
+          <template #prefix>
+            <n-icon>
+              <SearchOutline />
+            </n-icon>
+          </template>
+        </n-input>
+        <n-select v-model:value="videoFilter" :options="videoOptions" placeholder="全部视频" clearable />
+        <n-select v-model:value="statusFilter" :options="statusOptions" placeholder="全部状态" clearable />
+      </div>
+    </div>
+
     <n-data-table :columns="commentColumns" :data="comments" :pagination="pagination" :bordered="false"
-      class="comments-table" />
+      :loading="loading" class="comments-table" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { h, ref } from 'vue';
-  import { NButton, NDataTable, NAvatar, NPopconfirm, NTag, NIcon } from 'naive-ui';
-  import { VideocamOutline, TrashBinOutline } from '@vicons/ionicons5';
-  import { Comment } from '@/types/comment';
+  import { h, ref, onMounted, computed, watch } from 'vue';
+  import { NButton, NDataTable, NAvatar, NPopconfirm, NTag, NIcon, NInput, NSelect } from 'naive-ui';
+  import { VideocamOutline, TrashBinOutline, SearchOutline } from '@vicons/ionicons5';
+  import creatorService from '@/services/creator/creatorService';
+  import type { CreatorComment } from '@/services/creator/types';
+  import { useMessage } from 'naive-ui';
 
   interface Props {
     title?: string;
@@ -21,6 +38,33 @@
     (e: 'reply', commentId: string): void
     (e: 'delete', commentId: string): void
   }>();
+
+  const message = useMessage();
+  const loading = ref(false);
+  const comments = ref<CreatorComment[]>([]);
+  const searchQuery = ref('');
+  const videoFilter = ref(null);
+  const statusFilter = ref(null);
+  const videoOptions = ref([]);
+
+  // 分页设置
+  const pagination = ref({
+    page: 1,
+    pageSize: 10,
+    itemCount: 0,
+    onChange: (page: number) => {
+      pagination.value.page = page;
+      fetchComments();
+    }
+  });
+
+  // 状态选项
+  const statusOptions = [
+    { label: '全部状态', value: null },
+    { label: '已审核', value: 'visible' },
+    { label: '待审核', value: 'pending' },
+    { label: '已隐藏', value: 'hidden' }
+  ];
 
   // 格式化函数
   const formatTimeDifference = (date: string) => {
@@ -39,46 +83,41 @@
     return new Date(date).toLocaleDateString('zh-CN');
   };
 
-  // 评论列表
-  const comments = ref<any[]>([
-    {
-      id: '1',
-      content: '这个教程太棒了，学到了很多东西！',
-      createdAt: '2024-06-12T09:40:00Z',
-      videoTitle: 'Vue 3 完全指南 - 组合式API详解',
-      status: '已审核',
-      user: {
-        nickname: '前端爱好者',
-        avatar: 'https://i.pravatar.cc/150?img=33'
-      }
-    },
-    {
-      id: '2',
-      content: '能不能出一期关于Pinia的教程？',
-      createdAt: '2024-06-11T14:20:00Z',
-      videoTitle: 'Vue 3 完全指南 - 组合式API详解',
-      status: '已审核',
-      user: {
-        nickname: 'Vue开发者',
-        avatar: 'https://i.pravatar.cc/150?img=53'
-      }
-    },
-    {
-      id: '3',
-      content: '很好的内容，但是有一个小错误，在12:30的地方...',
-      createdAt: '2024-06-09T11:15:00Z',
-      videoTitle: 'TypeScript 高级类型系统详解',
-      status: '待审核',
-      user: {
-        nickname: 'TS大师',
-        avatar: 'https://i.pravatar.cc/150?img=68'
-      }
-    }
-  ]);
+  // 获取评论列表
+  const fetchComments = async () => {
+    loading.value = true;
+    try {
+      const params = {
+        page: pagination.value.page,
+        pageSize: pagination.value.pageSize,
+        videoId: videoFilter.value,
+        status: statusFilter.value
+      };
 
-  // 分页设置
-  const pagination = {
-    pageSize: 10
+      const result = await creatorService.getCreatorComments(params);
+      comments.value = result.data;
+      pagination.value.itemCount = result.total;
+    } catch (error) {
+      console.error('获取评论失败:', error);
+      message.error('获取评论失败，请稍后重试');
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取视频选项
+  const fetchVideoOptions = async () => {
+    try {
+      const result = await creatorService.getCreatorVideos({ pageSize: 100 });
+      videoOptions.value = result.data.map(video => ({
+        label: video.title,
+        value: video.id
+      }));
+      // 添加全部视频选项
+      videoOptions.value.unshift({ label: '全部视频', value: null });
+    } catch (error) {
+      console.error('获取视频选项失败:', error);
+    }
   };
 
   // 处理回复评论
@@ -87,17 +126,38 @@
   };
 
   // 处理删除评论
-  const handleDeleteComment = (id: string) => {
-    emit('delete', id);
-    comments.value = comments.value.filter(c => c.id !== id);
+  const handleDeleteComment = async (id: string) => {
+    loading.value = true;
+    try {
+      const result = await creatorService.deleteComment(id);
+      if (result.success) {
+        message.success('评论已删除');
+        emit('delete', id);
+        // 重新获取评论列表
+        await fetchComments();
+      } else {
+        message.error(`删除失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('删除评论失败:', error);
+      message.error('删除评论失败，请稍后重试');
+    } finally {
+      loading.value = false;
+    }
   };
+
+  // 监听筛选变化
+  watch([searchQuery, videoFilter, statusFilter], () => {
+    pagination.value.page = 1;
+    fetchComments();
+  }, { debounce: 300 });
 
   // 评论表格列
   const commentColumns = [
     {
       title: '用户',
       key: 'user',
-      render(row: Comment) {
+      render(row: CreatorComment) {
         return h('div', { class: 'user-cell' }, [
           h(NAvatar, { src: row.user.avatar, round: true, size: 'small' }),
           h('span', { class: 'user-name' }, row.user.nickname)
@@ -107,7 +167,7 @@
     {
       title: '评论内容',
       key: 'content',
-      render(row: Comment) {
+      render(row: CreatorComment) {
         return h('div', { class: 'comment-cell' }, [
           h('div', { class: 'comment-content' }, row.content),
           h('div', { class: 'comment-video-info' }, [
@@ -120,17 +180,18 @@
     {
       title: '时间',
       key: 'createdAt',
-      render(row: Comment) {
+      render(row: CreatorComment) {
         return formatTimeDifference(row.createdAt);
       }
     },
     {
       title: '状态',
       key: 'status',
-      render(row: Comment) {
-        const statusMap: Record<string, { type: 'success' | 'warning' | 'default', icon: string }> = {
-          '已审核': { type: 'success', icon: 'check-circle' },
-          '待审核': { type: 'warning', icon: 'time' }
+      render(row: CreatorComment) {
+        const statusMap: Record<string, { type: 'success' | 'warning' | 'default' | 'error', icon: string }> = {
+          'visible': { type: 'success', icon: 'check-circle' },
+          'pending': { type: 'warning', icon: 'time' },
+          'hidden': { type: 'error', icon: 'close-circle' }
         };
         const status = row.status && statusMap[row.status] || { type: 'default', icon: 'information-circle' };
 
@@ -138,13 +199,17 @@
           type: status.type,
           size: 'small',
           round: true
-        }, { default: () => row.status || '未知状态' });
+        }, {
+          default: () => row.status === 'visible' ? '已审核' :
+            row.status === 'pending' ? '待审核' :
+              row.status === 'hidden' ? '已隐藏' : '未知状态'
+        });
       }
     },
     {
       title: '操作',
       key: 'actions',
-      render(row: Comment) {
+      render(row: CreatorComment) {
         return h('div', { class: 'action-buttons' }, [
           h(
             NButton,
@@ -178,11 +243,40 @@
       }
     }
   ];
+
+  // 初始化
+  onMounted(() => {
+    fetchComments();
+    fetchVideoOptions();
+  });
 </script>
 
 <style scoped>
   .comments-management {
     padding: 24px;
+  }
+
+  .comments-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .filters {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    min-width: 240px;
   }
 
   .comments-table {
@@ -225,6 +319,10 @@
   @media (max-width: 768px) {
     .comments-management {
       padding: 16px;
+    }
+
+    .filters {
+      flex-direction: column;
     }
   }
 </style>

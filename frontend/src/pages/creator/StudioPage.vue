@@ -18,7 +18,7 @@
     </div>
 
     <div class="studio-content">
-      <n-tabs type="line" animated class="studio-tabs">
+      <n-tabs type="line" animated class="studio-tabs" v-model:value="activeTab">
         <!-- 概览仪表盘 -->
         <n-tab-pane name="dashboard" tab="概览">
           <div class="dashboard-content">
@@ -74,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { ref, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { useMessage } from 'naive-ui';
   import {
@@ -97,93 +97,119 @@
   import VideoBrandingComponent from '@/components/business/creator/VideoBrandingComponent.vue';
   import RecentVideosComponent from '@/components/business/creator/RecentVideosComponent.vue';
   import RecentCommentsComponent from '@/components/business/creator/RecentCommentsComponent.vue';
-  import type { Comment } from '@/types/comment';
-  import type { Video } from '@/components/business/creator/RecentVideosComponent.vue';
+  import creatorService from '@/services/creator/creatorService';
+  import type { CreatorComment } from '@/services/creator/types';
 
   const router = useRouter();
   const message = useMessage();
+  const activeTab = ref('dashboard');
 
   // 最近视频
-  const recentVideos = ref<Video[]>([
-    {
-      id: '1',
-      title: 'Vue 3 完全指南 - 组合式API详解',
-      coverUrl: 'https://picsum.photos/id/237/400/225',
-      createdAt: '2024-06-10T15:30:00Z',
-      views: 1250
-    },
-    {
-      id: '2',
-      title: 'TypeScript 高级类型系统详解',
-      coverUrl: 'https://picsum.photos/id/238/400/225',
-      createdAt: '2024-06-08T10:15:00Z',
-      views: 980
-    }
-  ]);
+  const recentVideos = ref([]);
+  const recentComments = ref<CreatorComment[]>([]);
 
-  // 最近评论
-  const recentComments = ref<Comment[]>([
-    {
-      id: '1',
-      content: '这个教程太棒了，学到了很多东西！',
-      createdAt: '2024-06-12T09:40:00Z',
-      videoTitle: 'Vue 3 完全指南 - 组合式API详解',
-      status: '已审核',
-      user: {
-        nickname: '前端爱好者',
-        avatar: 'https://i.pravatar.cc/150?img=33'
-      }
-    },
-    {
-      id: '2',
-      content: '能不能出一期关于Pinia的教程？',
-      createdAt: '2024-06-11T14:20:00Z',
-      videoTitle: 'Vue 3 完全指南 - 组合式API详解',
-      status: '已审核',
-      user: {
-        nickname: 'Vue开发者',
-        avatar: 'https://i.pravatar.cc/150?img=53'
-      }
-    }
-  ] as Comment[]);
-
-  // 频道定制相关
+  // 频道设置
   const channelDescription = ref('');
-  const selectedThemeColor = ref('#58a6ff'); // 默认主题色
+  const selectedThemeColor = ref('#3fb950');
 
-  // 交互方法
+  // 载入数据
+  const loadData = async () => {
+    try {
+      // 获取最近视频
+      const videosResult = await creatorService.getCreatorVideos({
+        page: 1,
+        pageSize: 4,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+
+      recentVideos.value = videosResult.data.map(video => ({
+        id: video.id,
+        title: video.title,
+        coverUrl: video.thumbnail,
+        createdAt: video.uploadDate,
+        views: video.views
+      }));
+
+      // 获取最近评论
+      const commentsResult = await creatorService.getCreatorComments({
+        page: 1,
+        pageSize: 5
+      });
+
+      recentComments.value = commentsResult.data;
+
+      // 获取频道设置
+      const channelSettings = await creatorService.getChannelSettings();
+      channelDescription.value = channelSettings.description;
+      selectedThemeColor.value = channelSettings.themeColor;
+    } catch (error) {
+      console.error('加载数据失败:', error);
+      message.error('加载数据失败，请稍后重试');
+    }
+  };
+
+  // 处理上传视频
   const handleUploadVideo = () => {
     router.push('/video/upload');
   };
 
+  // 编辑视频
   const editVideo = (id: string) => {
     router.push(`/video/edit/${id}`);
   };
 
-  const replyToComment = (id: string) => {
-    // 实际开发中应弹出回复框
-    console.log(`回复评论 ${id}`);
-    message.success('已打开回复框');
+  // 回复评论
+  const replyToComment = async (commentId: string) => {
+    // 打开评论回复弹窗
+    console.log('回复评论:', commentId);
+    // 可以在这里实现打开评论回复模态框的逻辑
   };
 
-  const deleteComment = (id: string) => {
-    message.success('评论已删除');
+  // 删除评论
+  const deleteComment = async (commentId: string) => {
+    try {
+      const result = await creatorService.deleteComment(commentId);
+      if (result.success) {
+        message.success('评论已删除');
+        // 刷新评论列表
+        loadData();
+      } else {
+        message.error(`删除失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('删除评论失败:', error);
+      message.error('删除评论失败，请稍后重试');
+    }
   };
 
   // 保存频道设置
-  const saveChannelSettings = (settings: any) => {
-    console.log('保存频道设置:', settings);
-    channelDescription.value = settings.description;
-    selectedThemeColor.value = settings.themeColor;
-    message.success('频道设置已保存');
+  const saveChannelSettings = async (settings: { description: string; themeColor: string }) => {
+    try {
+      const result = await creatorService.updateChannelSettings({
+        description: settings.description,
+        themeColor: settings.themeColor
+      });
+
+      channelDescription.value = result.description;
+      selectedThemeColor.value = result.themeColor;
+
+      message.success('频道设置已保存');
+    } catch (error) {
+      console.error('保存频道设置失败:', error);
+      message.error('保存频道设置失败，请稍后重试');
+    }
   };
+
+  // 组件挂载时加载数据
+  onMounted(() => {
+    loadData();
+  });
 </script>
 
 <style scoped>
   .creator-studio {
-    min-height: 100vh;
-    background: var(--studio-bg, linear-gradient(180deg, rgba(13, 17, 23, 0.95) 0%, rgba(22, 27, 34, 0.95) 100%));
-    color: var(--text-primary, #e6edf3);
+    width: 100%;
   }
 
   .studio-header {

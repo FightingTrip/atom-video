@@ -1,418 +1,803 @@
 /**
 * @file CreatorStatsComponent.vue
-* @description 创作者数据统计组件，显示频道关键数据指标
+* @description 创作者数据统计组件，显示创作者视频数据、观看数据和收入数据
 * @author Atom Video Team
-* @date 2025-04-15
+* @date 2025-04-22
 */
 
 <template>
-  <div class="stats-container">
-    <div class="stats-header">
-      <h3 class="stats-title">{{ title }}</h3>
-      <div v-if="showRefresh" class="refresh-button" @click="refreshData">
-        <n-button size="small" quaternary circle>
-          <template #icon>
-            <n-icon>
-              <RefreshOutline />
-            </n-icon>
-          </template>
-        </n-button>
+  <div class="creator-stats-container">
+    <n-spin :show="loading" description="加载中...">
+      <!-- 标题栏 -->
+      <div class="stats-header">
+        <div>
+          <h1 class="stats-title">数据概览</h1>
+          <p class="stats-subtitle">数据更新时间: {{ formattedLastUpdate }}</p>
+        </div>
+        <div class="stats-actions">
+          <n-button-group>
+            <n-button size="small" @click="refreshData">
+              <template #icon><n-icon><refresh-outline /></n-icon></template>
+              刷新数据
+            </n-button>
+            <n-button size="small" @click="exportStatsToCSV">
+              <template #icon><n-icon><download-outline /></n-icon></template>
+              导出数据
+            </n-button>
+          </n-button-group>
+          <n-button-group style="margin-left: 8px;">
+            <n-button size="small" :type="period === '7d' ? 'primary' : 'default'"
+              @click="changePeriod('7d')">7天</n-button>
+            <n-button size="small" :type="period === '30d' ? 'primary' : 'default'"
+              @click="changePeriod('30d')">30天</n-button>
+            <n-button size="small" :type="period === '90d' ? 'primary' : 'default'"
+              @click="changePeriod('90d')">90天</n-button>
+          </n-button-group>
+        </div>
       </div>
-    </div>
 
-    <div class="stats-cards">
-      <n-card v-for="stat in statsData" :key="stat.key" class="stat-card">
-        <div class="stat-header">
-          <div class="stat-icon" :style="{ backgroundColor: stat.color + '20', color: stat.color }">
-            <n-icon>
-              <component :is="stat.icon" />
-            </n-icon>
+      <!-- 主要统计数据卡片 -->
+      <div class="stats-grid">
+        <!-- 内容统计 -->
+        <div class="stats-card">
+          <div class="stats-card-header">
+            <div class="stats-card-title">
+              <n-icon size="24" color="#ff7d00">
+                <videocam-outline />
+              </n-icon>
+              <h2>内容数据</h2>
+            </div>
+            <n-button text @click="showContentTrends = true">
+              <template #icon><n-icon><trending-up-outline /></n-icon></template>
+              查看趋势
+            </n-button>
           </div>
-          <div v-if="stat.trend !== undefined" class="stat-trend" :class="getTrendClass(stat.trend)">
-            {{ formatTrend(stat.trend) }}
+          <div class="stats-items">
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.totalVideos) }}</div>
+              <div class="stats-label">总视频数</div>
+              <div class="stats-trend" :class="getTrendClass(stats.videosTrend)">
+                {{ formatTrend(stats.videosTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.publishedVideos) }}</div>
+              <div class="stats-label">已发布</div>
+              <div class="stats-trend" :class="getTrendClass(stats.publishedVideosTrend)">
+                {{ formatTrend(stats.publishedVideosTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.draftVideos) }}</div>
+              <div class="stats-label">草稿数</div>
+              <div class="stats-trend" :class="getTrendClass(stats.draftVideosTrend)">
+                {{ formatTrend(stats.draftVideosTrend) }}
+              </div>
+            </div>
           </div>
         </div>
-        <div class="stat-value">{{ formatNumber(stat.value) }}</div>
-        <div class="stat-label">{{ stat.label }}</div>
-        <div v-if="stat.subLabel" class="stat-sublabel">{{ stat.subLabel }}</div>
 
-        <div class="stat-progress" v-if="stat.progress !== undefined">
-          <div class="progress-bar" :style="{ width: stat.progress + '%', backgroundColor: stat.color }"></div>
+        <!-- 观看统计 -->
+        <div class="stats-card">
+          <div class="stats-card-header">
+            <div class="stats-card-title">
+              <n-icon size="24" color="#00c2ff">
+                <eye-outline />
+              </n-icon>
+              <h2>观看数据</h2>
+            </div>
+            <n-button text @click="showViewsTrends = true">
+              <template #icon><n-icon><trending-up-outline /></n-icon></template>
+              查看趋势
+            </n-button>
+          </div>
+          <div class="stats-items">
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.totalViews) }}</div>
+              <div class="stats-label">总观看量</div>
+              <div class="stats-trend" :class="getTrendClass(stats.viewsTrend)">
+                {{ formatTrend(stats.viewsTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.totalMinutesWatched) }}</div>
+              <div class="stats-label">总观看时长(分钟)</div>
+              <div class="stats-trend" :class="getTrendClass(stats.minutesWatchedTrend)">
+                {{ formatTrend(stats.minutesWatchedTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.averageViewDuration) }}</div>
+              <div class="stats-label">平均观看时长(秒)</div>
+              <div class="stats-trend" :class="getTrendClass(stats.viewDurationTrend)">
+                {{ formatTrend(stats.viewDurationTrend) }}
+              </div>
+            </div>
+          </div>
         </div>
-      </n-card>
-    </div>
+
+        <!-- 互动统计 -->
+        <div class="stats-card">
+          <div class="stats-card-header">
+            <div class="stats-card-title">
+              <n-icon size="24" color="#ff2d55">
+                <heart-outline />
+              </n-icon>
+              <h2>互动数据</h2>
+            </div>
+            <n-button text @click="showEngagementTrends = true">
+              <template #icon><n-icon><trending-up-outline /></n-icon></template>
+              查看趋势
+            </n-button>
+          </div>
+          <div class="stats-items">
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.totalLikes) }}</div>
+              <div class="stats-label">点赞数</div>
+              <div class="stats-trend" :class="getTrendClass(stats.likesTrend)">
+                {{ formatTrend(stats.likesTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.totalComments) }}</div>
+              <div class="stats-label">评论数</div>
+              <div class="stats-trend" :class="getTrendClass(stats.commentsTrend)">
+                {{ formatTrend(stats.commentsTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">{{ formatNumber(stats.totalShares) }}</div>
+              <div class="stats-label">分享数</div>
+              <div class="stats-trend" :class="getTrendClass(stats.sharesTrend)">
+                {{ formatTrend(stats.sharesTrend) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 收入统计 -->
+        <div class="stats-card">
+          <div class="stats-card-header">
+            <div class="stats-card-title">
+              <n-icon size="24" color="#34c759">
+                <cash-outline />
+              </n-icon>
+              <h2>收入数据</h2>
+            </div>
+            <n-button text @click="showRevenueTrends = true">
+              <template #icon><n-icon><trending-up-outline /></n-icon></template>
+              查看趋势
+            </n-button>
+          </div>
+          <div class="stats-items">
+            <div class="stats-item">
+              <div class="stats-value">¥{{ formatNumber(stats.totalRevenue) }}</div>
+              <div class="stats-label">总收入</div>
+              <div class="stats-trend" :class="getTrendClass(stats.revenueTrend)">
+                {{ formatTrend(stats.revenueTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">¥{{ formatNumber(stats.monthlyRevenue) }}</div>
+              <div class="stats-label">本月收入</div>
+              <div class="stats-trend" :class="getTrendClass(stats.monthlyRevenueTrend)">
+                {{ formatTrend(stats.monthlyRevenueTrend) }}
+              </div>
+            </div>
+            <div class="stats-item">
+              <div class="stats-value">¥{{ formatNumber(stats.pendingRevenue) }}</div>
+              <div class="stats-label">待结算</div>
+              <n-button size="tiny" type="primary" style="margin-top: 4px;">提现</n-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 表现最好的视频 -->
+      <div class="top-videos-section">
+        <div class="section-header">
+          <h2>表现最佳的视频</h2>
+          <n-select v-model:value="topVideosMetric" size="small" :options="topVideosMetrics" style="width: 120px;" />
+        </div>
+
+        <div class="top-videos-container">
+          <div v-for="(video, index) in topVideos" :key="video.id" class="top-video-card">
+            <div class="top-video-rank">{{ index + 1 }}</div>
+            <div class="top-video-thumbnail">
+              <img :src="video.thumbnailUrl" :alt="video.title" />
+              <div class="video-duration">{{ formatDuration(video.duration) }}</div>
+            </div>
+            <div class="top-video-info">
+              <div class="top-video-title">{{ video.title }}</div>
+              <div class="top-video-stats">
+                <div class="top-video-stat">
+                  <n-icon><eye-outline /></n-icon>
+                  <span>{{ formatNumber(video.views) }}</span>
+                </div>
+                <div class="top-video-stat">
+                  <n-icon><heart-outline /></n-icon>
+                  <span>{{ formatNumber(video.likes) }}</span>
+                </div>
+                <div class="top-video-stat">
+                  <n-icon><cash-outline /></n-icon>
+                  <span>¥{{ formatNumber(video.revenue) }}</span>
+                </div>
+              </div>
+              <div class="top-video-date">发布于 {{ formatDate(video.publishDate) }}</div>
+            </div>
+            <div class="top-video-metric">
+              <div class="metric-value">{{ formatTopMetric(video, topVideosMetric) }}</div>
+              <div class="metric-label">{{ getTopMetricLabel(topVideosMetric) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 趋势图表模态框 -->
+      <n-modal v-model:show="showContentTrends" preset="card" title="内容发布趋势" style="width: 800px; max-width: 90vw;">
+        <trend-chart :data="contentTrendsData" title="内容发布趋势" sub-title="按时间查看您的内容发布数据" color="#ff7d00" />
+      </n-modal>
+
+      <n-modal v-model:show="showViewsTrends" preset="card" title="观看趋势" style="width: 800px; max-width: 90vw;">
+        <trend-chart :data="viewsTrendsData" title="观看趋势" sub-title="按时间查看您的视频观看数据" color="#00c2ff" />
+      </n-modal>
+
+      <n-modal v-model:show="showEngagementTrends" preset="card" title="互动趋势" style="width: 800px; max-width: 90vw;">
+        <trend-chart :data="engagementTrendsData" title="互动趋势" sub-title="按时间查看您的视频互动数据" color="#ff2d55"
+          :multi-line="true" />
+      </n-modal>
+
+      <n-modal v-model:show="showRevenueTrends" preset="card" title="收入趋势" style="width: 800px; max-width: 90vw;">
+        <trend-chart :data="revenueTrendsData" title="收入趋势" sub-title="按时间查看您的收入数据" color="#34c759" />
+      </n-modal>
+    </n-spin>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
-  import { NCard, NIcon, NButton } from 'naive-ui';
+  import { ref, reactive, computed, onMounted } from 'vue';
+  import { NButton, NButtonGroup, NSpin, NIcon, NModal, NSelect } from 'naive-ui';
   import {
     EyeOutline,
-    PeopleOutline,
-    ThumbsUpOutline,
-    ChatbubbleOutline,
-    TimeOutline,
+    HeartOutline,
     VideocamOutline,
-    RefreshOutline
+    RefreshOutline,
+    DownloadOutline,
+    TrendingUpOutline,
+    CashOutline
   } from '@vicons/ionicons5';
+  import { creatorService } from '@/services/creator';
+  import TrendChart from './TrendChart.vue';
 
-  const props = defineProps({
-    title: {
-      type: String,
-      default: '频道统计'
-    },
-    showRefresh: {
-      type: Boolean,
-      default: true
-    }
+  // 定义接口
+  interface VideoStats {
+    id: string;
+    title: string;
+    thumbnailUrl: string;
+    duration: number;
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    revenue: number;
+    publishDate: string;
+  }
+
+  interface StatsData {
+    // 内容数据
+    totalVideos: number;
+    publishedVideos: number;
+    draftVideos: number;
+    videosTrend: number;
+    publishedVideosTrend: number;
+    draftVideosTrend: number;
+
+    // 观看数据
+    totalViews: number;
+    totalMinutesWatched: number;
+    averageViewDuration: number;
+    viewsTrend: number;
+    minutesWatchedTrend: number;
+    viewDurationTrend: number;
+
+    // 互动数据
+    totalLikes: number;
+    totalComments: number;
+    totalShares: number;
+    likesTrend: number;
+    commentsTrend: number;
+    sharesTrend: number;
+
+    // 收入数据
+    totalRevenue: number;
+    monthlyRevenue: number;
+    pendingRevenue: number;
+    revenueTrend: number;
+    monthlyRevenueTrend: number;
+
+    lastUpdated: string;
+  }
+
+  interface TrendDataItem {
+    date: string;
+    value: number;
+    likes?: number;
+    comments?: number;
+    shares?: number;
+  }
+
+  // 状态
+  const loading = ref(false);
+  const stats = reactive<StatsData>({
+    totalVideos: 0,
+    publishedVideos: 0,
+    draftVideos: 0,
+    videosTrend: 0,
+    publishedVideosTrend: 0,
+    draftVideosTrend: 0,
+
+    totalViews: 0,
+    totalMinutesWatched: 0,
+    averageViewDuration: 0,
+    viewsTrend: 0,
+    minutesWatchedTrend: 0,
+    viewDurationTrend: 0,
+
+    totalLikes: 0,
+    totalComments: 0,
+    totalShares: 0,
+    likesTrend: 0,
+    commentsTrend: 0,
+    sharesTrend: 0,
+
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    pendingRevenue: 0,
+    revenueTrend: 0,
+    monthlyRevenueTrend: 0,
+
+    lastUpdated: new Date().toISOString()
   });
 
-  // 统计数据
-  const statsData = ref([
-    {
-      key: 'views',
-      label: '总观看量',
-      value: 12580,
-      trend: 5.2,
-      icon: EyeOutline,
-      color: '#58a6ff',
-      progress: 75
-    },
-    {
-      key: 'subscribers',
-      label: '订阅者',
-      value: 835,
-      trend: 2.8,
-      icon: PeopleOutline,
-      color: '#3fb950',
-      progress: 60
-    },
-    {
-      key: 'likes',
-      label: '获赞数',
-      value: 3248,
-      trend: 8.7,
-      icon: ThumbsUpOutline,
-      color: '#f78166',
-      progress: 85
-    },
-    {
-      key: 'comments',
-      label: '评论数',
-      value: 947,
-      trend: 3.5,
-      icon: ChatbubbleOutline,
-      color: '#a371f7',
-      progress: 45
-    },
-    {
-      key: 'watchTime',
-      label: '观看时长',
-      value: 4235,
-      subLabel: '分钟',
-      trend: 7.2,
-      icon: TimeOutline,
-      color: '#e3b341',
-      progress: 70
-    },
-    {
-      key: 'videos',
-      label: '视频数',
-      value: 24,
-      subLabel: '3个最近上传',
-      icon: VideocamOutline,
-      color: '#79c0ff',
-      progress: 30
-    }
-  ]);
+  const topVideos = ref<VideoStats[]>([]);
+  const period = ref<'7d' | '30d' | '90d'>('30d');
+  const topVideosMetric = ref<string>('views');
+  const topVideosMetrics = [
+    { label: '观看量', value: 'views' },
+    { label: '点赞数', value: 'likes' },
+    { label: '评论数', value: 'comments' },
+    { label: '分享数', value: 'shares' },
+    { label: '收入', value: 'revenue' }
+  ];
 
-  // 格式化数字，超过1000显示为k
-  const formatNumber = (num: number) => {
-    return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num;
+  // 趋势数据和模态框状态
+  const contentTrendsData = ref<TrendDataItem[]>([]);
+  const viewsTrendsData = ref<TrendDataItem[]>([]);
+  const engagementTrendsData = ref<TrendDataItem[]>([]);
+  const revenueTrendsData = ref<TrendDataItem[]>([]);
+
+  const showContentTrends = ref(false);
+  const showViewsTrends = ref(false);
+  const showEngagementTrends = ref(false);
+  const showRevenueTrends = ref(false);
+
+  // 计算属性
+  const formattedLastUpdate = computed(() => {
+    const date = new Date(stats.lastUpdated);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  });
+
+  // 方法
+  // 格式化数字，大于1000显示为K，大于1000000显示为M
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
   };
 
-  // 格式化趋势
-  const formatTrend = (trend: number) => {
-    return trend > 0 ? `+${trend}%` : `${trend}%`;
+  // 格式化趋势百分比
+  const formatTrend = (trend: number): string => {
+    const sign = trend > 0 ? '+' : '';
+    return `${sign}${trend.toFixed(1)}%`;
   };
 
   // 获取趋势样式类
-  const getTrendClass = (trend: number) => {
-    return trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
+  const getTrendClass = (trend: number): string => {
+    if (trend > 0) return 'trend-up';
+    if (trend < 0) return 'trend-down';
+    return 'trend-neutral';
+  };
+
+  // 格式化日期
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-CN');
+  };
+
+  // 格式化视频时长
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // 格式化顶部视频的指标
+  const formatTopMetric = (video: VideoStats, metric: string): string => {
+    switch (metric) {
+      case 'views':
+        return formatNumber(video.views);
+      case 'likes':
+        return formatNumber(video.likes);
+      case 'comments':
+        return formatNumber(video.comments);
+      case 'shares':
+        return formatNumber(video.shares);
+      case 'revenue':
+        return '¥' + formatNumber(video.revenue);
+      default:
+        return formatNumber(video.views);
+    }
+  };
+
+  // 获取顶部视频指标的标签
+  const getTopMetricLabel = (metric: string): string => {
+    switch (metric) {
+      case 'views':
+        return '观看量';
+      case 'likes':
+        return '点赞数';
+      case 'comments':
+        return '评论数';
+      case 'shares':
+        return '分享数';
+      case 'revenue':
+        return '收入';
+      default:
+        return '观看量';
+    }
   };
 
   // 刷新数据
-  const refreshData = () => {
-    // 实际应用中会调用API获取最新数据
-    console.log('刷新数据...');
+  const refreshData = async () => {
+    loading.value = true;
+    try {
+      // 获取统计数据
+      const statsData = await creatorService.getCreatorStats(period.value);
+      Object.assign(stats, statsData);
 
-    // 添加刷新动画效果
-    const statCards = document.querySelectorAll('.stat-card');
-    statCards.forEach((card) => {
-      card.classList.add('refreshing');
-      setTimeout(() => {
-        card.classList.remove('refreshing');
-      }, 1000);
-    });
+      // 获取趋势数据
+      contentTrendsData.value = await creatorService.getContentTrends(period.value);
+      viewsTrendsData.value = await creatorService.getViewsTrends(period.value);
+      engagementTrendsData.value = await creatorService.getEngagementTrends(period.value);
+      revenueTrendsData.value = await creatorService.getRevenueTrends(period.value);
+
+      // 获取表现最好的视频
+      topVideos.value = await creatorService.getTopVideos({
+        metric: topVideosMetric.value,
+        period: period.value,
+        limit: 5
+      });
+    } catch (error) {
+      console.error('Failed to fetch creator stats:', error);
+    } finally {
+      loading.value = false;
+    }
   };
 
-  // 组件挂载时获取数据
-  onMounted(() => {
-    // 实际应用中会调用API获取统计数据
+  // 导出统计数据为CSV
+  const exportStatsToCSV = () => {
+    // 构建CSV数据
+    const csvRows = [
+      ['指标', '值', '趋势'],
+      ['总视频数', stats.totalVideos.toString(), stats.videosTrend.toString() + '%'],
+      ['已发布视频', stats.publishedVideos.toString(), stats.publishedVideosTrend.toString() + '%'],
+      ['草稿视频', stats.draftVideos.toString(), stats.draftVideosTrend.toString() + '%'],
+      ['总观看量', stats.totalViews.toString(), stats.viewsTrend.toString() + '%'],
+      ['总观看时长(分钟)', stats.totalMinutesWatched.toString(), stats.minutesWatchedTrend.toString() + '%'],
+      ['平均观看时长(秒)', stats.averageViewDuration.toString(), stats.viewDurationTrend.toString() + '%'],
+      ['总点赞数', stats.totalLikes.toString(), stats.likesTrend.toString() + '%'],
+      ['总评论数', stats.totalComments.toString(), stats.commentsTrend.toString() + '%'],
+      ['总分享数', stats.totalShares.toString(), stats.sharesTrend.toString() + '%'],
+      ['总收入(¥)', stats.totalRevenue.toString(), stats.revenueTrend.toString() + '%'],
+      ['本月收入(¥)', stats.monthlyRevenue.toString(), stats.monthlyRevenueTrend.toString() + '%'],
+      ['待结算收入(¥)', stats.pendingRevenue.toString(), '']
+    ];
 
-    // 添加进入动画
-    const statCards = document.querySelectorAll('.stat-card');
-    statCards.forEach((card, index) => {
-      setTimeout(() => {
-        card.classList.add('visible');
-      }, 100 * index);
-    });
+    // 转换为CSV字符串
+    const csvContent = csvRows.map(row => row.join(',')).join('\n');
+
+    // 创建Blob并下载
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `creator_stats_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 切换时间段
+  const changePeriod = (newPeriod: '7d' | '30d' | '90d') => {
+    period.value = newPeriod;
+    refreshData();
+  };
+
+  // 在组件挂载时获取数据
+  onMounted(() => {
+    refreshData();
   });
 </script>
 
 <style scoped>
-  .stats-container {
+  .creator-stats-container {
     width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
   }
 
   .stats-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+    align-items: flex-start;
+    margin-bottom: 24px;
   }
 
   .stats-title {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 600;
+    margin: 0 0 4px 0;
+  }
+
+  .stats-subtitle {
+    color: rgba(255, 255, 255, 0.6);
     margin: 0;
-    color: var(--text-primary, #e6edf3);
-    position: relative;
-    display: inline-block;
+    font-size: 14px;
   }
 
-  .stats-title::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -8px;
-    height: 3px;
-    width: 40px;
-    background: linear-gradient(90deg, var(--primary-color, #58a6ff) 0%, var(--primary-color-light, #388bfd) 100%);
-    border-radius: 3px;
+  .stats-actions {
+    display: flex;
+    align-items: center;
   }
 
-  .refresh-button {
-    cursor: pointer;
-    transition: transform 0.2s ease;
-  }
-
-  .refresh-button:hover {
-    transform: rotate(30deg);
-  }
-
-  .stats-cards {
+  .stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
+    margin-bottom: 30px;
   }
 
-  .stat-card {
-    text-align: center;
-    position: relative;
-    background: var(--bg-secondary, rgba(22, 27, 34, 0.6));
-    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
+  .stats-card {
+    background-color: var(--card-color, #1a1a1a);
+    border-radius: 12px;
     padding: 20px;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-      box-shadow 0.3s ease,
-      opacity 0.5s ease,
-      background-color 0.3s ease;
-    opacity: 0;
-    transform: translateY(20px);
-    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  .stat-card.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    background: var(--bg-card-hover, rgba(36, 41, 47, 0.7));
-  }
-
-  .stat-card.refreshing {
-    animation: pulse 1s ease;
-  }
-
-  @keyframes pulse {
-    0% {
-      opacity: 1;
-    }
-
-    50% {
-      opacity: 0.5;
-    }
-
-    100% {
-      opacity: 1;
-    }
-  }
-
-  .stat-header {
+  .stats-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
   }
 
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+  .stats-card-title {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
-    backdrop-filter: blur(4px);
-    transition: transform 0.2s ease;
+    gap: 8px;
   }
 
-  .stat-card:hover .stat-icon {
-    transform: scale(1.1);
-  }
-
-  .stat-trend {
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    display: inline-block;
+  .stats-card-title h2 {
+    font-size: 18px;
     font-weight: 600;
-    background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
-    backdrop-filter: blur(4px);
+    margin: 0;
   }
 
-  .stat-trend.up {
-    background-color: rgba(59, 185, 80, 0.15);
-    color: #3fb950;
+  .stats-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 16px;
   }
 
-  .stat-trend.down {
-    background-color: rgba(248, 81, 73, 0.15);
-    color: #f85149;
+  .stats-item {
+    text-align: center;
   }
 
-  .stat-trend.neutral {
-    background-color: rgba(139, 148, 158, 0.15);
-    color: #8b949e;
-  }
-
-  .stat-value {
-    font-size: 36px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    color: #e6edf3;
-    background: linear-gradient(90deg, #e6edf3 0%, #c9d1d9 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    transition: transform 0.3s ease;
-  }
-
-  .stat-card:hover .stat-value {
-    transform: scale(1.05);
-  }
-
-  .stat-label {
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(230, 237, 243, 0.8);
+  .stats-value {
+    font-size: 18px;
+    font-weight: 600;
     margin-bottom: 4px;
   }
 
-  .stat-sublabel {
+  .stats-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 4px;
+  }
+
+  .stats-trend {
     font-size: 13px;
-    color: rgba(230, 237, 243, 0.5);
-    margin-top: 4px;
+    font-weight: 500;
   }
 
-  .stat-progress {
-    height: 4px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-    margin-top: 16px;
+  .trend-up {
+    color: #4caf50;
+  }
+
+  .trend-down {
+    color: #f44336;
+  }
+
+  .trend-neutral {
+    color: #9e9e9e;
+  }
+
+  .top-videos-section {
+    background-color: var(--card-color, #1a1a1a);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .section-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .top-videos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .top-video-card {
+    display: flex;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
     overflow: hidden;
+    position: relative;
+    transition: transform 0.2s;
   }
 
-  .progress-bar {
+  .top-video-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .top-video-rank {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+
+  .top-video-thumbnail {
+    width: 100px;
+    height: 80px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .top-video-thumbnail img {
+    width: 100%;
     height: 100%;
+    object-fit: cover;
+  }
+
+  .video-duration {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 12px;
+    padding: 1px 4px;
     border-radius: 2px;
-    transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  /* 响应式调整 */
-  @media (max-width: 1200px) {
-    .stats-cards {
-      grid-template-columns: repeat(3, 1fr);
+  .top-video-info {
+    padding: 8px;
+    flex-grow: 1;
+    min-width: 0;
+  }
+
+  .top-video-title {
+    font-weight: 500;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .top-video-stats {
+    display: flex;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 6px;
+  }
+
+  .top-video-stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .top-video-stat .n-icon {
+    font-size: 14px;
+  }
+
+  .top-video-date {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .top-video-metric {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+
+  .metric-value {
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .metric-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  @media (max-width: 768px) {
+    .stats-header {
+      flex-direction: column;
+      gap: 12px;
     }
-  }
 
-  @media (max-width: 992px) {
-    .stats-cards {
-      grid-template-columns: repeat(2, 1fr);
+    .stats-actions {
+      width: 100%;
     }
-  }
 
-  @media (max-width: 600px) {
-    .stats-cards {
+    .stats-grid {
       grid-template-columns: 1fr;
     }
 
-    .stat-icon {
-      width: 40px;
-      height: 40px;
-      font-size: 20px;
+    .top-videos-container {
+      grid-template-columns: 1fr;
     }
-
-    .stat-value {
-      font-size: 28px;
-    }
-  }
-
-  /* 浅色模式样式覆盖 */
-  :root:not(.dark) .stats-title {
-    color: var(--text-primary, #24292e);
-  }
-
-  :root:not(.dark) .stat-card {
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  :root:not(.dark) .stat-card:hover {
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-
-  :root:not(.dark) .stat-label,
-  :root:not(.dark) .stat-value {
-    color: var(--text-primary, #24292e);
-  }
-
-  :root:not(.dark) .stat-sublabel {
-    color: var(--text-secondary, rgba(36, 41, 46, 0.7));
-  }
-
-  :root:not(.dark) .sidebar-divider {
-    background-color: rgba(0, 0, 0, 0.08);
   }
 </style>

@@ -10,7 +10,7 @@ import {
   UserVideo,
   UserActivity,
 } from './types';
-import { mockDelay } from '@/utils/mockData';
+import { mockDelay } from '@/utils/mockInitializer';
 
 export const userService = {
   // 获取当前用户信息

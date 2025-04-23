@@ -6,7 +6,7 @@
  */
 
 import api from '@/services/api';
-import { mockDelay } from '@/utils/mockData';
+import { mockDelay } from '@/utils/mockInitializer';
 import type {
   Channel,
   ChannelVideo,

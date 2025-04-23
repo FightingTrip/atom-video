@@ -596,62 +596,64 @@ function addToWatchHistory(userId: string, videoId: string): void {
 }
 
 /**
- * 模拟初始化函数，将模拟数据加载到localStorage
+ * 初始化模拟数据
  */
-export function initMockData(): void {
-  // 检查localStorage是否已有用户数据
-  if (!localStorage.getItem('user')) {
-    // 存储默认用户
-    localStorage.setItem('user', JSON.stringify(getDefaultUser()));
-  }
+// 移除这个函数声明，使用下面的常量声明代替
+// export function initMockData(): void {
+//   // 检查localStorage是否已有用户数据
+//   if (!localStorage.getItem('user')) {
+//     // 存储默认用户
+//     localStorage.setItem('user', JSON.stringify(getDefaultUser()));
+//   }
 
-  // 初始化通知设置
-  if (!localStorage.getItem('notificationSettings')) {
-    localStorage.setItem(
-      'notificationSettings',
-      JSON.stringify({
-        likes: true,
-        comments: true,
-        replies: true,
-        follows: true,
-        videoProcessing: true,
-        updates: false,
-        emailNotification: true,
-        browserNotification: false,
-      })
-    );
-  }
+//   // 初始化通知设置
+//   if (!localStorage.getItem('notificationSettings')) {
+//     localStorage.setItem(
+//       'notificationSettings',
+//       JSON.stringify({
+//         likes: true,
+//         comments: true,
+//         replies: true,
+//         follows: true,
+//         videoProcessing: true,
+//         updates: false,
+//         emailNotification: true,
+//         browserNotification: false,
+//       })
+//     );
+//   }
 
-  // 初始化隐私设置
-  if (!localStorage.getItem('privacySettings')) {
-    localStorage.setItem(
-      'privacySettings',
-      JSON.stringify({
-        showWatchHistory: false,
-        showFavorites: true,
-        showFollowing: true,
-        showLikes: false,
-        commentPermission: 'everyone',
-      })
-    );
-  }
+//   // 初始化隐私设置
+//   if (!localStorage.getItem('privacySettings')) {
+//     localStorage.setItem(
+//       'privacySettings',
+//       JSON.stringify({
+//         showWatchHistory: false,
+//         showFavorites: true,
+//         showFollowing: true,
+//         showLikes: false,
+//         commentPermission: 'everyone',
+//       })
+//     );
+//   }
 
-  // 初始化外观设置
-  if (!localStorage.getItem('appearanceSettings')) {
-    localStorage.setItem(
-      'appearanceSettings',
-      JSON.stringify({
-        theme: 'system',
-        fontSize: 16,
-      })
-    );
-  }
+//   // 初始化外观设置
+//   if (!localStorage.getItem('appearanceSettings')) {
+//     localStorage.setItem(
+//       'appearanceSettings',
+//       JSON.stringify({
+//         theme: 'system',
+//         fontSize: 16,
+//       })
+//     );
+//   }
 
-  console.log('模拟数据已初始化');
-}
+//   console.log('模拟数据已初始化');
+// }
 
 export default {
-  initMockData,
+  // 确保引用的是后面定义的常量版本
+  // initMockData,
   getDefaultUser,
   mockUsers,
   getVideos,
@@ -734,4 +736,30 @@ export function getMockRecommendedVideos(videoId: string, count: number = 5): Vi
 export const mockDelay = (minDelay = 300, maxDelay = 1200): Promise<void> => {
   const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
   return new Promise(resolve => setTimeout(resolve, delay));
+};
+
+// 初始化模拟数据 - 此函数会在使用模拟模式时被调用
+export const initMockData = () => {
+  console.log('[Mock] 初始化模拟数据...');
+
+  // mockDb 在导入时会自动初始化，无需在此处额外初始化
+
+  // 设置localStorage标记，表示已初始化
+  localStorage.setItem('mock_initialized', 'true');
+
+  console.log('[Mock] 模拟数据初始化完成');
+};
+
+// 检查模拟数据是否已初始化
+export const isMockInitialized = () => {
+  return localStorage.getItem('mock_initialized') === 'true';
+};
+
+// 重置模拟数据
+export const resetMockData = () => {
+  // 清除初始化标记
+  localStorage.removeItem('mock_initialized');
+
+  // 为简化实现，刷新页面以重新加载模拟数据
+  window.location.reload();
 };

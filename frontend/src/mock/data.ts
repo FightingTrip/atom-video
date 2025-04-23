@@ -6,7 +6,7 @@ import { generateId } from '@/utils/format';
 export const generateUsers = (count: number): User[] => {
   return Array.from({ length: count }, () => ({
     id: generateId(),
-    username: faker.internet.userName(),
+    username: faker.internet.username(),
     email: faker.internet.email(),
     nickname: faker.person.fullName(),
     avatar: faker.image.avatar(),
@@ -18,9 +18,9 @@ export const generateUsers = (count: number): User[] => {
     joinedAt: faker.date.past({ years: 3 }).toISOString(),
     social: {
       website: faker.helpers.maybe(() => faker.internet.url()),
-      twitter: faker.helpers.maybe(() => faker.internet.userName()),
-      github: faker.helpers.maybe(() => faker.internet.userName()),
-      instagram: faker.helpers.maybe(() => faker.internet.userName()),
+      twitter: faker.helpers.maybe(() => faker.internet.username()),
+      github: faker.helpers.maybe(() => faker.internet.username()),
+      instagram: faker.helpers.maybe(() => faker.internet.username()),
     },
   }));
 };

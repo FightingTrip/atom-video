@@ -17,9 +17,19 @@ const axiosInstance: AxiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(
   config => {
-    const authStore = useAuthStore();
-    if (authStore.token) {
-      config.headers.Authorization = `Bearer ${authStore.token}`;
+    // 不要在拦截器定义时调用useAuthStore，而是在每次请求时获取
+    try {
+      const authStore = useAuthStore();
+      if (authStore && authStore.token) {
+        config.headers.Authorization = `Bearer ${authStore.token}`;
+      }
+    } catch (error) {
+      console.warn('获取认证信息失败，可能Pinia尚未初始化', error);
+      // 如果获取失败，尝试从localStorage直接获取token
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
