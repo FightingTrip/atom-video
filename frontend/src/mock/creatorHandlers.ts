@@ -679,80 +679,11 @@ export const creatorHandlers = [
 
     await mockDelay();
 
-    const channel = {
-      id: `channel-${userId}`,
-      name: '教育创作者频道',
-      handle: '@creator',
-      description: '分享技术学习和编程知识的频道，专注于Web开发和系统架构设计。',
-      avatarUrl: 'https://i.pravatar.cc/150?u=creator',
-      coverUrl: 'https://picsum.photos/1200/300',
-      subscriberCount: 5000,
-      videoCount: 15,
-      totalViews: 120000,
-      createdAt: '2024-02-01T00:00:00Z',
-      updatedAt: new Date().toISOString(),
-      verified: true,
-      categories: ['教育', '技术', '编程'],
-      socialLinks: [
-        { platform: 'website', url: 'https://example.com' },
-        { platform: 'github', url: 'https://github.com/creator-github' },
-        { platform: 'twitter', url: 'https://twitter.com/creator-twitter' },
-      ],
-      monetization: {
-        enabled: true,
-        methods: ['ads', 'memberships', 'superChat'],
-      },
-      customization: {
-        theme: 'dark',
-        layout: 'grid',
-      },
-    };
+    const channel = mockDb.getCreatorChannel(userId);
 
     return HttpResponse.json({
       success: true,
       data: channel,
-    });
-  }),
-
-  // 更新创作者频道信息
-  http.put('/api/creator/channel', async ({ request }) => {
-    const tokenHeader = request.headers.get('Authorization');
-
-    if (!tokenHeader) {
-      return HttpResponse.json(
-        {
-          success: false,
-          error: '未授权操作',
-        },
-        { status: 401 }
-      );
-    }
-
-    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
-    if (!userId) {
-      return HttpResponse.json(
-        {
-          success: false,
-          error: '无效的授权',
-        },
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    await mockDelay();
-
-    // 在实际实现中，这里应该更新数据库中的频道信息
-    // 这里简单返回更新的数据
-    const updatedChannel = {
-      id: `channel-${userId}`,
-      ...body,
-      updatedAt: new Date().toISOString(),
-    };
-
-    return HttpResponse.json({
-      success: true,
-      data: updatedChannel,
     });
   }),
 

@@ -3,21 +3,21 @@
     <div class="notification-header">
       <h3>我的通知</h3>
       <div class="header-actions">
-        <el-button type="text" size="small" :disabled="!hasUnread || isMarkingAllRead" @click="handleMarkAllAsRead">
+        <n-button text size="small" :disabled="!hasUnread || isMarkingAllRead" @click="handleMarkAllAsRead">
           {{ isMarkingAllRead ? '标记中...' : '全部标为已读' }}
-        </el-button>
+        </n-button>
       </div>
     </div>
 
     <div v-if="loading && !notifications.length" class="notification-loading">
-      <el-skeleton :rows="3" animated />
+      <n-skeleton text :repeat="3" />
     </div>
 
     <div v-else-if="!notifications.length" class="empty-notification">
-      <el-empty description="暂无通知" />
+      <n-empty description="暂无通知" />
     </div>
 
-    <el-scrollbar v-else height="400px">
+    <n-scrollbar v-else style="max-height: 400px">
       <transition-group name="notification-list" tag="div" class="notification-list">
         <div v-for="notification in notifications" :key="notification.id" class="notification-item"
           :class="{ unread: !notification.read }">
@@ -30,21 +30,21 @@
             <div class="notification-time">{{ formatTime(notification.createdAt) }}</div>
           </div>
           <div class="notification-actions">
-            <el-button v-if="!notification.read" type="text" size="small"
-              :loading="markingReadIds.includes(notification.id)" @click="handleMarkAsRead(notification.id)">
+            <n-button v-if="!notification.read" text size="small" :loading="markingReadIds.includes(notification.id)"
+              @click="handleMarkAsRead(notification.id)">
               标为已读
-            </el-button>
+            </n-button>
           </div>
         </div>
       </transition-group>
-    </el-scrollbar>
+    </n-scrollbar>
 
     <div v-if="hasMoreNotifications && !loading" class="load-more">
-      <el-button type="text" @click="handleLoadMore">加载更多</el-button>
+      <n-button text @click="handleLoadMore">加载更多</n-button>
     </div>
 
     <div v-if="loading && notifications.length" class="notification-loading-more">
-      <el-skeleton :rows="1" animated />
+      <n-skeleton text :repeat="1" />
     </div>
   </div>
 </template>

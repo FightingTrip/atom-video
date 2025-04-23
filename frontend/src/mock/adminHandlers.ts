@@ -289,18 +289,34 @@ export const adminHandlers = [
     await mockDelay();
 
     const { id } = params;
+    const body = await request.json();
     const video = mockDb.getVideoById(id as string);
 
     if (!video) {
-      return new HttpResponse(null, { status: 404 });
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '视频不存在',
+        },
+        { status: 404 }
+      );
     }
 
-    // 在实际实现中，我们需要更新数据库中的视频
-    // 由于mockDb没有提供更新方法，所以这里我们只返回模拟成功
+    // 模拟更新视频
+    // 记录更新内容
+    console.log(`更新视频 ${id}:`, body);
+
+    // 返回更新后的视频
+    const updatedVideo = {
+      ...video,
+      ...body,
+      updatedAt: new Date().toISOString(),
+    };
 
     return HttpResponse.json({
       success: true,
       message: '视频更新成功',
+      data: mapVideoToAdminVideo(updatedVideo),
     });
   }),
 
@@ -312,11 +328,17 @@ export const adminHandlers = [
     const video = mockDb.getVideoById(id as string);
 
     if (!video) {
-      return new HttpResponse(null, { status: 404 });
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '视频不存在',
+        },
+        { status: 404 }
+      );
     }
 
-    // 在实际实现中，我们需要从数据库中删除视频
-    // 由于mockDb没有提供删除方法，所以这里我们只返回模拟成功
+    // 模拟删除视频
+    console.log(`删除视频 ${id}`);
 
     return HttpResponse.json({
       success: true,
@@ -383,19 +405,23 @@ export const adminHandlers = [
     await mockDelay();
 
     const { id } = params;
-    const users = mockDb.getAllUsers();
-    const user = users.find(u => u.id === id);
+    const body = await request.json();
+    const result = mockDb.updateUser(id as string, body);
 
-    if (!user) {
-      return new HttpResponse(null, { status: 404 });
+    if (!result.success) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: result.error || '更新用户失败',
+        },
+        { status: 400 }
+      );
     }
-
-    // 在实际实现中，需要更新数据库中的用户信息
-    // 由于mockDb没有提供更新方法，所以这里我们只返回模拟成功
 
     return HttpResponse.json({
       success: true,
       message: '用户信息更新成功',
+      data: result.user,
     });
   }),
 
@@ -404,15 +430,20 @@ export const adminHandlers = [
     await mockDelay();
 
     const { id } = params;
-    const users = mockDb.getAllUsers();
-    const user = users.find(u => u.id === id);
+    // 模拟实现，因为mockDb没有直接提供删除用户的方法
+    // 在实际实现中，我们需要调用数据库的删除方法
+    // 这里我们检查用户是否存在，然后返回成功
+    const user = mockDb.getUserById(id as string);
 
     if (!user) {
-      return new HttpResponse(null, { status: 404 });
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '用户不存在',
+        },
+        { status: 404 }
+      );
     }
-
-    // 在实际实现中，需要从数据库中删除用户
-    // 由于mockDb没有提供删除方法，所以这里我们只返回模拟成功
 
     return HttpResponse.json({
       success: true,
@@ -502,12 +533,36 @@ export const adminHandlers = [
     await mockDelay();
 
     const { id } = params;
-    // 在实际实现中，这里会从mockDb获取举报并进行更新
-    // 由于mockDb没有提供相应的方法，我们只返回成功响应
+    const body = await request.json();
+    const report = mockDb.getReportById(id as string);
+
+    if (!report) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '举报不存在',
+        },
+        { status: 404 }
+      );
+    }
+
+    // 模拟实现，因为mockDb没有直接提供处理举报的方法
+    // 在实际实现中，应该调用mockDb.handleReport方法
+    const status = body.status || 'resolved';
+    const resolution = body.resolution || '';
+
+    // 简单记录修改结果
+    console.log(`处理举报 ${id}: 状态=${status}, 解决方案=${resolution}`);
 
     return HttpResponse.json({
       success: true,
       message: '举报处理成功',
+      data: {
+        ...report,
+        status: status,
+        resolution: resolution,
+        resolvedAt: new Date().toISOString(),
+      },
     });
   }),
 ];
