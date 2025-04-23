@@ -76,7 +76,7 @@
                 <ImageOutline />
               </n-icon>
             </div>
-            <span>上传缩略图</span>
+           
           </n-upload>
           <p class="help-text">建议使用16:9比例的图片，不上传将自动从视频中截取</p>
         </n-form-item>

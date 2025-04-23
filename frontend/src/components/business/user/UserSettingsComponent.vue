@@ -22,14 +22,18 @@
           <n-form-item label="头像" path="avatar">
             <div class="avatar-uploader">
               <n-avatar :src="profileSettings.avatar" class="avatar-preview" size="large" round />
-              <n-button class="avatar-upload-btn" ghost>更换头像</n-button>
+              <n-upload :show-file-list="false" :custom-request="uploadAvatar" accept="image/*">
+                <n-button class="avatar-upload-btn" ghost>更换头像</n-button>
+              </n-upload>
             </div>
           </n-form-item>
 
           <n-form-item label="封面图" path="coverImage">
             <div class="cover-uploader">
               <div class="cover-preview" :style="{ backgroundImage: `url(${profileSettings.coverImage})` }"></div>
-              <n-button class="cover-upload-btn" ghost>更换封面</n-button>
+              <n-upload :show-file-list="false" :custom-request="uploadCoverImage" accept="image/*">
+                <n-button class="cover-upload-btn" ghost>更换封面</n-button>
+              </n-upload>
             </div>
           </n-form-item>
 
@@ -60,7 +64,7 @@
                   <n-select v-model:value="link.platform" :options="socialPlatformOptions" />
                 </n-grid-item>
                 <n-grid-item span="12">
-                  <n-input v-model:value="link.url" type="url" placeholder="https://..." />
+                  <n-input v-model:value="link.url" placeholder="https://..." />
                 </n-grid-item>
                 <n-grid-item span="4">
                   <n-button quaternary type="error" @click="removeLink(index)">删除</n-button>
@@ -89,7 +93,7 @@
 
         <n-form class="settings-form" @submit.prevent="saveAccountSettings">
           <n-form-item label="邮箱地址" path="email">
-            <n-input v-model:value="accountSettings.email" type="email" placeholder="你的邮箱地址" />
+            <n-input v-model:value="accountSettings.email" placeholder="你的邮箱地址" />
             <n-text depth="3">用于接收通知和重置密码</n-text>
           </n-form-item>
 
@@ -101,7 +105,14 @@
           <n-form-item label="新密码" path="newPassword">
             <n-input v-model:value="accountSettings.newPassword" type="password" placeholder="输入新密码"
               show-password-on="click" />
-            <n-text depth="3">密码长度至少8位，且包含字母和数字</n-text>
+            <div class="password-strength">
+              <div class="strength-bar-container">
+                <div class="strength-bar"
+                  :style="{ width: `${passwordStrength}%`, backgroundColor: passwordStrengthColor }"></div>
+              </div>
+              <span class="strength-text" :style="{ color: passwordStrengthColor }">{{ passwordStrengthText }}</span>
+            </div>
+            <n-text depth="3">密码长度至少6位，建议包含字母、数字和特殊字符</n-text>
           </n-form-item>
 
           <n-form-item label="确认新密码" path="confirmPassword">
@@ -278,22 +289,16 @@
 
             <div class="form-group">
               <label for="theme" class="form-label">{{ $t('settings.theme') }}</label>
-              <select id="theme" v-model="appearanceSettings.theme" class="form-select"
-                @change="saveAppearanceSettings">
-                <option value="system">{{ $t('settings.systemTheme') }}</option>
-                <option value="light">{{ $t('settings.lightTheme') }}</option>
-                <option value="dark">{{ $t('settings.darkTheme') }}</option>
-              </select>
+              <n-select id="theme" v-model:value="appearanceSettings.theme" :options="themeOptions" />
             </div>
 
             <div class="form-group">
               <label for="fontSize" class="form-label">{{ $t('settings.fontSize') }}</label>
-              <select id="fontSize" v-model="appearanceSettings.fontSize" class="form-select"
-                @change="saveAppearanceSettings">
-                <option value="small">{{ $t('settings.small') }}</option>
-                <option value="medium">{{ $t('settings.medium') }}</option>
-                <option value="large">{{ $t('settings.large') }}</option>
-              </select>
+              <div class="fontSize-selector">
+                <span class="fontSize-label">小</span>
+                <n-slider v-model:value="appearanceSettings.fontSize" :min="12" :max="20" :step="1" />
+                <span class="fontSize-value">{{ appearanceSettings.fontSize }}px</span>
+              </div>
             </div>
 
             <div class="form-group">
@@ -313,7 +318,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, computed, h } from 'vue';
+  import { ref, computed, h } from 'vue';
   import {
     NMenu,
     NForm,
@@ -330,9 +335,52 @@
     NText,
     NRadioGroup,
     NRadio,
-    NSlider
+    NSlider,
+    NUpload,
+    useMessage
   } from 'naive-ui';
   import LanguageSelectorComponent from '@/components/business/user/LanguageSelectorComponent.vue';
+  import { useUserSettings } from '@/composables/useUserSettings';
+  import type { User } from '@/types';
+
+  // Props
+  const props = defineProps<{
+    userData?: User;
+  }>();
+
+  // 使用useUserSettings composable
+  const {
+    isLoading,
+    saveLoading,
+    profileSettings,
+    accountSettings,
+    notificationSettings,
+    privacySettings,
+    appearanceSettings,
+    passwordStrength,
+    passwordStrengthText,
+    passwordStrengthColor,
+    passwordsMatch,
+    loadUserSettings,
+    saveProfileSettings,
+    saveAccountSettings,
+    saveNotificationSettings,
+    savePrivacySettings,
+    saveAppearanceSettings,
+    addSocialLink,
+    removeSocialLink,
+    resetProfileSettings,
+    resetAccountSettings,
+    resetNotificationSettings,
+    resetPrivacySettings,
+    resetAppearanceSettings
+  } = useUserSettings();
+
+  // 消息提示
+  const message = useMessage();
+
+  // 当前活动部分
+  const activeSection = ref('profile');
 
   // 设置部分列表
   const sections = [
@@ -352,6 +400,13 @@
     }))
   );
 
+  // 主题选项
+  const themeOptions = [
+    { label: '跟随系统', value: 'system' },
+    { label: '亮色模式', value: 'light' },
+    { label: '暗色模式', value: 'dark' }
+  ];
+
   // 社交平台选项
   const socialPlatformOptions = [
     { label: 'GitHub', value: 'GitHub' },
@@ -370,180 +425,96 @@
     { label: '禁止评论', value: 'none' }
   ];
 
-  // 当前活动部分
-  const activeSection = ref('profile');
+  // 上传头像处理函数
+  function uploadAvatar({ file }: { file: File }) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (result) {
+        profileSettings.avatar = result;
+        message.success('头像已上传');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
 
-  // 个人资料设置
-  const profileSettings = reactive({
-    avatar: 'https://i.pravatar.cc/150?u=user1',
-    coverImage: 'https://picsum.photos/1200/300?random=1',
-    nickname: '示例用户',
-    username: 'example_user',
-    bio: '这是个人简介，可以介绍一下你自己或者分享你感兴趣的内容。',
-    socialLinks: [
-      { platform: 'GitHub', url: 'https://github.com' },
-      { platform: 'Twitter', url: 'https://twitter.com' }
-    ]
-  });
-
-  // 账号设置
-  const accountSettings = reactive({
-    email: 'user@example.com',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-
-  // 通知设置
-  const notificationSettings = reactive({
-    likes: true,
-    comments: true,
-    replies: true,
-    follows: true,
-    videoProcessing: true,
-    updates: false,
-    emailNotification: true,
-    browserNotification: false
-  });
-
-  // 隐私设置
-  const privacySettings = reactive({
-    showWatchHistory: false,
-    showFavorites: true,
-    showFollowing: true,
-    showLikes: false,
-    commentPermission: 'everyone'
-  });
-
-  // 外观设置
-  const appearanceSettings = reactive({
-    theme: 'system',
-    fontSize: 16
-  });
+  // 上传封面图处理函数
+  function uploadCoverImage({ file }: { file: File }) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (result) {
+        profileSettings.coverImage = result;
+        message.success('封面图片已上传');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
 
   // 添加社交链接
   function addLink() {
-    if (profileSettings.socialLinks.length < 5) {
-      profileSettings.socialLinks.push({ platform: 'GitHub', url: '' });
-    }
+    addSocialLink();
   }
 
   // 删除社交链接
   function removeLink(index: number) {
-    profileSettings.socialLinks.splice(index, 1);
+    removeSocialLink(index);
   }
 
-  // 保存个人资料设置
-  function saveProfileSettings() {
-    // 模拟保存操作
-    console.log('保存个人资料设置:', profileSettings);
-    alert('个人资料已更新');
+  // 应用主题
+  function applyTheme(theme: string) {
+    const htmlEl = document.documentElement;
+    if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      htmlEl.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      htmlEl.setAttribute('data-theme', theme);
+    }
+  }
+
+  // 应用字体大小
+  function applyFontSize(size: number) {
+    document.documentElement.style.setProperty('--base-font-size', `${size}px`);
   }
 
   // 重置个人资料设置
   function resetProfile() {
-    // 模拟从服务器获取原始数据
-    // 这里仅用于示例
-    profileSettings.nickname = '示例用户';
-    profileSettings.bio = '这是个人简介，可以介绍一下你自己或者分享你感兴趣的内容。';
-    profileSettings.socialLinks = [
-      { platform: 'GitHub', url: 'https://github.com' },
-      { platform: 'Twitter', url: 'https://twitter.com' }
-    ];
-  }
-
-  // 保存账号设置
-  function saveAccountSettings() {
-    // 验证密码
-    if (accountSettings.newPassword !== accountSettings.confirmPassword) {
-      alert('两次输入的密码不一致');
-      return;
-    }
-
-    // 模拟保存操作
-    console.log('保存账号设置:', accountSettings);
-    alert('密码已更新');
-
-    // 清空密码字段
-    accountSettings.currentPassword = '';
-    accountSettings.newPassword = '';
-    accountSettings.confirmPassword = '';
+    resetProfileSettings();
   }
 
   // 重置账号设置
   function resetAccount() {
-    accountSettings.currentPassword = '';
-    accountSettings.newPassword = '';
-    accountSettings.confirmPassword = '';
-  }
-
-  // 保存通知设置
-  function saveNotificationSettings() {
-    // 模拟保存操作
-    console.log('保存通知设置:', notificationSettings);
-    alert('通知设置已更新');
+    resetAccountSettings();
   }
 
   // 重置通知设置
   function resetNotifications() {
-    // 模拟从服务器获取原始数据
-    Object.assign(notificationSettings, {
-      likes: true,
-      comments: true,
-      replies: true,
-      follows: true,
-      videoProcessing: true,
-      updates: false,
-      emailNotification: true,
-      browserNotification: false
-    });
-  }
-
-  // 保存隐私设置
-  function savePrivacySettings() {
-    // 模拟保存操作
-    console.log('保存隐私设置:', privacySettings);
-    alert('隐私设置已更新');
+    resetNotificationSettings();
   }
 
   // 重置隐私设置
   function resetPrivacy() {
-    // 模拟从服务器获取原始数据
-    Object.assign(privacySettings, {
-      showWatchHistory: false,
-      showFavorites: true,
-      showFollowing: true,
-      showLikes: false,
-      commentPermission: 'everyone'
-    });
+    resetPrivacySettings();
   }
 
   // 重置外观设置
   function resetAppearance() {
-    appearanceSettings.theme = 'system';
-    appearanceSettings.fontSize = 16;
+    resetAppearanceSettings();
   }
-
-  // 保存外观设置
-  function saveAppearanceSettings() {
-    // 这里应该调用API保存设置
-    alert('外观设置已保存');
-  }
-
-  // 初始化
-  onMounted(() => {
-    // 模拟从服务器获取设置数据
-    // 这里使用的是默认值
-  });
 </script>
 
 <style scoped>
+  :root {
+    --base-font-size: 16px;
+  }
+
   .settings-container {
     display: flex;
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px 16px;
     gap: 24px;
+    font-size: var(--base-font-size);
   }
 
   .settings-sidebar {
@@ -552,7 +523,7 @@
   }
 
   .sidebar-title {
-    font-size: 20px;
+    font-size: calc(var(--base-font-size) * 1.25);
     font-weight: 600;
     margin: 0 0 24px;
     color: var(--color-text-primary);
@@ -570,14 +541,14 @@
   }
 
   .section-title {
-    font-size: 20px;
+    font-size: calc(var(--base-font-size) * 1.25);
     font-weight: 600;
     margin: 0 0 8px;
     color: var(--color-text-primary);
   }
 
   .section-description {
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     color: var(--color-text-secondary);
     margin: 0 0 32px;
   }
@@ -604,6 +575,7 @@
     margin-bottom: 8px;
     font-weight: 500;
     color: var(--color-text-primary);
+    font-size: inherit;
   }
 
   .form-input,
@@ -615,7 +587,7 @@
     border-radius: 4px;
     background-color: var(--color-bg-input);
     color: var(--color-text-primary);
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     transition: border-color 0.3s;
   }
 
@@ -637,13 +609,13 @@
   }
 
   .form-hint {
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.75);
     color: var(--color-text-secondary);
     margin-top: 4px;
   }
 
   .char-count {
-    font-size: 12px;
+    font-size: calc(var(--base-font-size) * 0.75);
     color: var(--color-text-secondary);
     text-align: right;
     margin-top: 4px;
@@ -679,7 +651,7 @@
     color: var(--color-text-primary);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     transition: background-color 0.2s;
   }
 
@@ -710,7 +682,7 @@
     color: var(--color-text-danger);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
   }
 
   .btn-add-link {
@@ -720,7 +692,7 @@
     color: var(--color-text-primary);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     transition: background-color 0.2s;
   }
 
@@ -744,7 +716,7 @@
   .btn-secondary {
     padding: 10px 24px;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: calc(var(--base-font-size) * 0.875);
     font-weight: 500;
     cursor: pointer;
     transition: opacity 0.2s;
@@ -777,7 +749,7 @@
 
   .notification-title,
   .privacy-title {
-    font-size: 16px;
+    font-size: calc(var(--base-font-size) * 1);
     font-weight: 600;
     margin: 0 0 16px;
     color: var(--color-text-primary);
@@ -800,7 +772,7 @@
 
   .notification-description,
   .privacy-description {
-    font-size: 13px;
+    font-size: calc(var(--base-font-size) * 0.8125);
     color: var(--color-text-secondary);
   }
 
@@ -890,5 +862,53 @@
     justify-content: space-between;
     padding: 0.625rem 0.75rem;
     height: 38px;
+  }
+
+  /* 字体大小选择器样式 */
+  .fontSize-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .fontSize-label {
+    font-size: calc(var(--base-font-size) * 0.875);
+    color: var(--color-text-secondary);
+    width: 60px;
+  }
+
+  .fontSize-value {
+    font-size: calc(var(--base-font-size) * 0.875);
+    color: var(--color-text-primary);
+    width: 30px;
+    text-align: right;
+  }
+
+  /* 密码强度样式 */
+  .password-strength {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    gap: 10px;
+  }
+
+  .strength-bar-container {
+    flex: 1;
+    height: 4px;
+    background-color: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .strength-bar {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+  }
+
+  .strength-text {
+    font-size: 12px;
+    width: 30px;
+    text-align: center;
   }
 </style>

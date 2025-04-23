@@ -18,7 +18,7 @@ export const permissionGuard = async (
   next: NavigationGuardNext
 ) => {
   const authStore = useAuthStore();
-  const toast = useToast();
+  const { showWarning, showError } = useToast();
 
   // 检查路由是否需要特定角色
   const requiredRoles = to.meta.roles as string[] | undefined;
@@ -30,11 +30,17 @@ export const permissionGuard = async (
 
   // 如果需要角色但用户未登录，重定向到登录页
   if (!authStore.isAuthenticated) {
-    toast.warning('需要登录才能访问该页面');
-    return next({
-      path: '/auth/login',
-      query: { redirect: to.fullPath },
-    });
+    // 显示提示信息
+    showWarning('需要登录才能访问该页面');
+
+    // 延迟重定向，确保消息显示
+    setTimeout(() => {
+      next({
+        path: '/auth/login',
+        query: { redirect: to.fullPath },
+      });
+    }, 100);
+    return;
   }
 
   // 检查用户角色是否满足要求
@@ -46,18 +52,22 @@ export const permissionGuard = async (
     return next();
   } else {
     // 没有所需角色，拒绝访问并提示
-    toast.error('您没有权限访问此页面');
+    showError('您没有权限访问此页面');
 
-    // 对于无权访问的管理员页面，重定向到首页
-    if (to.path.startsWith('/admin')) {
-      return next({ path: '/' });
-    }
+    // 延迟执行重定向，确保消息显示
+    setTimeout(() => {
+      // 对于无权访问的管理员页面，重定向到首页
+      if (to.path.startsWith('/admin')) {
+        next({ path: '/' });
+        return;
+      }
 
-    // 其他情况返回上一页，如果没有上一页则回到首页
-    if (from.name) {
-      return next(false);
-    } else {
-      return next({ path: '/' });
-    }
+      // 其他情况返回上一页，如果没有上一页则回到首页
+      if (from.name) {
+        next(false);
+      } else {
+        next({ path: '/' });
+      }
+    }, 100);
   }
 };

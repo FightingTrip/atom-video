@@ -20,7 +20,9 @@
         <div class="accounts-table-cell">{{ account.email }}</div>
         <div class="accounts-table-cell">{{ account.password }}</div>
         <div class="accounts-table-cell">
-          <button class="quick-login-btn" @click="quickLogin(account)">快速登录</button>
+          <button class="quick-login-btn" @click="quickLogin(account)" :disabled="loading">
+            {{ loading ? '登录中...' : '快速登录' }}
+          </button>
         </div>
       </div>
     </div>
@@ -35,7 +37,8 @@
 
   const authStore = useAuthStore();
   const router = useRouter();
-  const toast = useToast();
+  const { showSuccess, showError } = useToast();
+  const loading = ref(false);
 
   // 测试账号数据
   const testAccounts = ref([
@@ -72,14 +75,26 @@
 
   // 快速登录
   async function quickLogin(account: { email: string; password: string; role: string }) {
+    if (loading.value) return;
+    loading.value = true;
+
     try {
+      console.log(`尝试使用账号 ${account.email} 登录...`);
       const success = await authStore.login(account.email, account.password);
+
       if (success) {
-        toast.success(`以 ${account.role} 角色登录成功`);
+        console.log(`登录成功，角色: ${account.role}`);
+        showSuccess(`以 ${account.role} 角色登录成功`);
         router.push('/');
+      } else {
+        console.error('登录失败，认证返回false');
+        showError('登录失败，请检查账号密码是否正确');
       }
     } catch (error) {
-      toast.error('登录失败，请稍后重试');
+      console.error('登录过程中发生错误:', error);
+      showError('登录时发生错误，请稍后重试');
+    } finally {
+      loading.value = false;
     }
   }
 </script>
@@ -168,7 +183,13 @@
     transition: background-color 0.2s;
   }
 
-  .quick-login-btn:hover {
+  .quick-login-btn:hover:not(:disabled) {
     background-color: #616161;
+  }
+
+  .quick-login-btn:disabled {
+    background-color: #333;
+    color: #666;
+    cursor: not-allowed;
   }
 </style>

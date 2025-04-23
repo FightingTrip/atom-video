@@ -47,7 +47,7 @@
         <n-tab-pane v-for="tab in tabs" :key="tab.id" :name="tab.id" :tab="tab.name">
           <!-- 视频列表 -->
           <div v-if="tab.id === 'videos'" class="videos-tab">
-            <n-spin :show="loading" description="加载中..." size="large">
+            <n-spin :show="videosLoading" description="加载中..." size="large">
               <n-empty v-if="userVideos.length === 0" description="">
                 <template #icon>
                   <div class="empty-icon">📺</div>
@@ -83,7 +83,7 @@
 
           <!-- 收藏列表 -->
           <div v-if="tab.id === 'favorites'" class="favorites-tab">
-            <n-spin :show="loading" description="加载中..." size="large">
+            <n-spin :show="favoritesLoading" description="加载中..." size="large">
               <n-empty v-if="favoriteVideos.length === 0" description="">
                 <template #icon>
                   <div class="empty-icon">❤️</div>
@@ -145,9 +145,19 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue';
+  import { ref, computed, onMounted, watch } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
   import { NButton, NTabs, NTabPane, NEmpty, NSpin, NAvatar, NTag } from 'naive-ui';
+  import type { User, Video } from '@/types';
+  import userVideoService from '@/services/user/video';
+  import { formatDistanceToNow } from 'date-fns';
+  import { zhCN } from 'date-fns/locale';
+
+  // 接收props
+  const props = defineProps<{
+    userId?: string;
+    profileData?: User | null;
+  }>();
 
   // 模拟数据类型
   interface UserProfile {
@@ -164,15 +174,6 @@
     socialLinks: { platform: string; url: string }[];
   }
 
-  interface Video {
-    id: string;
-    title: string;
-    thumbnail: string;
-    duration: number;
-    views: number;
-    createdAt: string;
-  }
-
   // 路由
   const router = useRouter();
   const route = useRoute();
@@ -187,6 +188,8 @@
   const hasMoreFavorites = ref(true);
   const videoPage = ref(1);
   const favoritePage = ref(1);
+  const videosLoading = ref(false);
+  const favoritesLoading = ref(false);
 
   // 标签页定义
   const tabs = [
@@ -195,80 +198,139 @@
     { id: 'about', name: '关于' }
   ];
 
-  // 模拟用户资料数据
-  const userProfile = ref<UserProfile>({
-    id: 'user-1',
-    username: 'atomvideo',
-    nickname: 'Atom Video',
-    avatar: 'https://i.pravatar.cc/300?u=atomvideo',
-    coverImage: 'https://picsum.photos/1200/300?random=1',
-    bio: '热爱编程，分享技术视频和教程。专注于前端和全栈开发，希望能帮助更多人学习编程。',
-    videoCount: 28,
-    followerCount: 1265,
-    followingCount: 42,
-    createdAt: '2023-01-15T08:30:00Z',
-    socialLinks: [
-      { platform: 'GitHub', url: 'https://github.com' },
-      { platform: 'Twitter', url: 'https://twitter.com' }
-    ]
+  // 从props生成用户资料数据
+  const userProfile = computed<UserProfile>(() => {
+    if (props.profileData) {
+      return {
+        id: props.profileData.id,
+        username: props.profileData.username,
+        nickname: props.profileData.nickname,
+        avatar: props.profileData.avatar,
+        coverImage: `https://picsum.photos/1200/300?random=${props.profileData.id}`,
+        bio: props.profileData.bio,
+        videoCount: Math.floor(Math.random() * 50) + 5,
+        followerCount: props.profileData.subscribers,
+        followingCount: props.profileData.subscribing,
+        createdAt: props.profileData.joinedAt,
+        socialLinks: props.profileData.social ?
+          Object.entries(props.profileData.social)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => ({
+              platform: key.charAt(0).toUpperCase() + key.slice(1),
+              url: value as string
+            })) : []
+      };
+    }
+
+    // 默认资料
+    return {
+      id: 'default',
+      username: 'atomvideo',
+      nickname: 'Atom Video',
+      avatar: 'https://i.pravatar.cc/300?u=atomvideo',
+      coverImage: 'https://picsum.photos/1200/300?random=1',
+      bio: '热爱编程，分享技术视频和教程。专注于前端和全栈开发，希望能帮助更多人学习编程。',
+      videoCount: 28,
+      followerCount: 1265,
+      followingCount: 42,
+      createdAt: '2023-01-15T08:30:00Z',
+      socialLinks: [
+        { platform: 'GitHub', url: 'https://github.com' },
+        { platform: 'Twitter', url: 'https://twitter.com' }
+      ]
+    };
   });
 
   // 检查是否是当前登录用户的个人资料
   const isCurrentUser = computed(() => {
     // 这里应该与实际的用户认证系统集成
-    // 暂时模拟为true，表示是当前用户的资料
-    return true;
+    // 暂时模拟，根据传入的userId判断
+    return props.userId === '1'; // 假设ID为1的用户是当前登录用户
   });
 
-  // 格式化数字
-  function formatNumber(num: number): string {
-    if (num >= 10000) {
-      return (num / 10000).toFixed(1) + '万';
-    }
-    return num.toString();
-  }
+  // 加载用户视频
+  async function loadUserVideos(page = 1) {
+    if (videosLoading.value) return;
 
-  // 格式化时长
-  function formatDuration(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
+    try {
+      videosLoading.value = true;
 
-  // 格式化日期
-  function formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const result = await userVideoService.getUserVideosList(userProfile.value.id, {
+        page,
+        limit: 12 // 每页12个视频
+      });
 
-    if (diffDays < 1) {
-      return '今天';
-    } else if (diffDays < 30) {
-      return `${diffDays}天前`;
-    } else {
-      const diffMonths = Math.floor(diffDays / 30);
-      return `${diffMonths}个月前`;
+      if (page === 1) {
+        userVideos.value = result.videos;
+      } else {
+        userVideos.value = [...userVideos.value, ...result.videos];
+      }
+
+      videoPage.value = page;
+      hasMoreVideos.value = result.hasMore;
+    } catch (error) {
+      console.error('加载用户视频失败:', error);
+    } finally {
+      videosLoading.value = false;
     }
   }
 
-  // 格式化加入日期
-  function formatJoinDate(dateString: string): string {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${year}年${month}月${day}日`;
+  // 加载更多视频
+  async function loadMoreVideos() {
+    await loadUserVideos(videoPage.value + 1);
+  }
+
+  // 加载用户收藏视频
+  async function loadUserFavorites(page = 1) {
+    if (favoritesLoading.value) return;
+
+    try {
+      favoritesLoading.value = true;
+
+      const result = await userVideoService.getUserFavoritesList(userProfile.value.id, {
+        page,
+        limit: 12 // 每页12个视频
+      });
+
+      if (page === 1) {
+        favoriteVideos.value = result.videos;
+      } else {
+        favoriteVideos.value = [...favoriteVideos.value, ...result.videos];
+      }
+
+      favoritePage.value = page;
+      hasMoreFavorites.value = result.hasMore;
+    } catch (error) {
+      console.error('加载用户收藏视频失败:', error);
+    } finally {
+      favoritesLoading.value = false;
+    }
+  }
+
+  // 加载更多收藏视频
+  async function loadMoreFavorites() {
+    await loadUserFavorites(favoritePage.value + 1);
+  }
+
+  // 处理标签页切换
+  watch(activeTab, (newValue) => {
+    if (newValue === 'videos' && userVideos.value.length === 0) {
+      loadUserVideos();
+    } else if (newValue === 'favorites' && favoriteVideos.value.length === 0) {
+      loadUserFavorites();
+    }
+  });
+
+  // 处理视频点击
+  function handleVideoClick(video: Video) {
+    router.push(`/video/${video.id}`);
   }
 
   // 处理关注/取消关注
-  function handleToggleFollow() {
+  async function handleToggleFollow() {
     isFollowing.value = !isFollowing.value;
-    if (isFollowing.value) {
-      userProfile.value.followerCount++;
-    } else {
-      userProfile.value.followerCount--;
-    }
+    // 这里应调用API
+    console.log(`${isFollowing.value ? '关注' : '取消关注'} 用户: ${userProfile.value.id}`);
   }
 
   // 处理编辑资料
@@ -278,94 +340,59 @@
 
   // 处理上传视频
   function handleUploadVideo() {
-    router.push('/upload');
+    router.push('/video/upload');
   }
 
-  // 处理视频点击
-  function handleVideoClick(video: Video) {
-    router.push(`/video/${video.id}`);
+  // 格式化数字
+  function formatNumber(num: number): string {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
   }
 
-  // 获取用户视频
-  async function fetchUserVideos() {
-    loading.value = true;
+  // 格式化日期
+  function formatDate(date: string): string {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 模拟数据
-      const mockVideos: Video[] = Array(8).fill(0).map((_, index) => ({
-        id: `video-${videoPage.value}-${index}`,
-        title: `示例视频标题 ${videoPage.value}-${index}`,
-        thumbnail: `https://picsum.photos/seed/video${videoPage.value}${index}/400/225`,
-        duration: Math.floor(Math.random() * 600),
-        views: Math.floor(Math.random() * 100000),
-        createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString()
-      }));
-
-      userVideos.value = videoPage.value === 1 ? mockVideos : [...userVideos.value, ...mockVideos];
-      hasMoreVideos.value = videoPage.value < 3; // 模拟只有3页数据
-    } catch (error) {
-      console.error('获取用户视频失败:', error);
-    } finally {
-      loading.value = false;
+      return formatDistanceToNow(new Date(date), { addSuffix: true, locale: zhCN });
+    } catch (e) {
+      return '未知时间';
     }
   }
 
-  // 获取收藏视频
-  async function fetchFavoriteVideos() {
-    loading.value = true;
+  // 格式化时长
+  function formatDuration(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  // 格式化加入日期
+  function formatJoinDate(date: string): string {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 模拟数据
-      const mockVideos: Video[] = Array(8).fill(0).map((_, index) => ({
-        id: `favorite-${favoritePage.value}-${index}`,
-        title: `收藏视频标题 ${favoritePage.value}-${index}`,
-        thumbnail: `https://picsum.photos/seed/favorite${favoritePage.value}${index}/400/225`,
-        duration: Math.floor(Math.random() * 600),
-        views: Math.floor(Math.random() * 100000),
-        createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString()
-      }));
-
-      favoriteVideos.value = favoritePage.value === 1 ? mockVideos : [...favoriteVideos.value, ...mockVideos];
-      hasMoreFavorites.value = favoritePage.value < 3; // 模拟只有3页数据
-    } catch (error) {
-      console.error('获取收藏视频失败:', error);
-    } finally {
-      loading.value = false;
+      const joinDate = new Date(date);
+      return joinDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (e) {
+      return '未知时间';
     }
   }
 
-  // 加载更多视频
-  function loadMoreVideos() {
-    if (!loading.value && hasMoreVideos.value) {
-      videoPage.value++;
-      fetchUserVideos();
-    }
-  }
-
-  // 加载更多收藏
-  function loadMoreFavorites() {
-    if (!loading.value && hasMoreFavorites.value) {
-      favoritePage.value++;
-      fetchFavoriteVideos();
-    }
-  }
-
-  // 页面初始化
+  // 组件挂载时初始化数据
   onMounted(() => {
-    // 获取URL中的用户ID参数
-    const userId = route.params.id;
-
-    // 根据ID获取用户资料（这里使用模拟数据）
-
-    // 根据当前标签页加载对应数据
-    fetchUserVideos();
-
-    // 检查当前用户是否关注了该用户
-    isFollowing.value = false; // 模拟数据
+    // 初始加载视频数据
+    if (activeTab.value === 'videos') {
+      loadUserVideos();
+    }
   });
 </script>
 

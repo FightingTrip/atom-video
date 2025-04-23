@@ -40,7 +40,7 @@
                 <n-icon size="32">
                   <PersonAddOutline />
                 </n-icon>
-                <span>点击或拖拽上传头像</span>
+                
               </div>
             </n-upload-trigger>
           </n-upload>
@@ -54,7 +54,7 @@
                 <n-icon size="32">
                   <CloudUploadOutline />
                 </n-icon>
-                <span>点击或拖拽上传横幅</span>
+                
               </div>
             </n-upload-trigger>
           </n-upload>

@@ -6,14 +6,20 @@
 
 import { defineStore } from 'pinia';
 import type { User, AuthResponse } from '@/types';
-import { login as mockLogin, register as mockRegister, getUserByToken } from '@/mock/users';
 import { useStorage } from '@vueuse/core';
 import { useToast } from '@/composables/useToast';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+// 导入模拟数据库
+import mockDb from '@/mock/mockDb';
+import { mockDelay } from '@/utils/mockInitializer';
+import { mapDbUserToFrontend } from '@/utils/mockMapper';
 
+/**
+ * 认证状态存储
+ */
 export const useAuthStore = defineStore('auth', () => {
   // 状态
-  const token = ref<string | null>(null);
+  const token = ref<string | null>(localStorage.getItem('auth_token'));
   const user = ref<User | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -25,18 +31,27 @@ export const useAuthStore = defineStore('auth', () => {
   const isCreator = computed(() => userRole.value === 'CREATOR' || isAdmin.value);
   const username = computed(() => user.value?.username || '游客');
   const userRole = computed(() => {
-    // 开发环境下，如果是demo模式，且用户名是admin，则作为管理员
-    if (demoMode.value && user.value?.username === 'admin') {
+    // 检查邮箱是否包含admin
+    if (user.value?.email?.toLowerCase().includes('admin')) {
       return 'ADMIN';
     }
 
-    // 如果用户名是admin@atomvideo.com或username是admin，则作为管理员
-    if (user.value?.email === 'admin@atomvideo.com' || user.value?.username === 'admin') {
+    // 开发环境下，如果是demo模式，且用户名是admin或者包含admin，则作为管理员
+    if (
+      demoMode.value &&
+      (user.value?.username === 'admin' ||
+        user.value?.username?.toLowerCase().includes('admin') ||
+        user.value?.email?.toLowerCase().includes('admin'))
+    ) {
       return 'ADMIN';
     }
 
-    // 如果用户名是creator@atomvideo.com或username是creator，则作为创作者
-    if (user.value?.email === 'creator@atomvideo.com' || user.value?.username === 'creator') {
+    // 基于用户角色判断，支持不同大小写
+    if (user.value?.role?.toLowerCase() === 'admin') {
+      return 'ADMIN';
+    }
+
+    if (user.value?.role?.toLowerCase() === 'creator') {
       return 'CREATOR';
     }
 
@@ -58,9 +73,16 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = newUser;
   }
 
+  // 设置认证状态（用于OAuth登录）
+  async function setAuth(authData: { token: string; user: User }): Promise<void> {
+    setToken(authData.token);
+    setUser(authData.user);
+    demoMode.value = false;
+  }
+
   // 异步操作
   async function login(email: string, password: string): Promise<boolean> {
-    const toast = useToast();
+    const { showSuccess, showError } = useToast();
     loading.value = true;
     error.value = null;
 
@@ -82,35 +104,37 @@ export const useAuthStore = defineStore('auth', () => {
           joinedAt: new Date().toISOString(),
         });
         demoMode.value = true;
-        toast.success('演示模式登录成功');
+        showSuccess('演示模式登录成功');
         return true;
       }
 
-      // 调用mockLogin处理登录，包括测试账号的处理
-      try {
-        const response = await mockLogin({ username: email, password });
+      // 使用模拟数据库登录
+      await mockDelay();
+      const response = mockDb.login(email, password);
 
-        if (response && response.success && response.data) {
-          setToken(response.data.token);
-          setUser(response.data.user);
-          demoMode.value = false;
-          toast.success('登录成功');
-          // 调试信息：记录当前用户角色
-          console.log('[AuthStore] 登录成功，当前用户:', response.data.user);
-          console.log('[AuthStore] 用户角色:', userRole.value);
-          return true;
-        } else {
-          // 确保错误信息不为undefined
-          const errorMsg =
-            response && response.error ? response.error : '登录失败，请检查用户名和密码';
-          error.value = errorMsg;
-          toast.error(errorMsg);
-          return false;
-        }
-      } catch (loginError: any) {
-        console.error('登录过程中发生错误:', loginError);
-        error.value = '登录服务暂时不可用，请稍后再试';
-        toast.error(error.value);
+      if (response.success && response.token && response.user) {
+        // 使用映射器处理用户数据
+        const mappedUser = mapDbUserToFrontend(response.user);
+        setToken(response.token);
+        setUser(mappedUser);
+        demoMode.value = false;
+        showSuccess('登录成功');
+        // 调试信息：记录当前用户角色
+        console.log('[AuthStore] 登录成功，当前用户:', mappedUser);
+        console.log('[AuthStore] 用户角色:', userRole.value);
+        console.log('[AuthStore] 用户信息详情:', {
+          email: mappedUser?.email || 'unknown',
+          username: mappedUser?.username || 'unknown',
+          role: mappedUser?.role || 'unknown',
+          isAdmin: isAdmin.value,
+          demoMode: demoMode.value,
+        });
+        return true;
+      } else {
+        // 确保错误信息不为undefined
+        const errorMsg = response.error || '登录失败，请检查用户名和密码';
+        error.value = errorMsg;
+        showError(errorMsg);
         return false;
       }
     } catch (err: any) {
@@ -120,35 +144,40 @@ export const useAuthStore = defineStore('auth', () => {
           ? err.message || '登录过程中发生错误'
           : '登录过程中发生未知错误';
       error.value = errorMsg;
-      toast.error(errorMsg);
+      console.error('[AuthStore] 登录错误:', err);
+      showError(errorMsg);
       return false;
     } finally {
       loading.value = false;
     }
   }
 
-  async function register(username: string, password: string, nickname?: string): Promise<boolean> {
-    const toast = useToast();
+  async function register(
+    username: string,
+    password: string,
+    nickname?: string,
+    email?: string
+  ): Promise<boolean> {
+    const { showSuccess, showError } = useToast();
     loading.value = true;
     error.value = null;
     try {
-      try {
-        const response = await mockRegister({ username, password, nickname });
-        if (response && response.success && response.data) {
-          // 注册成功但不立即登录
-          toast.success('注册成功，请登录');
-          return true;
-        } else {
-          // 确保错误信息不为undefined
-          const errorMsg = response && response.error ? response.error : '注册失败，请稍后重试';
-          error.value = errorMsg;
-          toast.error(errorMsg);
-          return false;
-        }
-      } catch (registerError: any) {
-        console.error('注册过程中发生错误:', registerError);
-        error.value = '注册服务暂时不可用，请稍后再试';
-        toast.error(error.value);
+      // 使用模拟数据库注册
+      await mockDelay();
+      const response = mockDb.register({
+        username,
+        email: email || `${username}@example.com`,
+        password,
+        nickname,
+      });
+
+      if (response.success) {
+        showSuccess('注册成功，请登录');
+        return true;
+      } else {
+        const errorMsg = response.error || '注册失败，请稍后重试';
+        error.value = errorMsg;
+        showError(errorMsg);
         return false;
       }
     } catch (err: any) {
@@ -158,7 +187,8 @@ export const useAuthStore = defineStore('auth', () => {
           ? err.message || '注册过程中发生错误'
           : '注册过程中发生未知错误';
       error.value = errorMsg;
-      toast.error(errorMsg);
+      console.error('[AuthStore] 注册错误:', err);
+      showError(errorMsg);
       return false;
     } finally {
       loading.value = false;
@@ -170,9 +200,25 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return false;
 
     try {
-      const response = await getUserByToken(token.value);
-      if (response && response.success && response.data) {
-        setUser(response.data);
+      // 这里可以实现查询token的逻辑
+      // 暂时简化为随机模拟已登录用户
+      const tokenUserId = token.value.includes('u-') ? token.value.split('-')[1] : null;
+
+      if (tokenUserId) {
+        // 可以在这里添加根据ID获取用户的逻辑
+        setUser({
+          id: `u-${tokenUserId}`,
+          username: 'verified_user',
+          email: `user-${tokenUserId}@example.com`,
+          nickname: '已验证用户',
+          avatar: `https://i.pravatar.cc/150?u=${tokenUserId}`,
+          verified: true,
+          bio: '这是一个通过token验证的用户账号',
+          subscribers: 0,
+          subscribing: 0,
+          totalViews: 0,
+          joinedAt: new Date().toISOString(),
+        });
         return true;
       } else {
         logout();
@@ -185,18 +231,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout(): void {
-    const toast = useToast();
+    const { showSuccess } = useToast();
     setToken(null);
     setUser(null);
     error.value = null;
     demoMode.value = false;
-    toast.success('已退出登录');
+    showSuccess('已退出登录');
   }
 
   function enableDemoMode() {
     demoMode.value = true;
-    const toast = useToast();
-    toast.success('已启用演示模式');
+    const { showSuccess } = useToast();
+    showSuccess('已启用演示模式');
   }
 
   function disableDemoMode() {
@@ -226,14 +272,47 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
 
     // 操作
+    setToken,
+    setUser,
+    setAuth,
     login,
     register,
-    checkAuth,
     logout,
+    checkAuth,
     enableDemoMode,
     disableDemoMode,
     clearError,
-    setToken,
-    setUser,
   };
 });
+
+// 导出一个setupAuthWatch函数，在应用初始化后调用
+export function setupAuthWatch() {
+  if (typeof window !== 'undefined') {
+    try {
+      // 尝试获取auth store
+      const authStore = useAuthStore();
+
+      // 监听token变化
+      watch(
+        () => authStore.token,
+        (newToken: string | null) => {
+          if (newToken) {
+            localStorage.setItem('auth_token', newToken);
+          } else {
+            localStorage.removeItem('auth_token');
+          }
+        }
+      );
+
+      // 监听demoMode变化
+      watch(
+        () => authStore.demoMode,
+        (newDemoMode: boolean) => {
+          localStorage.setItem('demo-mode', newDemoMode ? 'true' : 'false');
+        }
+      );
+    } catch (error) {
+      console.error('设置Auth监听器失败，可能Pinia尚未初始化:', error);
+    }
+  }
+}

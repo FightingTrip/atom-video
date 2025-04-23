@@ -248,6 +248,7 @@ export interface VideoProgress {
   videoId: string;
   currentTime: number;
   duration: number;
+  percentage: number;
   lastPlayedAt: string;
 }
 

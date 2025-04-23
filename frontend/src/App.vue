@@ -10,6 +10,7 @@
       <n-dialog-provider>
         <n-notification-provider>
           <n-message-provider>
+            <app-message-registrar />
             <router-view v-slot="{ Component }">
               <transition name="fade" mode="out-in">
                 <component :is="Component" />
@@ -23,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import { computed, onMounted, ref, watch, markRaw, defineComponent } from 'vue'
   import { useThemeStore } from '@/stores/theme'
   import { useUserStore } from '@/stores/user'
   import {
@@ -34,8 +35,26 @@
     NLoadingBarProvider,
     darkTheme,
     zhCN,
-    dateZhCN
+    dateZhCN,
+    useMessage
   } from 'naive-ui'
+  import { setGlobalMessage } from '@/composables/useToast'
+
+  // 注册全局消息组件
+  const AppMessageRegistrar = defineComponent({
+    name: 'AppMessageRegistrar',
+    setup() {
+      const message = useMessage()
+
+      // 设置全局消息实例，用于非组件上下文
+      // 使用markRaw确保消息实例不被Vue的响应式系统代理，避免性能问题
+      setGlobalMessage(markRaw(message))
+
+      console.log('[App] 全局消息提供者已注册')
+
+      return () => null
+    }
+  })
 
   // 全局状态
   const themeStore = useThemeStore()
@@ -72,6 +91,8 @@
 
       // 初始化用户
       await userStore.initUser()
+
+      console.log('[App] 应用初始化完成')
     } catch (error) {
       console.error('应用初始化失败', error)
     }

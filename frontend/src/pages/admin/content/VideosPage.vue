@@ -123,7 +123,7 @@
           <CheckmarkCircleOutline />
         </n-icon>
       </template>
-      <div>确认将视频 <strong>{{ approveVideo?.title }}</strong> 设置为已审核状态？</div>
+      <div>确认将视频 <strong>{{ approveVideoObj?.title }}</strong> 设置为已审核状态？</div>
     </n-modal>
 
     <!-- 视频拒绝对话框 -->
@@ -152,7 +152,7 @@
           <AlertCircleOutline />
         </n-icon>
       </template>
-      <div>确认要删除视频 <strong>{{ deleteVideo?.title }}</strong> 吗？此操作不可逆。</div>
+      <div>确认要删除视频 <strong>{{ deleteVideoObj?.title }}</strong> 吗？此操作不可逆。</div>
     </n-modal>
   </div>
 </template>
@@ -199,30 +199,15 @@
   } from '@vicons/ionicons5'
   import type { DataTableColumns } from 'naive-ui'
   import type { FormInst } from 'naive-ui'
-
-  // 视频数据类型
-  interface Video {
-    id: string
-    title: string
-    description: string
-    thumbnailUrl: string
-    videoUrl: string
-    author: string
-    authorId: string
-    category: string
-    duration: string
-    status: string
-    tags: string[]
-    createdAt: string
-    publishedAt: string | null
-    viewCount: number
-    likeCount: number
-    commentCount: number
-  }
+  import adminService from '@/services/admin'
+  import type { AdminVideo } from '@/services/admin'
+  import { useAdminStore } from '@/stores/admin'
+  import { formatDate } from '@/utils/format'
 
   // 路由和状态
   const router = useRouter()
   const message = useMessage()
+  const adminStore = useAdminStore()
 
   // 搜索筛选状态
   const searchQuery = ref('')
@@ -245,18 +230,16 @@
   })
 
   // 视频列表数据
-  const videos = ref<Video[]>([])
+  const videos = ref<AdminVideo[]>([])
 
   // 预览状态
   const showPreview = ref(false)
-  const currentVideo = ref<Video | null>(null)
+  const currentVideo = ref<AdminVideo | null>(null)
 
   // 审核状态
   const showApproveModal = ref(false)
-  const approveVideo = ref<Video | null>(null)
+  const approveVideoObj = ref<AdminVideo | null>(null)
   const showRejectModal = ref(false)
-  const rejectVideo = ref<Video | null>(null)
-  const rejectForm = ref<FormInst | null>(null)
   const rejectData = reactive({
     reason: '',
     comment: ''
@@ -264,84 +247,62 @@
 
   // 删除状态
   const showDeleteModal = ref(false)
-  const deleteVideo = ref<Video | null>(null)
+  const deleteVideoObj = ref<AdminVideo | null>(null)
 
-  // 筛选选项
+  // 下拉选项
   const statusOptions = [
-    { label: '待审核', value: 'PENDING' },
-    { label: '已发布', value: 'PUBLISHED' },
-    { label: '已拒绝', value: 'REJECTED' },
-    { label: '草稿', value: 'DRAFT' },
-    { label: '私密', value: 'PRIVATE' }
+    { label: '已发布', value: 'published' },
+    { label: '待审核', value: 'pending' },
+    { label: '已拒绝', value: 'rejected' },
+    { label: '草稿', value: 'draft' }
   ]
 
   const categoryOptions = [
-    { label: '游戏', value: 'GAME' },
-    { label: '音乐', value: 'MUSIC' },
-    { label: '教育', value: 'EDUCATION' },
-    { label: '科技', value: 'TECH' },
-    { label: '美食', value: 'FOOD' },
-    { label: '旅行', value: 'TRAVEL' },
-    { label: '体育', value: 'SPORTS' },
-    { label: '娱乐', value: 'ENTERTAINMENT' },
-    { label: '动漫', value: 'ANIME' },
-    { label: '电影', value: 'MOVIE' }
+    { label: '技术', value: '技术' },
+    { label: '教育', value: '教育' },
+    { label: '娱乐', value: '娱乐' },
+    { label: '游戏', value: '游戏' },
+    { label: '音乐', value: '音乐' },
+    { label: '科学', value: '科学' }
   ]
 
   const rejectReasons = [
-    { label: '违反社区规范', value: 'VIOLATION' },
-    { label: '低质量内容', value: 'LOW_QUALITY' },
-    { label: '侵犯版权', value: 'COPYRIGHT' },
-    { label: '包含不适当内容', value: 'INAPPROPRIATE' },
-    { label: '其他原因', value: 'OTHER' }
+    { label: '内容违规', value: 'inappropriate' },
+    { label: '版权问题', value: 'copyright' },
+    { label: '内容低质量', value: 'low_quality' },
+    { label: '内容不符合社区规范', value: 'community_guidelines' },
+    { label: '其他原因', value: 'other' }
   ]
 
-  // 渲染视频状态标签
-  function renderStatus(status: string) {
-    const statusMap: Record<string, { type: 'success' | 'warning' | 'error' | 'info' | 'default', text: string }> = {
-      'PUBLISHED': { type: 'success', text: '已发布' },
-      'PENDING': { type: 'warning', text: '待审核' },
-      'REJECTED': { type: 'error', text: '已拒绝' },
-      'DRAFT': { type: 'default', text: '草稿' },
-      'PRIVATE': { type: 'info', text: '私密' }
-    }
-
-    const info = statusMap[status] || { type: 'default', text: status }
-
-    return h(NTag, { type: info.type, size: 'small' }, { default: () => info.text })
-  }
-
-  // 表格列配置
-  const columns = ref<DataTableColumns<Video>>([
+  // 表格列定义
+  const columns: DataTableColumns<AdminVideo> = [
     {
-      title: '缩略图',
-      key: 'thumbnail',
+      title: '视频ID',
+      key: 'id',
       width: 100,
-      render(row) {
-        return h('img', {
-          src: row.thumbnailUrl,
-          alt: '缩略图',
-          style: 'width: 80px; height: 45px; object-fit: cover; border-radius: 4px;',
-          onClick: () => {
-            currentVideo.value = row
-            showPreview.value = true
-          },
-          style: {
-            cursor: 'pointer',
-            width: '80px',
-            height: '45px',
-            objectFit: 'cover',
-            borderRadius: '4px'
-          }
-        })
+      ellipsis: {
+        tooltip: true
       }
     },
     {
-      title: '视频标题',
+      title: '标题',
       key: 'title',
       width: 200,
       ellipsis: {
         tooltip: true
+      },
+      sorter: 'default'
+    },
+    {
+      title: '缩略图',
+      key: 'thumbnailUrl',
+      width: 120,
+      render(row) {
+        return h('img', {
+          src: row.thumbnailUrl,
+          alt: row.title,
+          style: 'width: 100px; height: 56px; object-fit: cover; border-radius: 4px;'
+        })
       }
     },
     {
@@ -352,389 +313,348 @@
     {
       title: '分类',
       key: 'category',
-      width: 100
+      width: 100,
+      render(row) {
+        return h(NTag, { size: 'small' }, { default: () => row.category })
+      },
+      filter: true,
+      filterOptions: categoryOptions.map(option => ({ label: option.label, value: option.value }))
     },
     {
       title: '状态',
       key: 'status',
       width: 100,
       render(row) {
-        return renderStatus(row.status)
+        const statusMap: Record<string, { color: string, text: string }> = {
+          published: { color: 'success', text: '已发布' },
+          pending: { color: 'warning', text: '待审核' },
+          rejected: { color: 'error', text: '已拒绝' },
+          draft: { color: 'default', text: '草稿' }
+        }
+        const status = statusMap[row.status] || { color: 'default', text: row.status }
+        return h(NTag, { type: status.color as any, size: 'small' }, { default: () => status.text })
       },
-      filters: statusOptions.map(option => ({
-        label: option.label,
-        value: option.value
-      })),
-      filterOptionValue: null,
-      filterOption: (value, row) => row.status === value
-    },
-    {
-      title: '时长',
-      key: 'duration',
-      width: 80
+      filter: true,
+      filterOptions: statusOptions.map(option => ({ label: option.label, value: option.value }))
     },
     {
       title: '上传时间',
       key: 'createdAt',
-      width: 120,
+      width: 150,
+      render(row) {
+        return formatDate(row.createdAt, 'YYYY-MM-DD HH:mm')
+      },
       sorter: 'default'
     },
     {
-      title: '观看数',
+      title: '播放量',
       key: 'viewCount',
       width: 100,
+      render(row) {
+        return row.viewCount.toLocaleString()
+      },
       sorter: 'default'
     },
     {
       title: '操作',
       key: 'actions',
-      width: 220,
+      width: 200,
       fixed: 'right',
       render(row) {
-        return h(NSpace, { align: 'center' }, {
+        return h(NSpace, {}, {
           default: () => [
-            // 预览按钮
             h(
-              NTooltip,
-              { trigger: 'hover', placement: 'top' },
+              NButton,
               {
-                trigger: () => h(
-                  NButton,
-                  {
-                    size: 'small',
-                    quaternary: true,
-                    circle: true,
-                    onClick: () => {
-                      currentVideo.value = row
-                      showPreview.value = true
-                    }
-                  },
-                  { icon: () => h(NIcon, null, { default: () => h(EyeOutline) }) }
-                ),
-                default: () => '预览视频'
-              }
+                size: 'small',
+                type: 'info',
+                onClick: () => previewVideo(row)
+              },
+              { default: () => '预览' }
             ),
-            // 编辑按钮
             h(
-              NTooltip,
-              { trigger: 'hover', placement: 'top' },
+              NButton,
               {
-                trigger: () => h(
-                  NButton,
-                  {
-                    size: 'small',
-                    quaternary: true,
-                    circle: true,
-                    onClick: () => viewVideoDetail(row)
-                  },
-                  { icon: () => h(NIcon, null, { default: () => h(CreateOutline) }) }
-                ),
-                default: () => '编辑视频'
-              }
+                size: 'small',
+                type: 'primary',
+                onClick: () => editVideo(row)
+              },
+              { default: () => '编辑' }
             ),
-            // 审核按钮
-            row.status === 'PENDING' ? h(
-              NTooltip,
-              { trigger: 'hover', placement: 'top' },
-              {
-                trigger: () => h(
-                  NButton,
-                  {
-                    size: 'small',
-                    quaternary: true,
-                    circle: true,
-                    onClick: () => handleApproveAction(row)
-                  },
-                  { icon: () => h(NIcon, null, { default: () => h(CheckmarkCircleOutline) }) }
-                ),
-                default: () => '通过审核'
-              }
-            ) : null,
-            // 删除按钮
             h(
-              NTooltip,
-              { trigger: 'hover', placement: 'top' },
+              NButton,
               {
-                trigger: () => h(
-                  NButton,
-                  {
-                    size: 'small',
-                    quaternary: true,
-                    circle: true,
-                    onClick: () => deleteVideoModal(row)
-                  },
-                  { icon: () => h(NIcon, null, { default: () => h(TrashOutline) }) }
-                ),
-                default: () => '删除视频'
-              }
+                size: 'small',
+                type: 'error',
+                onClick: () => deleteVideo(row)
+              },
+              { default: () => '删除' }
             )
-          ].filter(Boolean)
+          ]
         })
       }
     }
-  ])
+  ]
 
-  // 加载视频数据
-  async function loadVideos() {
+  // 初始化
+  onMounted(async () => {
+    await fetchVideos()
+  })
+
+  // 获取视频列表
+  async function fetchVideos() {
     loading.value = true
 
     try {
-      // Mock API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const params: Record<string, any> = {
+        page: pagination.page,
+        pageSize: pagination.pageSize
+      }
 
-      // 生成模拟数据
-      const mockVideos: Video[] = Array.from({ length: 100 }, (_, index) => {
-        const id = `vid-${index + 1}`.padStart(8, '0')
-        const statusOptions = ['PUBLISHED', 'PUBLISHED', 'PUBLISHED', 'PENDING', 'REJECTED', 'DRAFT', 'PRIVATE']
-        const categories = ['GAME', 'MUSIC', 'EDUCATION', 'TECH', 'FOOD', 'TRAVEL', 'SPORTS', 'ENTERTAINMENT', 'ANIME', 'MOVIE']
-
-        // 随机日期生成
-        const createdDate = new Date()
-        createdDate.setDate(createdDate.getDate() - Math.floor(Math.random() * 100))
-
-        // 随机视频状态
-        const status = statusOptions[Math.floor(Math.random() * statusOptions.length)]
-        // 只有已发布状态才有发布日期
-        const publishedAt = status === 'PUBLISHED' ? new Date(createdDate.getTime() + 86400000).toISOString().split('T')[0] : null
-
-        // 随机时长
-        const minutes = Math.floor(Math.random() * 15)
-        const seconds = Math.floor(Math.random() * 60)
-        const duration = `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`
-
-        return {
-          id: id,
-          title: `测试视频 ${id} - ${['游戏实况', '音乐MV', '教学视频', '技术分享', '美食制作'][Math.floor(Math.random() * 5)]}`,
-          description: `这是一个测试视频描述，用于演示视频管理功能。这个视频属于${categories[Math.floor(Math.random() * categories.length)]}类别。`,
-          thumbnailUrl: `https://picsum.photos/id/${(index % 50) + 100}/320/180`,
-          videoUrl: `https://example.com/videos/${id}`,
-          author: `用户${Math.floor(Math.random() * 1000)}`,
-          authorId: `user-${Math.floor(Math.random() * 1000)}`,
-          category: categories[Math.floor(Math.random() * categories.length)],
-          duration: duration,
-          status: status,
-          tags: ['标签1', '标签2', '标签3'].slice(0, Math.floor(Math.random() * 3) + 1),
-          createdAt: createdDate.toISOString().split('T')[0],
-          publishedAt: publishedAt,
-          viewCount: Math.floor(Math.random() * 10000),
-          likeCount: Math.floor(Math.random() * 1000),
-          commentCount: Math.floor(Math.random() * 100)
-        }
-      })
-
-      // 过滤和排序
-      let filteredVideos = [...mockVideos]
-
-      // 应用搜索过滤
+      // 添加筛选条件
       if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
-        filteredVideos = filteredVideos.filter(video =>
-          video.title.toLowerCase().includes(query) ||
-          video.id.toLowerCase().includes(query) ||
-          video.tags.some(tag => tag.toLowerCase().includes(query))
-        )
+        params.query = searchQuery.value
       }
 
-      // 应用状态过滤
       if (statusFilter.value) {
-        filteredVideos = filteredVideos.filter(video => video.status === statusFilter.value)
+        params.status = statusFilter.value
       }
 
-      // 应用分类过滤
       if (categoryFilter.value) {
-        filteredVideos = filteredVideos.filter(video => video.category === categoryFilter.value)
+        params.category = categoryFilter.value
       }
 
-      // 应用日期过滤
-      if (dateRange.value && dateRange.value[0] && dateRange.value[1]) {
-        const startDate = new Date(dateRange.value[0])
-        const endDate = new Date(dateRange.value[1])
-
-        filteredVideos = filteredVideos.filter(video => {
-          const createdDate = new Date(video.createdAt)
-          return createdDate >= startDate && createdDate <= endDate
-        })
+      if (dateRange.value && dateRange.value.length === 2) {
+        params.startDate = dateRange.value[0]
+        params.endDate = dateRange.value[1]
       }
 
-      // 设置总数
-      pagination.itemCount = filteredVideos.length
-
-      // 分页
-      const start = (pagination.page - 1) * pagination.pageSize
-      const paginatedVideos = filteredVideos.slice(start, start + pagination.pageSize)
-
-      videos.value = paginatedVideos
+      const result = await adminService.getVideos(params)
+      videos.value = result.data
+      pagination.itemCount = result.total
     } catch (error) {
-      console.error('加载视频数据失败:', error)
-      message.error('加载视频数据失败')
+      console.error('获取视频列表失败:', error)
+      message.error('获取视频列表失败')
     } finally {
       loading.value = false
     }
   }
 
+  // 刷新数据
+  function refreshData() {
+    fetchVideos()
+  }
+
+  // 分页处理
+  function handlePageChange(page: number) {
+    pagination.page = page
+    fetchVideos()
+  }
+
+  function handlePageSizeChange(pageSize: number) {
+    pagination.pageSize = pageSize
+    pagination.page = 1
+    fetchVideos()
+  }
+
+  // 排序处理
+  function handleSorterChange(sorter: any) {
+    if (!sorter || !sorter.columnKey) return
+
+    const params: Record<string, any> = {
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      sortBy: sorter.columnKey,
+      sortOrder: sorter.order
+    }
+
+    fetchVideos()
+  }
+
   // 搜索处理
   function handleSearch() {
     pagination.page = 1
-    loadVideos()
+    fetchVideos()
   }
 
-  // 重置过滤器
+  // 重置筛选
   function resetFilters() {
     searchQuery.value = ''
     statusFilter.value = null
     categoryFilter.value = null
     dateRange.value = null
     pagination.page = 1
-    loadVideos()
+    fetchVideos()
   }
 
-  // 分页变化
-  function handlePageChange(page: number) {
-    pagination.page = page
-    loadVideos()
-  }
-
-  // 每页条数变化
-  function handlePageSizeChange(pageSize: number) {
-    pagination.pageSize = pageSize
-    pagination.page = 1
-    loadVideos()
-  }
-
-  // 排序变化
-  function handleSorterChange() {
-    loadVideos()
-  }
-
-  // 刷新数据
-  function refreshData() {
-    loadVideos()
-  }
-
-  // 导出视频
-  function exportVideos() {
-    message.success('视频数据导出成功')
-  }
-
-  // 查看视频详情
-  function viewVideoDetail(video: Video) {
-    router.push(`/admin/content/videos/${video.id}`)
-  }
-
-  // 处理审核通过操作
-  function handleApproveAction(video: Video) {
-    approveVideo.value = video
-    showApproveModal.value = true
-  }
-
-  // 确认通过视频审核
-  async function confirmApprove() {
-    if (!approveVideo.value) return
-
-    // Mock API调用
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // 更新本地列表
-    const index = videos.value.findIndex(v => v.id === approveVideo.value?.id)
-    if (index !== -1) {
-      videos.value[index].status = 'PUBLISHED'
-      videos.value[index].publishedAt = new Date().toISOString().split('T')[0]
-    }
-
-    message.success(`视频 "${approveVideo.value.title}" 已通过审核并发布`)
-    showApproveModal.value = false
-    approveVideo.value = null
-  }
-
-  // 处理拒绝视频
-  function handleRejectAction(video: Video) {
-    rejectVideo.value = video
-    rejectData.reason = ''
-    rejectData.comment = ''
-    showRejectModal.value = true
-  }
-
-  // 确认拒绝视频
-  async function confirmReject() {
-    if (!rejectVideo.value) return
-
-    // Mock API调用
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // 更新本地列表
-    const index = videos.value.findIndex(v => v.id === rejectVideo.value?.id)
-    if (index !== -1) {
-      videos.value[index].status = 'REJECTED'
-    }
-
-    message.success(`视频 "${rejectVideo.value.title}" 已拒绝`)
-    showRejectModal.value = false
-    rejectVideo.value = null
-  }
-
-  // 打开删除视频确认框
-  function deleteVideoModal(video: Video) {
-    deleteVideo.value = video
-    showDeleteModal.value = true
-  }
-
-  // 确认删除视频
-  async function confirmDelete() {
-    if (!deleteVideo.value) return
-
-    // Mock API调用
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // 从本地列表中移除
-    videos.value = videos.value.filter(v => v.id !== deleteVideo.value?.id)
-
-    message.success(`视频 "${deleteVideo.value.title}" 已删除`)
-    showDeleteModal.value = false
-    deleteVideo.value = null
-  }
-
-  // 预览视频
-  function previewVideo(video: Video) {
+  // 操作方法
+  function previewVideo(video: AdminVideo) {
     currentVideo.value = video
     showPreview.value = true
   }
 
-  // 初始化
-  onMounted(() => {
-    loadVideos()
-  })
+  function editVideo(video: AdminVideo) {
+    router.push(`/admin/content/videos/${video.id}`)
+  }
+
+  function deleteVideo(video: AdminVideo) {
+    deleteVideoObj.value = video
+    showDeleteModal.value = true
+  }
+
+  async function confirmDelete() {
+    if (!deleteVideoObj.value) return
+
+    try {
+      const result = await adminService.deleteVideo(deleteVideoObj.value.id)
+      if (result.success) {
+        message.success('视频删除成功')
+        fetchVideos()
+      } else {
+        message.error('视频删除失败: ' + result.message)
+      }
+    } catch (error) {
+      console.error('删除视频失败:', error)
+      message.error('删除视频失败')
+    } finally {
+      showDeleteModal.value = false
+      deleteVideoObj.value = null
+    }
+  }
+
+  // 审核相关
+  function approveVideo(video: AdminVideo) {
+    approveVideoObj.value = video
+    showApproveModal.value = true
+  }
+
+  function rejectVideo(video: AdminVideo) {
+    approveVideoObj.value = video
+    showRejectModal.value = true
+    rejectData.reason = ''
+    rejectData.comment = ''
+  }
+
+  async function confirmApprove() {
+    if (!approveVideoObj.value) return
+
+    try {
+      const result = await adminService.updateVideo(approveVideoObj.value.id, {
+        status: 'published',
+        publishedAt: new Date().toISOString()
+      })
+
+      message.success('视频审核通过')
+      fetchVideos()
+    } catch (error) {
+      console.error('更新视频状态失败:', error)
+      message.error('操作失败')
+    } finally {
+      showApproveModal.value = false
+      approveVideoObj.value = null
+    }
+  }
+
+  async function confirmReject() {
+    if (!approveVideoObj.value || !rejectData.reason) {
+      message.warning('请选择拒绝原因')
+      return
+    }
+
+    try {
+      const result = await adminService.updateVideo(approveVideoObj.value.id, {
+        status: 'rejected',
+        rejectReason: rejectData.reason,
+        rejectComment: rejectData.comment,
+        publishedAt: null
+      })
+
+      message.success('视频已拒绝')
+      fetchVideos()
+    } catch (error) {
+      console.error('更新视频状态失败:', error)
+      message.error('操作失败')
+    } finally {
+      showRejectModal.value = false
+      approveVideoObj.value = null
+      rejectData.reason = ''
+      rejectData.comment = ''
+    }
+  }
+
+  // 导出视频列表
+  function exportVideos() {
+    try {
+      // 创建要导出的数据
+      const exportData = videos.value.map(video => ({
+        ID: video.id,
+        标题: video.title,
+        作者: video.author,
+        分类: video.category,
+        状态: video.status,
+        上传时间: formatDate(video.createdAt, 'YYYY-MM-DD HH:mm'),
+        发布时间: video.publishedAt ? formatDate(video.publishedAt, 'YYYY-MM-DD HH:mm') : '',
+        播放量: video.viewCount,
+        点赞数: video.likeCount,
+        评论数: video.commentCount
+      }))
+
+      // 转换为CSV格式
+      const replacer = (key: string, value: any) => value === null ? '' : value
+      const header = Object.keys(exportData[0])
+      let csv = exportData.map(row => header.map(fieldName => 
+        JSON.stringify(row[fieldName as keyof typeof row], replacer)).join(','))
+      csv.unshift(header.join(','))
+      const csvArray = csv.join('\r\n')
+
+      // 创建下载链接
+      const blob = new Blob([csvArray], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.setAttribute('href', url)
+      link.setAttribute('download', `videos_export_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      message.success('视频列表导出成功')
+    } catch (error) {
+      console.error('导出失败:', error)
+      message.error('导出失败')
+    }
+  }
 </script>
 
 <style scoped>
   .videos-page {
-    width: 100%;
+    padding: 16px;
   }
 
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .page-title {
     margin: 0;
-    font-size: 1.75rem;
-    font-weight: 500;
+    font-size: 24px;
+    line-height: 32px;
   }
 
   .filter-card {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .filter-buttons {
     display: flex;
-    gap: 12px;
-    justify-content: flex-end;
+    gap: 8px;
   }
 
   .data-card {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
   }
 
   .video-preview {
@@ -746,7 +666,6 @@
   .video-player-container {
     position: relative;
     width: 100%;
-    aspect-ratio: 16/9;
     background-color: #000;
     border-radius: 8px;
     overflow: hidden;
@@ -754,8 +673,7 @@
 
   .video-thumbnail {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    display: block;
   }
 
   .video-player-overlay {
@@ -772,27 +690,31 @@
   }
 
   .play-icon {
-    color: white;
+    color: #fff;
     opacity: 0.8;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
   }
 
   .play-icon:hover {
     opacity: 1;
+    transform: scale(1.1);
   }
 
   .video-info {
-    padding: 8px 0;
+    padding: 0 8px;
   }
 
   .video-description {
     margin: 8px 0;
-    color: var(--text-color-secondary);
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
   }
 
   .video-meta {
     margin: 12px 0;
-    color: var(--text-color-secondary);
+    color: #666;
+    font-size: 13px;
   }
 
   .video-tags {
@@ -802,18 +724,6 @@
   .video-actions {
     margin-top: 16px;
     display: flex;
-    justify-content: flex-start;
-  }
-
-  @media (max-width: 768px) {
-    .page-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 16px;
-    }
-
-    .filter-buttons {
-      margin-top: 16px;
-    }
+    justify-content: flex-end;
   }
 </style>

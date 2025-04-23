@@ -20,7 +20,7 @@ export const authGuard = async (
   next: NavigationGuardNext
 ) => {
   const authStore = useAuthStore();
-  const toast = useToast();
+  const { showError, showInfo } = useToast();
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const requiresGuest = to.matched.some(record => record.meta.guest);
 
@@ -31,11 +31,11 @@ export const authGuard = async (
 
     if (requiresAuth && !isAuthenticated) {
       // 需要认证但未登录，重定向到登录页
-      toast.error('请先登录');
+      showError('请先登录');
       next({ path: '/auth/login', query: { redirect: to.fullPath } });
     } else if (requiresGuest && isAuthenticated) {
       // 已登录用户访问登录/注册页，重定向到首页
-      toast.info('您已登录');
+      showInfo('您已登录');
       next({ path: '/' });
     } else {
       // 其他情况正常放行

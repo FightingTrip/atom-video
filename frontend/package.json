@@ -43,8 +43,10 @@
     "chart.js": "^4.4.8",
     "dayjs": "^1.11.13",
     "echarts": "5.6.0",
+    "msw": "2.7.5",
     "naive-ui": "^2.34.4",
     "pinia": "^3.0.1",
+    "pinia-plugin-persistedstate": "4.2.0",
     "postcss-preset-env": "10.1.5",
     "sass": "1.86.3",
     "vue": "^3.4.15",
@@ -104,5 +106,10 @@
     "current node",
     "not ie 11",
     "not op_mini all"
-  ]
+  ],
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
 }

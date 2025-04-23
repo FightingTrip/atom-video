@@ -6,7 +6,7 @@ import { generateId } from '@/utils/format';
 export const generateUsers = (count: number): User[] => {
   return Array.from({ length: count }, () => ({
     id: generateId(),
-    username: faker.internet.userName(),
+    username: faker.internet.username(),
     email: faker.internet.email(),
     nickname: faker.person.fullName(),
     avatar: faker.image.avatar(),
@@ -18,9 +18,9 @@ export const generateUsers = (count: number): User[] => {
     joinedAt: faker.date.past({ years: 3 }).toISOString(),
     social: {
       website: faker.helpers.maybe(() => faker.internet.url()),
-      twitter: faker.helpers.maybe(() => faker.internet.userName()),
-      github: faker.helpers.maybe(() => faker.internet.userName()),
-      instagram: faker.helpers.maybe(() => faker.internet.userName()),
+      twitter: faker.helpers.maybe(() => faker.internet.username()),
+      github: faker.helpers.maybe(() => faker.internet.username()),
+      instagram: faker.helpers.maybe(() => faker.internet.username()),
     },
   }));
 };
@@ -40,21 +40,63 @@ export const generateVideos = (users: User[], count: number): Video[] => {
       ]),
       description: faker.lorem.paragraphs(2),
       thumbnail: `https://picsum.photos/seed/${faker.string.alphanumeric(8)}/480/270`,
+      coverUrl: `https://picsum.photos/seed/${faker.string.alphanumeric(8)}/640/360`,
+      videoUrl: `https://example.com/videos/${faker.string.alphanumeric(12)}`,
       duration: faker.number.int({ min: 300, max: 7200 }),
       views: faker.number.int({ min: 1000, max: 1000000 }),
       likes: faker.number.int({ min: 100, max: 50000 }),
-      dislikes: faker.number.int({ min: 0, max: 1000 }),
+      favorites: faker.number.int({ min: 0, max: 10000 }),
+      comments: faker.number.int({ min: 0, max: 1000 }),
       createdAt: faker.date.past({ years: 1 }).toISOString(),
       tags: faker.helpers.arrayElements(
         ['javascript', 'typescript', 'vue', 'react', 'nodejs'],
         faker.number.int({ min: 1, max: 3 })
       ),
-      user: {
+      author: {
         id: user.id,
+        username: user.username,
         nickname: user.nickname,
         avatar: user.avatar,
         verified: user.verified,
       },
+      sources: [
+        {
+          url: `https://example.com/videos/${faker.string.alphanumeric(12)}/1080p.mp4`,
+          type: 'video/mp4',
+          size: 1080,
+          label: '1080p',
+        },
+        {
+          url: `https://example.com/videos/${faker.string.alphanumeric(12)}/720p.mp4`,
+          type: 'video/mp4',
+          size: 720,
+          label: '720p',
+        },
+        {
+          url: `https://example.com/videos/${faker.string.alphanumeric(12)}/480p.mp4`,
+          type: 'video/mp4',
+          size: 480,
+          label: '480p',
+        },
+      ],
+      subtitles: [
+        {
+          url: `https://example.com/videos/${faker.string.alphanumeric(12)}/subtitles/zh.vtt`,
+          label: '中文',
+          srclang: 'zh',
+          default: true,
+        },
+        {
+          url: `https://example.com/videos/${faker.string.alphanumeric(12)}/subtitles/en.vtt`,
+          label: 'English',
+          srclang: 'en',
+        },
+      ],
     };
   });
 };
+
+// 确保已存在 generateRandomId 函数，如果不存在则添加
+export function generateRandomId(): string {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}

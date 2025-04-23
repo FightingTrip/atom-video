@@ -87,6 +87,7 @@ import {
   NLayoutContent,
   NLayoutFooter,
   NLayoutSider,
+  NSkeleton,
   GlobalThemeOverrides,
   NNotificationProvider,
 } from 'naive-ui';
@@ -247,6 +248,7 @@ const naive = create({
     NLayoutContent,
     NLayoutFooter,
     NLayoutSider,
+    NSkeleton,
   ],
 });
 

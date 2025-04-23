@@ -1,122 +1,131 @@
 /**
 * @file CreatorAnalyticsComponent.vue
-* @description 创作者数据分析组件，提供视频性能数据可视化
+* @description 创作者数据分析组件，提供多种数据可视化图表
 * @author Atom Video Team
 * @date 2025-04-15
 */
 
 <template>
   <div class="analytics-container">
-    <div class="analytics-header">
-      <h3 class="analytics-title" v-if="title">{{ title }}</h3>
-      <div class="analytics-controls">
-        <n-space>
-          <n-select v-model:value="selectedMetricType" :options="metricTypeOptions" size="small" />
-          <n-select v-model:value="timeRange" :options="timeRangeOptions" size="small" />
-        </n-space>
+    <div class="analytics-header" v-if="title">
+      <h3 class="analytics-title">{{ title }}</h3>
+      <div class="analytics-actions">
+        <n-radio-group v-model:value="timeRange" size="small">
+          <n-radio-button value="7">7天</n-radio-button>
+          <n-radio-button value="30">30天</n-radio-button>
+          <n-radio-button value="90">90天</n-radio-button>
+        </n-radio-group>
+        <n-button type="primary" size="small" @click="exportData">
+          <template #icon>
+            <n-icon>
+              <DownloadOutline />
+            </n-icon>
+          </template>
+          导出数据
+        </n-button>
       </div>
     </div>
 
-    <div class="analytics-content">
       <n-card class="chart-card">
         <template #header v-if="chartTitle">
           <div class="chart-header">
             <div class="chart-title">{{ chartTitle }}</div>
-            <div class="chart-legend">
-              <div v-for="metric in selectedMetrics" :key="metric.key" class="legend-item">
-                <div class="legend-color" :style="{ backgroundColor: metric.color }"></div>
-                <div class="legend-label">{{ metric.label }}</div>
-              </div>
+          <div class="chart-controls">
+            <n-select v-model:value="chartType" :options="chartTypeOptions" size="small" style="width: 120px" />
             </div>
           </div>
         </template>
-        <div class="chart-container">
-          <!-- 在实际应用中，这里将使用ECharts或其他图表库来渲染图表 -->
-          <div class="chart-placeholder" v-if="loading">
-            <n-spin size="medium" />
-            <span>加载中...</span>
+
+      <div class="chart-container" :class="{ 'loading': loading }">
+        <div v-if="loading" class="chart-loading">
+          <n-spin size="large" />
           </div>
-          <div class="chart-placeholder" v-else-if="!hasData">
-            <n-empty description="暂无数据" />
+        <div v-else ref="chartRef" class="chart-wrapper"></div>
           </div>
-          <div class="chart-area" v-else>
-            <!-- 图表区域 - 使用模拟数据显示 -->
-            <div class="chart-overlay">
-              <div class="chart-grid">
-                <div class="grid-line" v-for="i in 5" :key="i"></div>
+
+      <div class="metrics-summary" v-if="showMetrics">
+        <div class="metric-item" v-for="(metric, idx) in metrics" :key="idx">
+          <div class="metric-value">{{ metric.value }}</div>
+          <div class="metric-label">{{ metric.label }}</div>
+          <div v-if="metric.change !== undefined" class="metric-change"
+            :class="metric.change > 0 ? 'positive' : metric.change < 0 ? 'negative' : ''">
+            {{ metric.change > 0 ? '+' : '' }}{{ metric.change }}%
               </div>
-              <div class="chart-axis">
-                <div class="y-axis">
-                  <div class="axis-label" v-for="(value, index) in yAxisValues" :key="index">
-                    {{ value }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="mock-chart">
-              <div class="mock-bars">
-                <div v-for="(item, index) in mockData" :key="index" class="mock-bar" :style="{
-                  height: `${item.value}%`,
-                  backgroundColor: item.color,
-                  boxShadow: `0 5px 15px ${item.color}50`
-                }">
-                  <div class="bar-tooltip">{{ item.value }}%</div>
-                </div>
-              </div>
-              <div class="mock-x-axis">
-                <div v-for="(item, index) in mockData" :key="index" class="mock-label">
-                  {{ item.label }}
-                </div>
-              </div>
-            </div>
-            <div class="trend-line"></div>
           </div>
         </div>
       </n-card>
 
-      <div class="metrics-grid">
-        <n-card v-for="metric in keyMetrics" :key="metric.key" class="metric-card">
-          <div class="metric-value">{{ formatValue(metric.value, metric.format) }}</div>
-          <div class="metric-label">{{ metric.label }}</div>
-          <div class="metric-trend" :class="getTrendClass(metric.trend)">
-            <n-icon size="14" class="trend-icon">
-              <component :is="getTrendIcon(metric.trend)"></component>
-            </n-icon>
-            {{ formatTrend(metric.trend) }}
-          </div>
-          <div class="sparkline">
-            <div v-for="(point, i) in metric.sparkline" :key="i" class="sparkline-point" :style="{
-              height: `${point}%`,
-              backgroundColor: getTrendColor(metric.trend)
-            }"></div>
-          </div>
+    <!-- 高级分析卡片 -->
+    <div class="advanced-analytics" v-if="showAdvanced">
+      <n-card class="analytics-card audience-card" title="观众来源">
+        <div class="audience-chart" ref="audienceChartRef"></div>
         </n-card>
-      </div>
 
-      <n-card title="热门视频" class="popular-videos-card">
-        <div class="top-videos-header">
-          <div class="top-videos-title">表现最佳的内容</div>
-          <n-select v-model:value="videosSortBy" :options="videoSortOptions" size="small" />
-        </div>
-        <n-data-table :columns="topVideosColumns" :data="topVideos" :pagination="pagination" :bordered="false"
-          class="videos-table" />
+      <n-card class="analytics-card engagement-card" title="互动分析">
+        <div class="engagement-chart" ref="engagementChartRef"></div>
+      </n-card>
+
+      <n-card class="analytics-card revenue-card" title="收入趋势">
+        <div class="revenue-chart" ref="revenueChartRef"></div>
       </n-card>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { h, ref, computed, onMounted } from 'vue';
-  import { NCard, NSelect, NSpin, NEmpty, NDataTable, NSpace, NProgress, NIcon, NTag, NAvatar } from 'naive-ui';
+  import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+  import { useMessage } from 'naive-ui';
   import {
-    TrendingUpOutline,
-    TrendingDownOutline,
-    RemoveOutline,
-    TimeOutline,
-    VideocamOutline,
-    EyeOutline,
-    ThumbsUpOutline
-  } from '@vicons/ionicons5';
+    NCard,
+    NButton,
+    NIcon,
+    NRadioGroup,
+    NRadioButton,
+    NSelect,
+    NSpin
+  } from 'naive-ui';
+  import { DownloadOutline } from '@vicons/ionicons5';
+  import creatorService from '@/services/creator/creatorService';
+  import * as echarts from 'echarts/core';
+  import {
+    LineChart,
+    BarChart,
+    PieChart,
+    ScatterChart,
+    RadarChart
+  } from 'echarts/charts';
+  import {
+    TitleComponent,
+    TooltipComponent,
+    LegendComponent,
+    GridComponent,
+    DatasetComponent,
+    TransformComponent,
+    ToolboxComponent,
+    VisualMapComponent
+  } from 'echarts/components';
+  import { LabelLayout, UniversalTransition } from 'echarts/features';
+  import { CanvasRenderer } from 'echarts/renderers';
+
+  // 注册必要的 ECharts 组件
+  echarts.use([
+    LineChart,
+    BarChart,
+    PieChart,
+    ScatterChart,
+    RadarChart,
+    TitleComponent,
+    TooltipComponent,
+    LegendComponent,
+    GridComponent,
+    DatasetComponent,
+    TransformComponent,
+    ToolboxComponent,
+    VisualMapComponent,
+    LabelLayout,
+    UniversalTransition,
+    CanvasRenderer
+  ]);
 
   const props = defineProps({
     title: {
@@ -127,259 +136,585 @@
       type: String,
       default: '观看趋势'
     },
-    type: {
-      type: String,
-      default: 'channel', // 'channel' 或 'video'
-    },
     videoId: {
       type: String,
       default: ''
+    },
+    showMetrics: {
+      type: Boolean,
+      default: true
+    },
+    showAdvanced: {
+      type: Boolean,
+      default: false
     }
   });
 
-  // 数据类型选择
-  const selectedMetricType = ref('views');
-  const metricTypeOptions = [
-    { label: '观看次数', value: 'views' },
-    { label: '观看时长', value: 'watchTime' },
-    { label: '互动率', value: 'engagement' }
+  const message = useMessage();
+  const loading = ref(false);
+
+  // 图表引用和选项
+  const chartRef = ref<HTMLElement | null>(null);
+  const audienceChartRef = ref<HTMLElement | null>(null);
+  const engagementChartRef = ref<HTMLElement | null>(null);
+  const revenueChartRef = ref<HTMLElement | null>(null);
+  const mainChart = ref<echarts.ECharts | null>(null);
+  const audienceChart = ref<echarts.ECharts | null>(null);
+  const engagementChart = ref<echarts.ECharts | null>(null);
+  const revenueChart = ref<echarts.ECharts | null>(null);
+
+  // 数据和筛选器
+  const timeRange = ref('30');
+  const chartType = ref('line');
+  const chartTypeOptions = [
+    { label: '折线图', value: 'line' },
+    { label: '柱状图', value: 'bar' },
+    { label: '面积图', value: 'area' }
   ];
 
-  // 视频排序选项
-  const videosSortBy = ref('views');
-  const videoSortOptions = [
-    { label: '观看次数', value: 'views' },
-    { label: '观看时长', value: 'watchTime' },
-    { label: '互动率', value: 'engagement' }
-  ];
-
-  // 时间范围选择
-  const timeRange = ref('7d');
-  const timeRangeOptions = [
-    { label: '过去7天', value: '7d' },
-    { label: '过去30天', value: '30d' },
-    { label: '过去90天', value: '90d' },
-    { label: '今年', value: 'year' }
-  ];
-
-  // Y轴标签
-  const yAxisValues = ['0', '25', '50', '75', '100'];
-
-  // 选中的指标
-  const selectedMetrics = ref([
-    { key: 'views', label: '观看次数', color: '#58a6ff' },
-    { key: 'watchTime', label: '观看时长', color: '#f85149' },
-    { key: 'engagement', label: '互动率', color: '#3fb950' }
+  // 指标数据
+  const metrics = ref([
+    { label: '观看量', value: '0', change: 0 },
+    { label: '观看时长', value: '0分钟', change: 0 },
+    { label: '平均观看时长', value: '0:00', change: 0 },
+    { label: '点击率', value: '0%', change: 0 }
   ]);
 
-  // 加载状态
-  const loading = ref(true);
-  const hasData = ref(true);
+  // 主图表数据
+  const chartData = ref({
+    dates: [] as string[],
+    views: [] as number[],
+    uniqueViewers: [] as number[],
+    avgWatchTime: [] as number[],
+    likes: [] as number[],
+    comments: [] as number[]
+  });
 
-  // 模拟图表数据
-  const mockData = ref([
-    { label: '周一', value: 45, color: '#58a6ff' },
-    { label: '周二', value: 65, color: '#58a6ff' },
-    { label: '周三', value: 40, color: '#58a6ff' },
-    { label: '周四', value: 75, color: '#58a6ff' },
-    { label: '周五', value: 90, color: '#58a6ff' },
-    { label: '周六', value: 60, color: '#58a6ff' },
-    { label: '周日', value: 80, color: '#58a6ff' }
-  ]);
+  // 获取数据
+  const fetchAnalyticsData = async () => {
+    loading.value = true;
 
-  // 关键指标
-  const keyMetrics = ref([
-    {
-      key: 'views',
-      label: '总观看量',
-      value: 12580,
-      format: 'number',
-      trend: 5.2,
-      sparkline: [30, 45, 35, 60, 40, 45, 70]
-    },
-    {
-      key: 'watchTime',
-      label: '总观看时长',
-      value: 345,
-      format: 'hours',
-      trend: 2.8,
-      sparkline: [40, 35, 40, 45, 55, 50, 60]
-    },
-    {
-      key: 'engagement',
-      label: '平均互动率',
-      value: 8.5,
-      format: 'percent',
-      trend: -1.3,
-      sparkline: [65, 60, 55, 40, 45, 35, 30]
-    },
-    {
-      key: 'subscribers',
-      label: '新增订阅者',
-      value: 230,
-      format: 'number',
-      trend: 12.5,
-      sparkline: [25, 30, 35, 40, 55, 65, 80]
-    }
-  ]);
+    try {
+      // 如果有指定视频ID，获取该视频的分析数据
+      if (props.videoId) {
+        const videoAnalytics = await creatorService.getVideoAnalytics(props.videoId);
 
-  // 热门视频
-  const topVideos = ref([
-    {
-      id: '1',
-      title: 'Vue 3 完全指南 - 组合式API详解',
-      thumbnail: 'https://picsum.photos/id/237/400/225',
-      views: 1250,
-      watchTime: 125,
-      engagement: 9.6,
-      publishDate: '2024-06-10T15:30:00Z'
-    },
-    {
-      id: '2',
-      title: 'TypeScript 高级类型系统详解',
-      thumbnail: 'https://picsum.photos/id/238/400/225',
-      views: 980,
-      watchTime: 86,
-      engagement: 7.8,
-      publishDate: '2024-06-08T10:15:00Z'
-    },
-    {
-      id: '3',
-      title: 'Pinia 状态管理入门',
-      thumbnail: 'https://picsum.photos/id/239/400/225',
-      views: 650,
-      watchTime: 48,
-      engagement: 6.3,
-      publishDate: '2024-06-01T08:20:00Z'
-    }
-  ]);
+        // 设置时间数据
+        if (timeRange.value === '7') {
+          chartData.value.dates = videoAnalytics.viewsLast7Days.map((_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - 6 + i);
+            return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+          });
+          chartData.value.views = videoAnalytics.viewsLast7Days;
+        } else {
+          chartData.value.dates = videoAnalytics.viewsLast30Days.map((_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - 29 + i);
+            return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+          });
+          chartData.value.views = videoAnalytics.viewsLast30Days;
+        }
 
-  // 表格列配置
-  const topVideosColumns = [
-    {
-      title: '视频',
-      key: 'title',
-      render: (row: any) => {
-        return h('div', { class: 'video-cell' }, [
-          h('img', {
-            src: row.thumbnail,
-            class: 'video-thumbnail'
-          }),
-          h('div', { class: 'video-info' }, [
-            h('div', { class: 'video-title' }, row.title),
-            h('div', { class: 'video-date' }, [
-              h(NIcon, { size: 14 }, { default: () => h(TimeOutline) }),
-              ' ' + formatDate(row.publishDate)
-            ])
-          ])
-        ]);
+        // 模拟其他数据
+        chartData.value.uniqueViewers = chartData.value.views.map(v => Math.round(v * 0.85));
+        chartData.value.avgWatchTime = chartData.value.views.map(v => Math.round(v * 0.3));
+        chartData.value.likes = chartData.value.views.map(v => Math.round(v * 0.12));
+        chartData.value.comments = chartData.value.views.map(v => Math.round(v * 0.03));
+
+        // 更新指标
+        updateMetrics(videoAnalytics);
+
+      } else {
+        // 获取创作者整体数据（模拟）
+        const days = timeRange.value === '7' ? 7 : timeRange.value === '30' ? 30 : 90;
+
+        chartData.value.dates = Array(days).fill(0).map((_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (days - 1) + i);
+          return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+        });
+
+        // 模拟数据趋势
+        chartData.value.views = generateRandomData(days, 500, 5000);
+        chartData.value.uniqueViewers = chartData.value.views.map(v => Math.round(v * 0.85));
+        chartData.value.avgWatchTime = generateRandomData(days, 2, 8);
+        chartData.value.likes = chartData.value.views.map(v => Math.round(v * 0.15));
+        chartData.value.comments = chartData.value.views.map(v => Math.round(v * 0.03));
+
+        // 更新指标
+        updateChannelMetrics();
       }
-    },
-    {
-      title: '观看',
-      key: 'views',
-      width: 120,
-      render: (row: any) => {
-        return h('div', { class: 'stat-cell' }, [
-          h(NIcon, { size: 16, color: '#58a6ff' }, { default: () => h(EyeOutline) }),
-          ' ' + formatNumber(row.views)
-        ]);
-      }
-    },
-    {
-      title: '时长(分钟)',
-      key: 'watchTime',
-      width: 120,
-      render: (row: any) => {
-        return h('div', { class: 'stat-cell' }, [
-          h(NIcon, { size: 16, color: '#f85149' }, { default: () => h(TimeOutline) }),
-          ' ' + row.watchTime
-        ]);
-      }
-    },
-    {
-      title: '互动率(%)',
-      key: 'engagement',
-      width: 120,
-      render: (row: any) => {
-        const color = row.engagement > 8 ? '#3fb950' :
-          row.engagement > 5 ? '#f0883e' : '#8b949e';
 
-        return h('div', { class: 'stat-cell' }, [
-          h(NIcon, { size: 16, color }, { default: () => h(ThumbsUpOutline) }),
-          ' ' + row.engagement
-        ]);
-      }
-    }
-  ];
+      // 绘制图表
+      renderCharts();
 
-  // 分页设置
-  const pagination = {
-    pageSize: 5
-  };
-
-  // 格式化函数
-  const formatValue = (value: number, format: string) => {
-    switch (format) {
-      case 'number':
-        return value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value;
-      case 'hours':
-        return value + ' 小时';
-      case 'percent':
-        return value + '%';
-      default:
-        return value;
-    }
-  };
-
-  const formatTrend = (trend: number) => {
-    return trend > 0 ? `+${trend}%` : `${trend}%`;
-  };
-
-  const getTrendClass = (trend: number) => {
-    return trend > 0 ? 'up' : trend < 0 ? 'down' : 'neutral';
-  };
-
-  const getTrendIcon = (trend: number) => {
-    return trend > 0 ? TrendingUpOutline :
-      trend < 0 ? TrendingDownOutline : RemoveOutline;
-  };
-
-  const getTrendColor = (trend: number) => {
-    return trend > 0 ? '#3fb950' :
-      trend < 0 ? '#f85149' : '#8b949e';
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('zh-CN');
-  };
-
-  const formatNumber = (num: number) => {
-    return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num;
-  };
-
-  // 生命周期钩子
-  onMounted(() => {
-    // 在实际应用中，这里将调用API获取分析数据
-    setTimeout(() => {
+    } catch (error) {
+      console.error('获取分析数据失败:', error);
+      message.error('获取分析数据失败');
+    } finally {
       loading.value = false;
+    }
+  };
 
-      // 给柱状图添加动画效果
-      const bars = document.querySelectorAll('.mock-bar');
-      bars.forEach((bar, index) => {
-        setTimeout(() => {
-          (bar as HTMLElement).style.height = `${mockData.value[index].value}%`;
-        }, 100 * index);
-      });
+  // 更新视频指标
+  const updateMetrics = (data: any) => {
+    const totalViews = data.views;
+    const previousViews = totalViews * 0.8; // 模拟上一时期数据
+    const viewsChange = Math.round(((totalViews - previousViews) / previousViews) * 100);
 
-      // 显示指标卡片
-      const metricCards = document.querySelectorAll('.metric-card');
-      metricCards.forEach((card, index) => {
-        setTimeout(() => {
-          card.classList.add('visible');
-        }, 100 * index);
-      });
-    }, 1000);
+    const watchTime = Math.round(data.watchTime);
+    const prevWatchTime = watchTime * 0.9;
+    const watchTimeChange = Math.round(((watchTime - prevWatchTime) / prevWatchTime) * 100);
+
+    const avgRetention = data.retention;
+    const prevRetention = avgRetention * 0.95;
+    const retentionChange = Math.round(((avgRetention - prevRetention) / prevRetention) * 100);
+
+    const clickRate = Math.round(Math.random() * 15);
+    const prevClickRate = clickRate * 0.9;
+    const clickRateChange = Math.round(((clickRate - prevClickRate) / prevClickRate) * 100);
+
+    metrics.value = [
+      { label: '观看量', value: formatNumber(totalViews), change: viewsChange },
+      { label: '观看时长', value: `${watchTime}分钟`, change: watchTimeChange },
+      { label: '平均观看时长', value: formatTime(avgRetention * 60), change: retentionChange },
+      { label: '点击率', value: `${clickRate}%`, change: clickRateChange }
+    ];
+  };
+
+  // 更新频道整体指标
+  const updateChannelMetrics = () => {
+    const views = chartData.value.views.reduce((a, b) => a + b, 0);
+    const prevViews = views * 0.9;
+    const viewsChange = Math.round(((views - prevViews) / prevViews) * 100);
+
+    const watchTime = Math.round(views * 3.5);
+    const prevWatchTime = watchTime * 0.85;
+    const watchTimeChange = Math.round(((watchTime - prevWatchTime) / prevWatchTime) * 100);
+
+    const totalMinutes = watchTime;
+    const totalViews = views;
+    const avgWatchTime = totalViews ? totalMinutes / totalViews : 0;
+    const prevAvgTime = avgWatchTime * 0.95;
+    const avgTimeChange = Math.round(((avgWatchTime - prevAvgTime) / prevAvgTime) * 100);
+
+    const clickRate = Math.round(Math.random() * 12 + 3);
+    const prevClickRate = clickRate * 0.9;
+    const clickRateChange = Math.round(((clickRate - prevClickRate) / prevClickRate) * 100);
+
+    metrics.value = [
+      { label: '观看量', value: formatNumber(views), change: viewsChange },
+      { label: '观看时长', value: `${formatNumber(watchTime)}分钟`, change: watchTimeChange },
+      { label: '平均观看时长', value: formatTime(avgWatchTime * 60), change: avgTimeChange },
+      { label: '点击率', value: `${clickRate}%`, change: clickRateChange }
+    ];
+  };
+
+  // 渲染所有图表
+  const renderCharts = () => {
+    nextTick(() => {
+      renderMainChart();
+
+      if (props.showAdvanced) {
+        renderAudienceChart();
+        renderEngagementChart();
+        renderRevenueChart();
+      }
+    });
+  };
+
+  // 渲染主图表
+  const renderMainChart = () => {
+    if (!chartRef.value) return;
+
+    // 销毁旧图表
+    if (mainChart.value) {
+      mainChart.value.dispose();
+    }
+
+    // 初始化图表
+    mainChart.value = echarts.init(chartRef.value);
+
+    // 确定要显示的数据系列
+    const series = [];
+    const colors = ['#58a6ff', '#3fb950', '#f78166', '#ed8936', '#9c27b0'];
+
+    series.push({
+      name: '观看数',
+      type: chartType.value === 'area' ? 'line' : chartType.value,
+      data: chartData.value.views,
+      areaStyle: chartType.value === 'area' ? {} : null,
+      smooth: true,
+      lineStyle: { width: 3 },
+      itemStyle: { color: colors[0] }
+    });
+
+    series.push({
+      name: '独立观众',
+      type: chartType.value === 'area' ? 'line' : chartType.value,
+      data: chartData.value.uniqueViewers,
+      areaStyle: chartType.value === 'area' ? { opacity: 0.5 } : null,
+      smooth: true,
+      lineStyle: { width: 3 },
+      itemStyle: { color: colors[1] }
+    });
+
+    // 设置图表选项
+    const option = {
+      backgroundColor: 'transparent',
+      color: colors,
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+          crossStyle: {
+            color: '#999'
+          }
+        }
+      },
+      legend: {
+        data: ['观看数', '独立观众'],
+        textStyle: { color: 'rgba(255, 255, 255, 0.7)' }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: chartData.value.dates,
+        axisLine: {
+          lineStyle: { color: 'rgba(255, 255, 255, 0.2)' }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: {
+          lineStyle: { color: 'rgba(255, 255, 255, 0.1)' }
+        },
+        axisLabel: {
+          color: 'rgba(255, 255, 255, 0.7)'
+        }
+      },
+      series: series
+    };
+
+    // 设置图表
+    mainChart.value.setOption(option);
+
+    // 响应容器大小变化
+    window.addEventListener('resize', handleResize);
+  };
+
+  // 渲染观众来源图
+  const renderAudienceChart = () => {
+    if (!audienceChartRef.value) return;
+
+    if (audienceChart.value) {
+      audienceChart.value.dispose();
+    }
+
+    audienceChart.value = echarts.init(audienceChartRef.value);
+
+    // 模拟数据
+    const regions = [
+      { name: '中国', value: 65 },
+      { name: '美国', value: 12 },
+      { name: '英国', value: 5 },
+      { name: '日本', value: 4 },
+      { name: '韩国', value: 3 },
+      { name: '其他', value: 11 }
+    ];
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'item',
+        formatter: '{a} <br/>{b}: {c} ({d}%)'
+      },
+      legend: {
+        orient: 'vertical',
+        right: 10,
+        top: 'center',
+        data: regions.map(r => r.name),
+        textStyle: { color: 'rgba(255, 255, 255, 0.7)' }
+      },
+      series: [
+        {
+          name: '观众来源',
+          type: 'pie',
+          radius: ['50%', '70%'],
+          avoidLabelOverlap: false,
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          },
+          data: regions.map(r => ({ name: r.name, value: r.value }))
+        }
+      ]
+    };
+
+    audienceChart.value.setOption(option);
+  };
+
+  // 渲染互动分析图
+  const renderEngagementChart = () => {
+    if (!engagementChartRef.value) return;
+
+    if (engagementChart.value) {
+      engagementChart.value.dispose();
+    }
+
+    engagementChart.value = echarts.init(engagementChartRef.value);
+
+    // 模拟数据
+    const indicators = [
+      { text: '观看完成率', max: 100 },
+      { text: '点赞率', max: 100 },
+      { text: '评论率', max: 100 },
+      { text: '分享率', max: 100 },
+      { text: '订阅转化率', max: 100 }
+    ];
+
+    const data = [
+      { value: [65, 80, 30, 40, 55], name: '当前时期' },
+      { value: [50, 70, 25, 30, 45], name: '上一时期' }
+    ];
+
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'item'
+      },
+      legend: {
+        data: data.map(d => d.name),
+        textStyle: { color: 'rgba(255, 255, 255, 0.7)' }
+      },
+      radar: {
+        indicator: indicators,
+        shape: 'circle',
+        splitNumber: 5,
+        axisName: {
+          color: 'rgb(238, 197, 102)'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.1)'
+          }
+        },
+        splitArea: {
+          show: false
+        },
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.2)'
+          }
+        }
+      },
+      series: [
+        {
+          type: 'radar',
+          data: data.map(d => ({
+            value: d.value,
+            name: d.name,
+            areaStyle: {
+              color: d.name === '当前时期'
+                ? 'rgba(58, 166, 255, 0.3)'
+                : 'rgba(63, 185, 80, 0.3)'
+            }
+          }))
+        }
+      ]
+    };
+
+    engagementChart.value.setOption(option);
+  };
+
+  // 渲染收入趋势图
+  const renderRevenueChart = () => {
+    if (!revenueChartRef.value) return;
+
+    if (revenueChart.value) {
+      revenueChart.value.dispose();
+    }
+
+    revenueChart.value = echarts.init(revenueChartRef.value);
+
+    // 获取收入数据
+    const fetchRevenueData = async () => {
+      try {
+        const period = timeRange.value === '7' ? 'week' : timeRange.value === '30' ? 'month' : 'year';
+        const revenueData = await creatorService.getRevenueData(period);
+
+        const option = {
+          backgroundColor: 'transparent',
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            },
+            formatter: function (params: any) {
+              return `${params[0].axisValue}<br/>${params[0].marker}${params[0].seriesName}: ${params[0].value}元`;
+            }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: revenueData.labels,
+            axisLine: {
+              lineStyle: { color: 'rgba(255, 255, 255, 0.2)' }
+            },
+            axisLabel: {
+              color: 'rgba(255, 255, 255, 0.7)',
+              rotate: revenueData.labels.length > 10 ? 45 : 0,
+              interval: revenueData.labels.length > 15 ? 'auto' : 0
+            }
+          },
+          yAxis: {
+            type: 'value',
+            name: '收入 (元)',
+            nameTextStyle: {
+              color: 'rgba(255, 255, 255, 0.7)'
+            },
+            splitLine: {
+              lineStyle: { color: 'rgba(255, 255, 255, 0.1)' }
+            },
+            axisLabel: {
+              color: 'rgba(255, 255, 255, 0.7)'
+            }
+          },
+          series: [
+            {
+              name: '收入',
+              type: 'bar',
+              barWidth: '60%',
+              data: revenueData.data,
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: '#FFB74D' },
+                  { offset: 1, color: '#FF7043' }
+                ])
+              }
+            }
+          ]
+        };
+
+        revenueChart.value?.setOption(option);
+
+      } catch (error) {
+        console.error('获取收入数据失败:', error);
+        message.error('获取收入数据失败');
+      }
+    };
+
+    fetchRevenueData();
+  };
+
+  // 导出数据
+  const exportData = () => {
+    try {
+      // 创建CSV内容
+      let csvContent = "data:text/csv;charset=utf-8,日期,观看数,独立观众,平均观看时长,点赞数,评论数\n";
+
+      for (let i = 0; i < chartData.value.dates.length; i++) {
+        csvContent += `${chartData.value.dates[i]},${chartData.value.views[i]},${chartData.value.uniqueViewers[i]},${chartData.value.avgWatchTime[i]},${chartData.value.likes[i]},${chartData.value.comments[i]}\n`;
+      }
+
+      // 创建下载链接
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `创作者数据_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+
+      // 点击下载
+      link.click();
+      document.body.removeChild(link);
+
+      message.success("数据导出成功");
+    } catch (error) {
+      console.error('导出数据失败:', error);
+      message.error('导出数据失败');
+    }
+  };
+
+  // 处理窗口大小变化
+  const handleResize = () => {
+    mainChart.value?.resize();
+    audienceChart.value?.resize();
+    engagementChart.value?.resize();
+    revenueChart.value?.resize();
+  };
+
+  // 生成随机数据
+  const generateRandomData = (length: number, min: number, max: number) => {
+    const base = Math.floor(Math.random() * (max - min)) + min;
+    return Array(length).fill(0).map((_, i) => {
+      const trend = i / length * 2;  // 添加上升趋势
+      const dailyVariation = Math.sin(i / 2) * (max - min) * 0.1;  // 添加波动
+      const randomness = (Math.random() - 0.5) * (max - min) * 0.2;  // 添加随机性
+
+      return Math.max(min, Math.floor(base + (base * trend) + dailyVariation + randomness));
+    });
+  };
+
+  // 格式化数字
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  // 格式化时间
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // 监听时间范围变更
+  watch(timeRange, () => {
+    fetchAnalyticsData();
+  });
+
+  // 监听图表类型变更
+  watch(chartType, () => {
+    if (mainChart.value) {
+      renderMainChart();
+    }
+  });
+
+  // 组件挂载
+  onMounted(() => {
+    fetchAnalyticsData();
+  });
+
+  // 组件卸载
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleResize);
+
+    // 销毁图表实例
+    mainChart.value?.dispose();
+    audienceChart.value?.dispose();
+    engagementChart.value?.dispose();
+    revenueChart.value?.dispose();
   });
 </script>
 
@@ -396,32 +731,19 @@
   }
 
   .analytics-title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
     margin: 0;
-    color: #e6edf3;
-    position: relative;
-    display: inline-block;
   }
 
-  .analytics-title::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -8px;
-    height: 3px;
-    width: 40px;
-    background: linear-gradient(90deg, #58a6ff 0%, #388bfd 100%);
-    border-radius: 3px;
+  .analytics-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
   }
 
   .chart-card {
     margin-bottom: 24px;
-    background: rgba(22, 27, 34, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
   }
 
   .chart-header {
@@ -431,404 +753,132 @@
   }
 
   .chart-title {
+    font-size: 16px;
     font-weight: 600;
-    color: #e6edf3;
   }
 
-  .chart-legend {
+  .chart-controls {
     display: flex;
-    gap: 16px;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 2px;
-  }
-
-  .legend-label {
-    font-size: 13px;
-    color: rgba(230, 237, 243, 0.6);
+    gap: 8px;
   }
 
   .chart-container {
-    height: 350px;
     position: relative;
-    padding: 20px 10px 0;
+    height: 350px;
+    width: 100%;
   }
 
-  .chart-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: rgba(230, 237, 243, 0.6);
-    gap: 16px;
+  .chart-container.loading {
+    opacity: 0.5;
   }
 
-  .chart-overlay {
+  .chart-loading {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    pointer-events: none;
-  }
-
-  .chart-grid {
-    position: absolute;
-    top: 20px;
-    left: 40px;
-    right: 10px;
-    bottom: 50px;
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.1);
+    z-index: 10;
   }
 
-  .grid-line {
-    width: 100%;
-    height: 1px;
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .chart-axis {
-    position: absolute;
-    top: 20px;
-    left: 0;
-    bottom: 50px;
-  }
-
-  .y-axis {
+  .chart-wrapper {
     height: 100%;
+    width: 100%;
+  }
+
+  .metrics-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .metric-item {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding-right: 10px;
-  }
-
-  .axis-label {
-    font-size: 11px;
-    color: rgba(230, 237, 243, 0.4);
-    text-align: right;
-  }
-
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 24px;
-  }
-
-  .metric-card {
+    align-items: center;
     text-align: center;
-    background: rgba(22, 27, 34, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.5s ease;
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  .metric-card.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .metric-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
 
   .metric-value {
-    font-size: 30px;
+    font-size: 20px;
     font-weight: 700;
-    margin-bottom: 6px;
-    color: #e6edf3;
-    transition: transform 0.3s ease;
-  }
-
-  .metric-card:hover .metric-value {
-    transform: scale(1.05);
+    margin-bottom: 4px;
   }
 
   .metric-label {
     font-size: 14px;
-    font-weight: 500;
-    color: rgba(230, 237, 243, 0.8);
-    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 4px;
   }
 
-  .metric-trend {
+  .metric-change {
     font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 600;
-    margin-bottom: 16px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background-color: rgba(158, 158, 158, 0.1);
+    color: #9e9e9e;
   }
 
-  .metric-trend.up {
-    background-color: rgba(59, 185, 80, 0.15);
-    color: #3fb950;
+  .metric-change.positive {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: #4caf50;
   }
 
-  .metric-trend.down {
-    background-color: rgba(248, 81, 73, 0.15);
-    color: #f85149;
+  .metric-change.negative {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: #f44336;
   }
 
-  .metric-trend.neutral {
-    background-color: rgba(139, 148, 158, 0.15);
-    color: #8b949e;
-  }
-
-  .trend-icon {
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0% {
-      opacity: 0.7;
-    }
-
-    50% {
-      opacity: 1;
-    }
-
-    100% {
-      opacity: 0.7;
-    }
-  }
-
-  .sparkline {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 30px;
-    margin-top: auto;
-  }
-
-  .sparkline-point {
-    flex: 1;
-    min-height: 4px;
-    border-radius: 2px 2px 0 0;
-    transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  .popular-videos-card {
+  .advanced-analytics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
     margin-bottom: 24px;
-    background: rgba(22, 27, 34, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
   }
 
-  .top-videos-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
+  .analytics-card {
+    height: 300px;
   }
 
-  .top-videos-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #e6edf3;
-  }
-
-  .videos-table {
-    background: transparent;
-  }
-
-  .video-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .video-thumbnail {
-    width: 80px;
-    height: 45px;
-    object-fit: cover;
-    border-radius: 4px;
-  }
-
-  .video-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .video-title {
-    font-weight: 500;
-    color: #e6edf3;
-  }
-
-  .video-date {
-    font-size: 12px;
-    color: rgba(230, 237, 243, 0.5);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .stat-cell {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 500;
-  }
-
-  /* 模拟图表样式 */
-  .mock-chart {
+  .audience-chart,
+  .engagement-chart,
+  .revenue-chart {
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 20px 0 0 40px;
-  }
-
-  .mock-bars {
-    height: 85%;
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
-    position: relative;
-  }
-
-  .mock-bar {
-    width: 40px;
-    max-width: 10%;
-    min-height: 4px;
-    border-radius: 6px 6px 0 0;
-    transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-    position: relative;
-    height: 0;
-  }
-
-  .mock-bar:hover {
-    transform: scaleY(1.03);
-    filter: brightness(1.2);
-  }
-
-  .bar-tooltip {
-    position: absolute;
-    top: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(22, 27, 34, 0.9);
-    color: #e6edf3;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    pointer-events: none;
-    white-space: nowrap;
-  }
-
-  .mock-bar:hover .bar-tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(-5px);
-  }
-
-  .mock-bar::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-  }
-
-  .mock-x-axis {
-    height: 15%;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 10px 0;
-  }
-
-  .mock-label {
-    font-size: 12px;
-    color: rgba(230, 237, 243, 0.5);
-  }
-
-  .trend-line {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, rgba(88, 166, 255, 0), rgba(88, 166, 255, 1), rgba(88, 166, 255, 0));
-    opacity: 0.3;
-    animation: gradient-shift 3s infinite linear;
-  }
-
-  @keyframes gradient-shift {
-    0% {
-      background-position: 0% 50%;
-    }
-
-    100% {
-      background-position: 100% 50%;
-    }
-  }
-
-  @media (max-width: 992px) {
-    .metrics-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .chart-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .mock-bar {
-      width: 30px;
-    }
+    width: 100%;
   }
 
   @media (max-width: 768px) {
     .analytics-header {
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
+      gap: 16px;
     }
 
-    .mock-bar {
-      width: 20px;
+    .analytics-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .metrics-summary {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .advanced-analytics {
+      grid-template-columns: 1fr;
     }
   }
 
-  @media (max-width: 600px) {
-    .metrics-grid {
+  @media (max-width: 480px) {
+    .metrics-summary {
       grid-template-columns: 1fr;
-    }
-
-    .mock-bar {
-      width: 14px;
     }
   }
 </style>

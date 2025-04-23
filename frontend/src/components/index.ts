@@ -20,6 +20,7 @@ export * from './business/video';
 export * from './business/user';
 export * from './business/comment';
 export * from './business/auth';
+export * from './business/library/playlist';
 
 // 通用组件导出
 export * from './common';

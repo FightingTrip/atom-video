@@ -5,6 +5,7 @@ import { RouteRecordRaw } from 'vue-router';
 import adminRoutes from './modules/admin';
 // 导入权限守卫
 import { permissionGuard } from './guards/permission';
+import { registerProgressGuard } from './guards/progress';
 
 // 路由配置
 const routes: RouteRecordRaw[] = [
@@ -51,7 +52,38 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/video/:id',
         name: 'video-detail',
-        component: () => import('@/pages/video/VideoDetailPage.vue'),
+        component: () => {
+          console.log('正在加载视频详情页面...');
+          return new Promise(resolve => {
+            // 先尝试使用页面路径加载
+            import('@/pages/video/VideoDetailPage.vue')
+              .then(component => {
+                console.log('视频详情页面加载成功');
+                resolve(component);
+              })
+              .catch(err => {
+                console.error('视频详情页面加载失败:', err);
+                // 失败时使用备用页面
+                import('@/pages/video/VideoPlayerTemp.vue')
+                  .then(component => {
+                    console.log('使用备用视频播放器');
+                    resolve(component);
+                  })
+                  .catch(() => {
+                    // 如果备用组件也失败，返回一个简单的组件
+                    resolve({
+                      template: `
+                        <div style="padding: 20px; text-align: center;">
+                          <h2>视频加载中...</h2>
+                          <p>视频ID: {{ $route.params.id }}</p>
+                          <button @click="$router.push('/')">返回首页</button>
+                        </div>
+                      `,
+                    });
+                  });
+              });
+          });
+        },
         props: true,
         meta: {
           title: '视频详情 - Atom Video',
@@ -64,6 +96,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/channel/ChannelPage.vue'),
         meta: {
           title: '频道 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
+        path: '/playlist/:id',
+        name: 'playlist',
+        component: () => import('@/pages/channel/PlaylistPage.vue'),
+        meta: {
+          title: '播放列表 - Atom Video',
           requiresAuth: false,
         },
       },
@@ -178,66 +219,108 @@ const routes: RouteRecordRaw[] = [
           requiresAuth: false,
         },
       },
+      // OAuth回调路由
+      {
+        path: '/oauth/callback/:provider',
+        name: 'oauth-callback',
+        component: () => import('@/components/business/auth/OAuthCallback.vue'),
+        meta: {
+          title: '第三方登录 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+    ],
+  },
+  // 模拟的第三方OAuth授权页面
+  {
+    path: '/mock/oauth/:provider',
+    name: 'mock-oauth',
+    component: () => import('@/pages/oauth/MockOAuthPage.vue'),
+    meta: {
+      title: '模拟授权 - Atom Video',
+      requiresAuth: false,
+    },
+  },
+  // 法律页面路由
+  {
+    path: '/legal',
+    component: () => import('@/layouts/BlankLayout.vue'),
+    children: [
+      {
+        path: 'terms',
+        name: 'terms-of-service',
+        component: () => import('@/pages/legal/TermsOfService.vue'),
+        meta: {
+          title: '服务条款 - Atom Video',
+          requiresAuth: false,
+        },
+      },
+      {
+        path: 'privacy',
+        name: 'privacy-policy',
+        component: () => import('@/pages/legal/PrivacyPolicy.vue'),
+        meta: {
+          title: '隐私政策 - Atom Video',
+          requiresAuth: false,
+        },
+      },
     ],
   },
   // 添加管理员路由
   ...adminRoutes,
+  {
+    path: '/content/videos/:id',
+    component: () => import('@/pages/admin/content/VideoDetailPage.vue'),
+    meta: { title: '视频详情', requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/content/playlists',
+    component: () => import('@/pages/admin/content/PlaylistsPage.vue'),
+    meta: { title: '播放列表管理', requiresAuth: true, role: 'admin' },
+  },
 ];
 
 // 创建路由实例
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    // 如果有保存的位置，则使用保存的位置
+    if (savedPosition) {
+      return savedPosition;
+    }
+    // 默认滚动到顶部
+    return { top: 0 };
+  },
 });
 
-// 路由守卫
+// 应用路由守卫
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
 
-  console.log('[Router] beforeEach', {
-    to: {
-      path: to.path,
-      name: to.name,
-      fullPath: to.fullPath,
-      matched: to.matched.map(record => ({
-        path: record.path,
-        name: record.name,
-        component: record.components?.default?.name || 'Anonymous Component',
-      })),
-    },
-    isAuthRequired: to.meta.requiresAuth,
-    isAuthenticated: authStore.isAuthenticated,
-  });
+  // 更新文档标题
+  document.title = to.meta.title ? to.meta.title : 'Atom Video';
 
-  // 设置页面标题
-  document.title = `${to.meta.title}` || 'Atom Video';
+  // 检查是否需要登录
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
 
-  // 处理需要登录的页面
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.log('[Router] 重定向到登录页面，因为需要认证');
+  if (requiresAuth && !authStore.isAuthenticated) {
+    console.log(`[Auth] Redirecting to login from ${to.fullPath}`);
     next({
-      name: 'login',
+      path: '/auth/login',
       query: { redirect: to.fullPath },
     });
     return;
   }
 
-  // 处理游客页面（已登录用户不能访问）
-  if (to.meta.guest && authStore.isAuthenticated) {
-    console.log('[Router] 重定向到首页，因为用户已登录');
-    next('/');
-    return;
-  }
-
-  // 使用权限守卫检查角色权限
-  if (to.meta.roles && to.meta.roles.length > 0) {
-    return permissionGuard(to, from, next);
-  }
-
-  // 继续路由处理
-  console.log('[Router] 继续导航到', to.path);
   next();
 });
+
+// 应用权限守卫
+router.beforeEach(permissionGuard);
+
+// 注册视频进度守卫
+registerProgressGuard(router);
 
 // 路由后置钩子 - 用于调试
 router.afterEach((to, from) => {

@@ -41,6 +41,13 @@
         </div>
       </n-dropdown>
     </template>
+
+    <!-- 调试信息 - 仅在开发环境显示 -->
+    <div v-if="isDevelopment" class="debug-info">
+      <n-tag type="info">角色: {{ authStore.userRole }}</n-tag>
+      <n-tag v-if="authStore.isAdmin" type="success">是管理员</n-tag>
+      <n-tag v-else type="error">不是管理员</n-tag>
+    </div>
   </div>
 </template>
 
@@ -49,7 +56,7 @@
   import { useRouter } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import { useI18n } from 'vue-i18n';
-  import { NDropdown, NAvatar } from 'naive-ui';
+  import { NDropdown, NAvatar, NTag } from 'naive-ui';
 
   const router = useRouter();
   const authStore = useAuthStore();
@@ -57,6 +64,9 @@
 
   const isOpen = ref(false);
   const menuRef = ref<HTMLElement | null>(null);
+
+  // 开发环境标志
+  const isDevelopment = import.meta.env.DEV;
 
   const handleClickOutside = (event: MouseEvent) => {
     if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
@@ -188,5 +198,20 @@
     .username {
       display: none;
     }
+  }
+
+  /* 调试信息样式 */
+  .debug-info {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 </style>

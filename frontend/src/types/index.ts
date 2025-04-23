@@ -5,18 +5,25 @@ export interface User {
   email: string;
   nickname: string;
   avatar: string;
-  bio: string;
+  bio?: string;
   verified: boolean;
-  subscribers: number;
-  subscribing: number;
-  totalViews: number;
+  subscribers?: number;
+  subscribing?: number;
+  totalViews?: number;
   joinedAt: string;
-  isFollowed?: boolean;
+  role?: 'user' | 'creator' | 'admin';
+  coverImage?: string;
   social?: {
     website?: string;
     github?: string;
     twitter?: string;
+    youtube?: string;
+    instagram?: string;
   };
+  preferences?: UserPreferences;
+  notifications?: UserNotificationSettings;
+  privacy?: UserPrivacySettings;
+  isFollowed?: boolean;
 }
 
 // 视频相关类型
@@ -79,14 +86,20 @@ export interface Playlist {
 // 通知类型
 export interface Notification {
   id: string;
-  userId: string;
-  type: 'video_upload' | 'comment' | 'reply' | 'like' | 'subscribe' | 'mention';
+  type: 'comment' | 'like' | 'subscribe' | 'system' | string;
   title: string;
-  content: string;
-  isRead: boolean;
+  message: string;
+  read: boolean;
   createdAt: string;
-  relatedUserId?: string;
-  relatedVideoId?: string;
+  relatedId?: string; // 相关联的实体ID，比如视频ID或评论ID
+  link?: string; // 点击通知可能跳转的链接
+}
+
+// 通知分页响应
+export interface NotificationResponse {
+  notifications: Notification[];
+  total: number;
+  unreadCount: number;
 }
 
 // 标签相关类型
@@ -170,6 +183,8 @@ export interface Danmaku {
 export * from './video';
 export * from './tags';
 export * from './comment';
+export * from './user';
+export * from './channel';
 
 export interface TrendingItem {
   id: string;
@@ -195,4 +210,61 @@ export interface VideoInteraction {
   isLiked: boolean;
   isFavorited: boolean;
   isSubscribed: boolean;
+}
+
+/**
+ * 视频章节类型
+ */
+export interface VideoChapter {
+  id: string;
+  title: string;
+  time: number;
+  duration: number;
+}
+
+/**
+ * 视频片段类型
+ */
+export interface VideoClip {
+  startTime: number;
+  endTime: number;
+  title?: string;
+}
+
+/**
+ * 视频进度类型
+ */
+export interface VideoProgress {
+  videoId: string;
+  currentTime: number;
+  duration: number;
+  percentage: number;
+  lastPlayedAt?: string;
+  lastUpdated?: string;
+}
+
+// 添加用户设置相关类型定义
+export interface UserPreferences {
+  theme: 'system' | 'light' | 'dark';
+  fontSize: number;
+  language: string;
+}
+
+export interface UserNotificationSettings {
+  likes: boolean;
+  comments: boolean;
+  replies: boolean;
+  follows: boolean;
+  videoProcessing: boolean;
+  updates: boolean;
+  emailNotification: boolean;
+  browserNotification: boolean;
+}
+
+export interface UserPrivacySettings {
+  showWatchHistory: boolean;
+  showFavorites: boolean;
+  showFollowing: boolean;
+  showLikes: boolean;
+  commentPermission: 'everyone' | 'followers' | 'following' | 'none';
 }

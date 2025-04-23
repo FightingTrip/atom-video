@@ -24,7 +24,7 @@
 
         <!-- Logo -->
         <router-link to="/" class="logo-link">
-          <img src="@/assets/logo/logo.svg" alt="Atom Video" class="logo" />
+          <img src="/logo.svg" alt="Atom Video" class="logo" />
           <span class="logo-text">Atom Video</span>
         </router-link>
       </div>
@@ -97,6 +97,11 @@
           </n-icon>
         </div>
 
+        <!-- 通知图标 -->
+        <div class="header-icon-btn" v-if="isLoggedIn">
+          <notification-badge />
+        </div>
+
         <!-- 用户区域 -->
         <div class="user-area">
           <div v-if="isLoggedIn" class="user-avatar-container">
@@ -143,6 +148,7 @@
   import { useUserStore } from '@/stores/user'
   import { useAuthStore } from '@/stores/auth'
   import { useThemeStore } from '@/stores/theme'
+  import NotificationBadge from '@/components/business/notification/NotificationBadge.vue'
 
   // 定义事件
   const emit = defineEmits(['toggle-sidebar'])

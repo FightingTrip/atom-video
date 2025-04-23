@@ -11,135 +11,138 @@
     <div class="category-header">
       <h2>{{ categoryName }}</h2>
       <div class="category-filters">
-        <el-select v-model="sortBy" placeholder="排序方式" @change="handleSortChange">
-          <el-option label="最新" value="latest" />
-          <el-option label="最热" value="hot" />
-          <el-option label="评分最高" value="rating" />
-        </el-select>
-        <el-select v-model="timeRange" placeholder="时间范围" @change="handleTimeRangeChange">
-          <el-option label="全部时间" value="all" />
-          <el-option label="今天" value="today" />
-          <el-option label="本周" value="week" />
-          <el-option label="本月" value="month" />
-        </el-select>
+        <n-select v-model:value="sortBy" placeholder="排序方式" @update:value="handleSortChange" :options="sortOptions" />
+        <n-select v-model:value="timeRange" placeholder="时间范围" @update:value="handleTimeRangeChange"
+          :options="timeOptions" />
       </div>
     </div>
 
-    <div class="category-content">
-      <VideoListComponent :videos="filteredVideos" @video-click="handleVideoClick" />
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-state">
+      <n-spin size="large" />
+      <p>加载中...</p>
     </div>
 
+    <!-- 视频列表 -->
+    <div v-else class="category-content">
+      <div v-if="videos.length" class="explore-videos-grid">
+        <VideoCard v-for="video in videos" :key="video.id" :video="video" @click="handleVideoClick(video)" />
+      </div>
+      <div v-else class="empty-state">
+        <n-empty description="暂无视频" />
+      </div>
+    </div>
+
+    <!-- 分页器 -->
     <div class="category-pagination">
-      <el-pagination v-model:current-page="currentPage" v-model:page-size="pageSize" :total="total"
-        :page-sizes="[12, 24, 36, 48]" layout="total, sizes, prev, pager, next" @size-change="handleSizeChange"
-        @current-change="handleCurrentChange" />
+      <n-pagination v-model:page="currentPage" v-model:page-size="pageSize" :item-count="total"
+        :page-sizes="[12, 24, 36, 48]" @update:page="handlePageChange" @update:page-size="handleSizeChange" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
+  import { ref, computed, onMounted, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import type { IVideo } from '@atom-video/shared-types';
-  import VideoListComponent from '@/components/business/video/VideoListComponent.vue';
-  import { mockVideos } from '@/mock/video';
+  import { NSelect, NSpin, NEmpty, NPagination } from 'naive-ui';
+  import type { Video, VideoSearchParams } from '@/types';
+  import VideoCard from '@/components/common/VideoCard.vue';
+  import videoService from '@/services/videoService';
 
   const route = useRoute();
   const router = useRouter();
 
+  // 选项数据
+  const sortOptions = [
+    { label: '最新', value: 'latest' },
+    { label: '最热', value: 'popular' },
+    { label: '相关度', value: 'relevant' }
+  ];
+
+  const timeOptions = [
+    { label: '全部时间', value: 'all' },
+    { label: '今天', value: 'today' },
+    { label: '本周', value: 'week' },
+    { label: '本月', value: 'month' }
+  ];
+
   // 状态
-  const categoryName = ref(route.params.category as string);
-  const sortBy = ref('latest');
+  const loading = ref(false);
+  const videos = ref<Video[]>([]);
+  const hasMore = ref(false);
+  const total = ref(0);
+  const categoryName = ref(route.params.category as string || '全部');
+  const sortBy = ref<'latest' | 'popular' | 'relevant'>('latest');
   const timeRange = ref('all');
   const currentPage = ref(1);
   const pageSize = ref(12);
-  const total = ref(100);
 
-  // 计算属性
-  const filteredVideos = computed(() => {
-    let videos = [...mockVideos];
+  // 加载视频
+  const loadVideos = async () => {
+    loading.value = true;
+    try {
+      const params: VideoSearchParams = {
+        tags: categoryName.value === '全部' ? [] : [categoryName.value],
+        sort: sortBy.value,
+        page: currentPage.value,
+        limit: pageSize.value
+      };
 
-    // 根据时间范围过滤
-    if (timeRange.value !== 'all') {
-      const now = new Date();
-      const filterDate = new Date();
+      const response = await videoService.getVideos(pageSize.value, params);
+      videos.value = response.videos;
+      hasMore.value = response.hasMore;
 
-      switch (timeRange.value) {
-        case 'today':
-          filterDate.setDate(now.getDate() - 1);
-          break;
-        case 'week':
-          filterDate.setDate(now.getDate() - 7);
-          break;
-        case 'month':
-          filterDate.setMonth(now.getMonth() - 1);
-          break;
-      }
-
-      videos = videos.filter(video => {
-        const videoDate = new Date(video.createdAt);
-        return videoDate >= filterDate;
-      });
+      // 模拟总数据量
+      total.value = response.videos.length * 3;
+    } catch (error) {
+      console.error('加载视频失败:', error);
+    } finally {
+      loading.value = false;
     }
-
-    // 根据排序方式排序
-    switch (sortBy.value) {
-      case 'latest':
-        videos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        break;
-      case 'hot':
-        videos.sort((a, b) => b.views - a.views);
-        break;
-      case 'rating':
-        videos.sort((a, b) => b.rating - a.rating);
-        break;
-    }
-
-    // 分页
-    const start = (currentPage.value - 1) * pageSize.value;
-    const end = start + pageSize.value;
-    return videos.slice(start, end);
-  });
+  };
 
   // 方法
-  const handleVideoClick = (video: IVideo) => {
+  const handleVideoClick = (video: Video) => {
     router.push(`/video/${video.id}`);
   };
 
   const handleSortChange = () => {
-    // 重新加载数据
+    currentPage.value = 1; // 切换排序时重置为第一页
     loadVideos();
   };
 
   const handleTimeRangeChange = () => {
-    // 重新加载数据
+    currentPage.value = 1; // 切换时间范围时重置为第一页
     loadVideos();
   };
 
-  const handleSizeChange = (val: number) => {
-    pageSize.value = val;
+  const handleSizeChange = () => {
     loadVideos();
   };
 
-  const handleCurrentChange = (val: number) => {
-    currentPage.value = val;
+  const handlePageChange = () => {
     loadVideos();
   };
 
-  const loadVideos = () => {
-    // 加载视频数据
-    console.log('加载视频:', {
-      category: categoryName.value,
-      sortBy: sortBy.value,
-      timeRange: timeRange.value,
-      page: currentPage.value,
-      pageSize: pageSize.value
-    });
-  };
+  // 监听路由参数变化
+  watch(() => route.params.category, (newCategory) => {
+    if (newCategory) {
+      categoryName.value = newCategory as string;
+      currentPage.value = 1; // 切换分类时重置为第一页
+      loadVideos();
+    }
+  });
+
+  // 生命周期钩子
+  onMounted(() => {
+    loadVideos();
+  });
 </script>
 
 <style scoped>
   .explore-category {
+    max-width: 1200px;
+    margin: 0 auto;
     padding: 20px;
   }
 
@@ -147,7 +150,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
   }
 
   .category-header h2 {
@@ -161,13 +164,43 @@
     gap: 16px;
   }
 
-  .category-content {
-    margin-bottom: 20px;
+  .explore-videos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+  }
+
+  .empty-state {
+    display: flex;
+    justify-content: center;
+    padding: 60px 0;
   }
 
   .category-pagination {
     display: flex;
     justify-content: center;
-    margin-top: 20px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .category-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .explore-videos-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+    }
   }
 </style>

@@ -147,7 +147,8 @@
     SunnyOutline,
     ChevronDownOutline,
     ShieldOutline,
-    DocumentTextOutline
+    DocumentTextOutline,
+    ListOutline
   } from '@vicons/ionicons5'
   import { h } from 'vue'
   import { useThemeStore } from '@/stores/theme'
@@ -225,6 +226,11 @@
           label: '视频管理',
           key: 'videos',
           path: '/admin/content/videos'
+        },
+        {
+          label: '播放列表管理',
+          key: 'playlists',
+          path: '/admin/content/playlists'
         },
         {
           label: '评论管理',

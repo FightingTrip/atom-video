@@ -9,8 +9,58 @@
   <div class="comment-section">
     <!-- 评论输入框 -->
     <div class="comment-input">
-      <n-input v-model:value="commentText" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }"
-        placeholder="写下你的评论..." @keydown.enter.ctrl="handlePostComment" class="comment-textarea" />
+      <div class="rich-editor">
+        <div class="editor-toolbar">
+          <n-button-group>
+            <n-button quaternary @click="applyFormat('bold')" :class="{ 'active': activeFormats.bold }">
+              <template #icon>
+                <n-icon>
+                  <TextBold />
+                </n-icon>
+              </template>
+            </n-button>
+            <n-button quaternary @click="applyFormat('italic')" :class="{ 'active': activeFormats.italic }">
+              <template #icon>
+                <n-icon>
+                  <TextItalic />
+                </n-icon>
+              </template>
+            </n-button>
+            <n-button quaternary @click="insertLink">
+              <template #icon>
+                <n-icon>
+                  <LinkOutline />
+                </n-icon>
+              </template>
+            </n-button>
+          </n-button-group>
+          <n-button quaternary @click="showMentionPopup">
+            <template #icon>
+              <n-icon>
+                <At />
+              </n-icon>
+            </template>
+            @用户
+          </n-button>
+        </div>
+        <n-input v-model:value="commentText" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }"
+          placeholder="写下你的评论..." @keydown.enter.ctrl="handlePostComment" class="comment-textarea"
+          ref="commentInputRef" />
+
+        <!-- @用户弹出面板 -->
+        <div v-if="showMention" class="mention-popup">
+          <div class="mention-search">
+            <n-input v-model:value="mentionSearch" placeholder="搜索用户..." />
+          </div>
+          <div class="mention-list">
+            <div v-for="user in filteredUsers" :key="user.id" class="mention-item" @click="selectMention(user)">
+              <n-avatar round :size="24" :src="user.avatar" />
+              <span>{{ user.nickname }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="input-footer">
         <span class="input-tip">Ctrl + Enter 发送</span>
         <n-button type="primary" :disabled="!commentText.trim()" @click="handlePostComment" class="submit-button">
@@ -24,25 +74,28 @@
       <div v-for="comment in comments" :key="comment.id" class="comment-item">
         <!-- 评论内容 -->
         <div class="comment-content">
-          <n-avatar round :size="40" :src="comment.author.avatar" @click="handleAuthorClick(comment.author.id)"
+          <n-avatar round :size="40" :src="comment.author?.avatar" @click="handleAuthorClick(comment.author?.id || '')"
             class="user-avatar" />
           <div class="comment-main">
             <div class="comment-header">
-              <span class="author-name" @click="handleAuthorClick(comment.author.id)">
-                {{ comment.author.nickname }}
+              <span class="author-name" @click="handleAuthorClick(comment.author?.id || '')">
+                {{ comment.author?.nickname }}
               </span>
               <span class="comment-time">{{ formatDate(comment.createdAt) }}</span>
             </div>
-            <p class="comment-text">{{ comment.content }}</p>
+            <p class="comment-text" v-html="formatComment(comment.content)"></p>
             <div class="comment-actions">
-              <n-button text @click="handleLike(comment)" class="action-button">
+              <n-button text @click="handleLike(comment)" :class="{ 'liked': comment.isLiked }"
+                class="action-button like-button">
                 <template #icon>
                   <n-icon>
                     <ThumbsUp v-if="comment.isLiked" />
                     <ThumbsUpOutline v-else />
                   </n-icon>
                 </template>
-                {{ formatNumber(comment.likes) }}
+                <span class="like-count" :class="{ 'liked': comment.isLiked }">
+                  {{ formatNumber(comment.likes || 0) }}
+                </span>
               </n-button>
               <n-button text @click="handleReply(comment)" class="action-button">
                 <template #icon>
@@ -56,8 +109,53 @@
 
             <!-- 回复输入框 -->
             <div v-if="replyingTo?.id === comment.id" class="reply-input">
-              <n-input v-model:value="replyText" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }"
-                placeholder="回复评论..." @keydown.enter.ctrl="handlePostReply" class="reply-textarea" />
+              <div class="rich-editor">
+                <div class="editor-toolbar">
+                  <n-button-group>
+                    <n-button quaternary @click="applyReplyFormat('bold')"
+                      :class="{ 'active': activeReplyFormats.bold }">
+                      <template #icon>
+                        <n-icon>
+                          <TextBold />
+                        </n-icon>
+                      </template>
+                    </n-button>
+                    <n-button quaternary @click="applyReplyFormat('italic')"
+                      :class="{ 'active': activeReplyFormats.italic }">
+                      <template #icon>
+                        <n-icon>
+                          <TextItalic />
+                        </n-icon>
+                      </template>
+                    </n-button>
+                  </n-button-group>
+                  <n-button quaternary @click="showReplyMentionPopup">
+                    <template #icon>
+                      <n-icon>
+                        <At />
+                      </n-icon>
+                    </template>
+                    @用户
+                  </n-button>
+                </div>
+                <n-input v-model:value="replyText" type="textarea" :autosize="{ minRows: 2, maxRows: 5 }"
+                  placeholder="回复评论..." @keydown.enter.ctrl="handlePostReply" class="reply-textarea"
+                  ref="replyInputRef" />
+
+                <!-- 回复@用户弹出面板 -->
+                <div v-if="showReplyMention" class="mention-popup">
+                  <div class="mention-search">
+                    <n-input v-model:value="mentionSearch" placeholder="搜索用户..." />
+                  </div>
+                  <div class="mention-list">
+                    <div v-for="user in filteredUsers" :key="user.id" class="mention-item"
+                      @click="selectReplyMention(user)">
+                      <n-avatar round :size="24" :src="user.avatar" />
+                      <span>{{ user.nickname }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="input-footer">
                 <span class="input-tip">Ctrl + Enter 发送</span>
                 <div class="button-group">
@@ -72,25 +170,28 @@
             <!-- 回复列表 -->
             <div v-if="comment.replies?.length" class="reply-list">
               <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
-                <n-avatar round :size="32" :src="reply.author.avatar" @click="handleAuthorClick(reply.author.id)"
-                  class="user-avatar-small" />
+                <n-avatar round :size="32" :src="reply.author?.avatar"
+                  @click="handleAuthorClick(reply.author?.id || '')" class="user-avatar-small" />
                 <div class="reply-main">
                   <div class="reply-header">
-                    <span class="author-name" @click="handleAuthorClick(reply.author.id)">
-                      {{ reply.author.nickname }}
+                    <span class="author-name" @click="handleAuthorClick(reply.author?.id || '')">
+                      {{ reply.author?.nickname }}
                     </span>
                     <span class="reply-time">{{ formatDate(reply.createdAt) }}</span>
                   </div>
-                  <p class="reply-text">{{ reply.content }}</p>
+                  <p class="reply-text" v-html="formatComment(reply.content)"></p>
                   <div class="reply-actions">
-                    <n-button text @click="handleLike(reply)" class="action-button">
+                    <n-button text @click="handleLike(reply)" :class="{ 'liked': reply.isLiked }"
+                      class="action-button like-button">
                       <template #icon>
                         <n-icon>
                           <ThumbsUp v-if="reply.isLiked" />
                           <ThumbsUpOutline v-else />
                         </n-icon>
                       </template>
-                      {{ formatNumber(reply.likes) }}
+                      <span class="like-count" :class="{ 'liked': reply.isLiked }">
+                        {{ formatNumber(reply.likes || 0) }}
+                      </span>
                     </n-button>
                     <n-button text @click="handleReply(comment, reply)" class="action-button">
                       <template #icon>
@@ -125,12 +226,13 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { ref, computed } from 'vue';
   import { useRouter } from 'vue-router';
   import { useIntersectionObserver } from '@vueuse/core';
   import {
     NInput,
     NButton,
+    NButtonGroup,
     NAvatar,
     NIcon,
     NSpin,
@@ -139,12 +241,25 @@
   import {
     ThumbsUp,
     ThumbsUpOutline,
-    ChatbubbleOutline
+    ChatbubbleOutline,
+    LinkOutline,
+    At
   } from '@vicons/ionicons5';
+  // 使用自定义图标代替不存在的图标
+  const TextBold = () => h('svg', { viewBox: '0 0 24 24', width: '1em', height: '1em' }, [
+    h('path', { fill: 'currentColor', d: 'M13.5 15.5H10V12.5H13.5A1.5 1.5 0 0 1 15 14A1.5 1.5 0 0 1 13.5 15.5M10 6.5H13A1.5 1.5 0 0 1 14.5 8A1.5 1.5 0 0 1 13 9.5H10M15.6 10.79C16.57 10.11 17.25 9 17.25 8C17.25 5.74 15.5 4 13.25 4H7V18H14.04C16.14 18 17.75 16.3 17.75 14.21C17.75 12.69 16.89 11.39 15.6 10.79Z' })
+  ]);
+
+  const TextItalic = () => h('svg', { viewBox: '0 0 24 24', width: '1em', height: '1em' }, [
+    h('path', { fill: 'currentColor', d: 'M10,4V7H12.21L8.79,15H6V18H14V15H11.79L15.21,7H18V4H10Z' })
+  ]);
+
+  import { h } from 'vue';
   import dayjs from 'dayjs';
   import relativeTime from 'dayjs/plugin/relativeTime';
   import 'dayjs/locale/zh-cn';
   import type { Comment, Reply } from '@/types';
+  import { userService } from '@/services';
 
   dayjs.extend(relativeTime);
   dayjs.locale('zh-cn');
@@ -178,6 +293,39 @@
     id: string;
     replyTo?: { id: string; author: { nickname: string } };
   } | null>(null);
+  const commentInputRef = ref(null);
+  const replyInputRef = ref(null);
+
+  // 富文本编辑器状态
+  const activeFormats = ref({
+    bold: false,
+    italic: false
+  });
+
+  const activeReplyFormats = ref({
+    bold: false,
+    italic: false
+  });
+
+  // @用户功能
+  const showMention = ref(false);
+  const showReplyMention = ref(false);
+  const mentionSearch = ref('');
+  const suggestedUsers = ref([
+    { id: 'user1', nickname: '张三', avatar: 'https://i.pravatar.cc/100?u=1' },
+    { id: 'user2', nickname: '李四', avatar: 'https://i.pravatar.cc/100?u=2' },
+    { id: 'user3', nickname: '王五', avatar: 'https://i.pravatar.cc/100?u=3' },
+    { id: 'user4', nickname: '赵六', avatar: 'https://i.pravatar.cc/100?u=4' },
+    { id: 'user5', nickname: '钱七', avatar: 'https://i.pravatar.cc/100?u=5' },
+  ]);
+
+  // 过滤用户列表
+  const filteredUsers = computed(() => {
+    if (!mentionSearch.value) return suggestedUsers.value;
+    return suggestedUsers.value.filter(user =>
+      user.nickname.toLowerCase().includes(mentionSearch.value.toLowerCase())
+    );
+  });
 
   // 加载更多元素引用
   const loadMoreRef = ref<HTMLElement | null>(null);
@@ -206,6 +354,72 @@
     return dayjs(date).fromNow();
   };
 
+  // 格式化评论内容，处理富文本和@用户
+  const formatComment = (content: string) => {
+    // 处理@用户
+    let formattedContent = content.replace(/@(\w+)/g, '<a href="#/user/$1" class="mention">@$1</a>');
+
+    // 处理粗体
+    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    // 处理斜体
+    formattedContent = formattedContent.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+    // 处理链接
+    formattedContent = formattedContent.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+    return formattedContent;
+  };
+
+  // 富文本格式应用
+  const applyFormat = (format: 'bold' | 'italic') => {
+    if (format === 'bold') {
+      activeFormats.value.bold = !activeFormats.value.bold;
+      commentText.value += '**粗体文本**';
+    } else if (format === 'italic') {
+      activeFormats.value.italic = !activeFormats.value.italic;
+      commentText.value += '*斜体文本*';
+    }
+  };
+
+  const applyReplyFormat = (format: 'bold' | 'italic') => {
+    if (format === 'bold') {
+      activeReplyFormats.value.bold = !activeReplyFormats.value.bold;
+      replyText.value += '**粗体文本**';
+    } else if (format === 'italic') {
+      activeReplyFormats.value.italic = !activeReplyFormats.value.italic;
+      replyText.value += '*斜体文本*';
+    }
+  };
+
+  // 插入链接
+  const insertLink = () => {
+    const linkText = '链接文本';
+    const linkUrl = 'https://';
+    commentText.value += `[${linkText}](${linkUrl})`;
+  };
+
+  // @用户功能
+  const showMentionPopup = () => {
+    showMention.value = true;
+    mentionSearch.value = '';
+  };
+
+  const showReplyMentionPopup = () => {
+    showReplyMention.value = true;
+    mentionSearch.value = '';
+  };
+
+  const selectMention = (user: any) => {
+    commentText.value += `@${user.nickname} `;
+    showMention.value = false;
+  };
+
+  const selectReplyMention = (user: any) => {
+    replyText.value += `@${user.nickname} `;
+    showReplyMention.value = false;
+  };
+
   // 处理评论
   const handlePostComment = () => {
     const content = commentText.value.trim();
@@ -213,6 +427,7 @@
 
     emit('post', content);
     commentText.value = '';
+    activeFormats.value = { bold: false, italic: false };
   };
 
   // 处理回复
@@ -222,11 +437,12 @@
       replyTo: replyTo
         ? {
           id: replyTo.id,
-          author: { nickname: replyTo.author.nickname }
+          author: { nickname: replyTo.author?.nickname || '用户' }
         }
         : undefined
     };
-    replyText.value = replyTo ? `@${replyTo.author.nickname} ` : '';
+    replyText.value = replyTo ? `@${replyTo.author?.nickname || '用户'} ` : '';
+    activeReplyFormats.value = { bold: false, italic: false };
   };
 
   const handlePostReply = () => {
@@ -242,258 +458,314 @@
   const cancelReply = () => {
     replyingTo.value = null;
     replyText.value = '';
+    activeReplyFormats.value = { bold: false, italic: false };
   };
 
-  // 处理点赞
+  // 处理点赞，添加动画效果
   const handleLike = (item: Comment | Reply) => {
+    // 在此处添加视觉反馈
+    if (!item.isLiked) {
+      // 添加动画效果
+      item.isLiked = true;
+      item.likes = (item.likes || 0) + 1;
+    } else {
+      item.isLiked = false;
+      item.likes = Math.max(0, (item.likes || 0) - 1);
+    }
+
+    // 向父组件发送点赞事件
     emit('like', item.id);
   };
 
-  // 处理加载更多
-  const handleLoadMore = () => {
-    if (!props.loading && props.hasMore) {
-      emit('load-more');
+  // 处理用户点击
+  const handleAuthorClick = (authorId: string) => {
+    if (authorId) {
+      router.push(`/user/${authorId}`);
     }
   };
 
-  // 处理作者点击
-  const handleAuthorClick = (authorId: string) => {
-    router.push(`/user/${authorId}`);
+  // 加载更多
+  const handleLoadMore = () => {
+    if (props.loading) return;
+    emit('load-more');
   };
 </script>
 
 <style scoped>
   .comment-section {
-    margin-top: var(--spacing-xl);
-    background-color: var(--bg-color);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
   }
 
   .comment-input {
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .comment-textarea {
-    width: 100%;
     background-color: var(--bg-color-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    color: var(--text-color);
-    transition: border-color 0.2s ease;
+    border-radius: 8px;
+    padding: 16px;
   }
 
-  .comment-textarea:focus {
-    border-color: var(--primary-color);
+  .rich-editor {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .editor-toolbar {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .editor-toolbar .active {
+    color: var(--primary-color);
+    background-color: var(--primary-color-hover);
+  }
+
+  .mention-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+  }
+
+  .mention-search {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .mention-list {
+    padding: 8px;
+  }
+
+  .mention-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .mention-item:hover {
+    background-color: var(--hover-color);
+  }
+
+  .user-avatar {
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .user-avatar-small {
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .comment-textarea,
+  .reply-textarea {
+    width: 100%;
   }
 
   .input-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: var(--spacing-sm);
+    margin-top: 8px;
   }
 
   .input-tip {
+    font-size: 12px;
     color: var(--text-color-secondary);
-    font-size: var(--text-sm);
   }
 
-  .submit-button {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border-radius: var(--radius-full);
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+  .button-group {
+    display: flex;
+    gap: 8px;
   }
 
-  .submit-button:hover:not(:disabled) {
-    background-color: var(--primary-color-dark);
-  }
-
-  .submit-button:disabled {
-    background-color: var(--bg-color-tertiary);
+  .cancel-button {
     color: var(--text-color-secondary);
-    cursor: not-allowed;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+  }
+
+  .cancel-button:hover {
+    color: var(--text-color);
+    border-color: var(--border-dark);
   }
 
   .comment-list {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
+    gap: 24px;
   }
 
   .comment-item {
-    display: flex;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
+    position: relative;
     background-color: var(--bg-color-secondary);
-    border-radius: var(--radius-lg);
-    transition: background-color 0.2s ease;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s;
   }
 
   .comment-item:hover {
-    background-color: var(--bg-color-tertiary);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   }
 
-  .user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    cursor: pointer;
+  .comment-content {
+    display: flex;
+    gap: 16px;
   }
 
   .comment-main {
     flex: 1;
+    min-width: 0;
   }
 
   .comment-header {
     display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-xs);
+    justify-content: space-between;
+    margin-bottom: 8px;
   }
 
   .author-name {
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-color);
     cursor: pointer;
   }
 
-  .comment-time {
+  .author-name:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+  }
+
+  .comment-time,
+  .reply-time {
+    font-size: 12px;
     color: var(--text-color-secondary);
-    font-size: var(--text-sm);
   }
 
-  .comment-text {
-    color: var(--text-color);
-    line-height: 1.6;
-    margin-bottom: var(--spacing-sm);
+  .comment-text,
+  .reply-text {
+    margin: 8px 0;
+    line-height: 1.5;
+    word-break: break-word;
   }
 
-  .comment-actions {
+  .comment-text :deep(.mention),
+  .reply-text :deep(.mention) {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .comment-text :deep(a),
+  .reply-text :deep(a) {
+    color: var(--primary-color);
+    text-decoration: none;
+  }
+
+  .comment-text :deep(a:hover),
+  .reply-text :deep(a:hover) {
+    text-decoration: underline;
+  }
+
+  .comment-actions,
+  .reply-actions {
     display: flex;
-    gap: var(--spacing-md);
+    gap: 16px;
   }
 
   .action-button {
-    color: var(--text-color-secondary);
-    font-size: var(--text-sm);
-    transition: color 0.2s ease;
-  }
-
-  .action-button:hover {
-    color: var(--text-color);
-  }
-
-  /* 暗色模式特定样式 */
-  :root.dark .comment-section,
-  .dark-mode .comment-section {
-    background-color: var(--bg-color-dark);
-  }
-
-  :root.dark .comment-textarea,
-  .dark-mode .comment-textarea {
-    background-color: var(--bg-color-darker);
-    border-color: var(--border-color-dark);
-    color: var(--text-color-dark);
-  }
-
-  :root.dark .input-tip,
-  .dark-mode .input-tip {
-    color: var(--text-color-secondary-dark);
-  }
-
-  :root.dark .comment-item,
-  .dark-mode .comment-item {
-    background-color: var(--bg-color-darker);
-  }
-
-  :root.dark .comment-item:hover,
-  .dark-mode .comment-item:hover {
-    background-color: var(--bg-color-darkest);
-  }
-
-  :root.dark .author-name,
-  .dark-mode .author-name {
-    color: var(--text-color-dark);
-  }
-
-  :root.dark .comment-time,
-  .dark-mode .comment-time {
-    color: var(--text-color-secondary-dark);
-  }
-
-  :root.dark .comment-text,
-  .dark-mode .comment-text {
-    color: var(--text-color-dark);
-  }
-
-  :root.dark .action-button,
-  .dark-mode .action-button {
-    color: var(--text-color-secondary-dark);
-  }
-
-  :root.dark .action-button:hover,
-  .dark-mode .action-button:hover {
-    color: var(--text-color-dark);
-  }
-
-  .reply-input {
-    margin-top: var(--spacing-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .button-group {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: 4px;
+    transition: all 0.2s;
+  }
+
+  .like-button.liked {
+    color: var(--primary-color);
+  }
+
+  .like-button .like-count {
+    transition: all 0.2s;
+  }
+
+  .like-button .like-count.liked {
+    color: var(--primary-color);
+    font-weight: 500;
+  }
+
+  .like-button:active {
+    transform: scale(1.2);
   }
 
   .reply-list {
-    margin-top: var(--spacing-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding-left: var(--spacing-md);
-    border-left: 2px solid var(--border-light);
+    margin-top: 16px;
+    border-left: 2px solid var(--border-color);
+    padding-left: 16px;
   }
 
   .reply-item {
     display: flex;
-    gap: var(--spacing-sm);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .reply-item:last-child {
+    margin-bottom: 0;
   }
 
   .reply-main {
-    flex-grow: 1;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .reply-header {
     display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .reply-input {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: var(--bg-color);
+    border-radius: 8px;
   }
 
   .load-more {
     display: flex;
     justify-content: center;
-    padding: var(--spacing-md) 0;
-  }
-
-  .load-more-button {
-    color: var(--primary-color);
-    background: none;
-    border: none;
-    transition: color var(--transition-normal);
-  }
-
-  .load-more-button:hover {
-    color: var(--primary-color-dark);
+    padding: 16px 0;
   }
 
   .empty-state {
-    padding: var(--spacing-xl) 0;
+    padding: 32px 0;
+    text-align: center;
+  }
+
+  /* 响应式设计 */
+  @media (max-width: 768px) {
+    .comment-item {
+      padding: 12px;
+    }
+
+    .comment-content {
+      gap: 12px;
+    }
+
+    .editor-toolbar {
+      flex-wrap: wrap;
+    }
   }
 </style>
