@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-badge-container" v-on-click-outside="closeNotificationPanel">
+  <div class="notification-badge-container" ref="containerRef">
     <div class="notification-icon" @click="toggleNotificationPanel">
       <n-badge :value="unreadCount" :max="99" :show="unreadCount > 0" :processing="hasNewNotification">
         <n-icon size="24">
@@ -20,22 +20,37 @@
   import { NIcon, NBadge } from 'naive-ui';
   import { useNotificationStore } from '@/stores/notification';
   import NotificationList from '@/components/business/notification/NotificationList.vue';
-  import { vOnClickOutside } from '@vueuse/components';
+  import { onClickOutside } from '@vueuse/core';
+  import { useAuthStore } from '@/stores/auth';
 
   const notificationStore = useNotificationStore();
+  const authStore = useAuthStore();
   const isNotificationPanelOpen = ref(false);
   const hasNewNotification = ref(false);
+  const containerRef = ref(null);
+
+  // 使用onClickOutside而不是v-on-click-outside指令
+  onClickOutside(containerRef, () => {
+    closeNotificationPanel();
+  });
 
   // 计算未读通知数量
   const unreadCount = computed(() => notificationStore.unreadCount);
 
   // 获取通知数据
   onMounted(async () => {
-    // 初始化通知数据
-    await notificationStore.fetchUnreadCount();
+    // 只有在用户已认证的情况下才获取通知
+    if (authStore.isAuthenticated) {
+      try {
+        // 初始化通知数据
+        await notificationStore.fetchUnreadCount();
 
-    // 创建轮询以定期检查新通知
-    startNotificationPolling();
+        // 创建轮询以定期检查新通知
+        startNotificationPolling();
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    }
   });
 
   // 定期检查新通知
@@ -44,19 +59,32 @@
   function startNotificationPolling() {
     // 每分钟检查一次新通知
     pollingInterval = window.setInterval(async () => {
-      // 记录旧的未读数量
-      const oldCount = notificationStore.unreadCount;
+      if (!authStore.isAuthenticated) {
+        // 如果用户已登出，停止轮询
+        if (pollingInterval !== null) {
+          clearInterval(pollingInterval);
+          pollingInterval = null;
+        }
+        return;
+      }
 
-      // 获取新的未读数量
-      await notificationStore.fetchUnreadCount();
+      try {
+        // 记录旧的未读数量
+        const oldCount = notificationStore.unreadCount;
 
-      // 如果未读数量增加，显示新通知提示
-      if (notificationStore.unreadCount > oldCount && oldCount !== 0) {
-        hasNewNotification.value = true;
-        // 3秒后自动关闭提示
-        setTimeout(() => {
-          hasNewNotification.value = false;
-        }, 3000);
+        // 获取新的未读数量
+        await notificationStore.fetchUnreadCount();
+
+        // 如果未读数量增加，显示新通知提示
+        if (notificationStore.unreadCount > oldCount && oldCount !== 0) {
+          hasNewNotification.value = true;
+          // 3秒后自动关闭提示
+          setTimeout(() => {
+            hasNewNotification.value = false;
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('Failed to check notifications:', error);
       }
     }, 60000); // 60秒
   }
@@ -70,11 +98,17 @@
 
   // 切换通知面板显示状态
   function toggleNotificationPanel() {
+    if (!authStore.isAuthenticated) {
+      return;
+    }
+
     isNotificationPanelOpen.value = !isNotificationPanelOpen.value;
 
     // 如果打开面板，加载通知列表
     if (isNotificationPanelOpen.value) {
-      notificationStore.fetchNotifications();
+      notificationStore.fetchNotifications().catch(error => {
+        console.error('Failed to load notifications:', error);
+      });
     }
 
     // 停止动画提示

@@ -33,8 +33,12 @@ export function useToast() {
     // 在组件中使用
     message = useMessage();
   } catch (e) {
-    // 如果不在组件中或未提供useMessage的上下文中，忽略错误
-    console.warn('useToast: 未在正确的Naive UI上下文中使用，通知功能可能无法正常工作');
+    // 如果不在组件中或未提供useMessage的上下文中，使用全局消息实例
+    message = globalMessage;
+    
+    if (!message) {
+      console.warn('useToast: 未在正确的Naive UI上下文中使用，且没有全局消息实例，通知功能将降级为控制台输出');
+    }
   }
 
   /**
@@ -44,25 +48,28 @@ export function useToast() {
    * @param options 附加选项
    */
   const showToast = (content: string, type: ToastType = 'info', options: ToastOptions = {}) => {
-    if (!message) {
+    if (!message && !globalMessage) {
       // 如果没有message实例，将通知降级为console输出
       console.log(`[Toast ${type}]: ${content}`);
       return;
     }
 
+    // 优先使用组件内message实例，如果不存在则使用全局实例
+    const messageInstance = message || globalMessage;
+
     const { duration = 3000, closable = false } = options;
 
     switch (type) {
       case 'success':
-        return message.success(content, { duration, closable });
+        return messageInstance!.success(content, { duration, closable });
       case 'info':
-        return message.info(content, { duration, closable });
+        return messageInstance!.info(content, { duration, closable });
       case 'warning':
-        return message.warning(content, { duration, closable });
+        return messageInstance!.warning(content, { duration, closable });
       case 'error':
-        return message.error(content, { duration, closable });
+        return messageInstance!.error(content, { duration, closable });
       default:
-        return message.info(content, { duration, closable });
+        return messageInstance!.info(content, { duration, closable });
     }
   };
 
@@ -99,12 +106,15 @@ export function useToast() {
    * @returns 关闭loading的函数
    */
   const showLoading = (content: string = '加载中...') => {
-    if (!message) {
+    if (!message && !globalMessage) {
       console.log(`[Toast loading]: ${content}`);
       return () => {};
     }
 
-    return message.loading(content, { duration: 0 });
+    // 优先使用组件内message实例，如果不存在则使用全局实例
+    const messageInstance = message || globalMessage;
+    
+    return messageInstance!.loading(content, { duration: 0 });
   };
 
   return {

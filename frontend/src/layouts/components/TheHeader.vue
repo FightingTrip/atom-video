@@ -24,7 +24,7 @@
 
         <!-- Logo -->
         <router-link to="/" class="logo-link">
-          <img src="@/assets/logo/logo.svg" alt="Atom Video" class="logo" />
+          <img src="/logo.svg" alt="Atom Video" class="logo" />
           <span class="logo-text">Atom Video</span>
         </router-link>
       </div>

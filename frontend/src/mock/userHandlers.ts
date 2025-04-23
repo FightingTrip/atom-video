@@ -458,7 +458,17 @@ export const userHandlers = [
   http.get('/api/user/notifications/unread-count', async ({ request }) => {
     const tokenHeader = request.headers.get('Authorization');
 
+    // 如果是开发环境，允许未授权访问，返回空结果
     if (!tokenHeader) {
+      if (import.meta.env.DEV) {
+        return HttpResponse.json({
+          success: true,
+          data: {
+            count: 0,
+          },
+        });
+      }
+
       return HttpResponse.json(
         {
           success: false,
@@ -470,6 +480,15 @@ export const userHandlers = [
 
     const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
     if (!userId) {
+      if (import.meta.env.DEV) {
+        return HttpResponse.json({
+          success: true,
+          data: {
+            count: 0,
+          },
+        });
+      }
+
       return HttpResponse.json(
         {
           success: false,

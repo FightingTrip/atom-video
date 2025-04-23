@@ -45,8 +45,13 @@
     name: 'AppMessageRegistrar',
     setup() {
       const message = useMessage()
+
       // 设置全局消息实例，用于非组件上下文
+      // 使用markRaw确保消息实例不被Vue的响应式系统代理，避免性能问题
       setGlobalMessage(markRaw(message))
+
+      console.log('[App] 全局消息提供者已注册')
+
       return () => null
     }
   })
@@ -86,6 +91,8 @@
 
       // 初始化用户
       await userStore.initUser()
+
+      console.log('[App] 应用初始化完成')
     } catch (error) {
       console.error('应用初始化失败', error)
     }

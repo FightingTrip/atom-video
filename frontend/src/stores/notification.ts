@@ -51,10 +51,13 @@ export const useNotificationStore = defineStore('notification', () => {
   // 获取未读通知数量
   async function fetchUnreadCount() {
     try {
-      unreadCount.value = await notificationService.getUnreadNotificationCount();
-      return unreadCount.value;
+      const count = await notificationService.getUnreadNotificationCount();
+      unreadCount.value = count;
+      return count;
     } catch (error) {
       console.error('获取未读通知数量失败', error);
+      // 出错时，设置为0而不是抛出异常
+      unreadCount.value = 0;
       return 0;
     }
   }
