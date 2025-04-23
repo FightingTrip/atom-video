@@ -476,6 +476,84 @@ const setPlaylistThumbnail = http.put(
   }
 );
 
+// 分享播放列表
+const sharePlaylist = http.post('/api/playlists/:id/share', async ({ request, params }) => {
+  await mockDelay();
+  const playlistId = params.id as string;
+  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+
+  // 验证用户
+  const userId = mockDb.getUserIdFromToken(token || '');
+  if (!userId) {
+    return new HttpResponse(
+      JSON.stringify({
+        success: false,
+        message: '未授权',
+      }),
+      { status: 401 }
+    );
+  }
+
+  // 获取播放列表详情
+  const playlist = mockDb.getPlaylistById(playlistId);
+
+  if (!playlist) {
+    return new HttpResponse(
+      JSON.stringify({
+        success: false,
+        message: '播放列表不存在',
+      }),
+      { status: 404 }
+    );
+  }
+
+  // 检查权限 - 只有所有者才能分享
+  if (playlist.userId !== userId) {
+    return new HttpResponse(
+      JSON.stringify({
+        success: false,
+        message: '没有权限分享此播放列表',
+      }),
+      { status: 403 }
+    );
+  }
+
+  // 解析分享对象
+  const data = (await request.json()) as {
+    shareType: 'link' | 'social';
+    platform?: 'wechat' | 'weibo' | 'qq';
+    emailAddresses?: string[];
+  };
+
+  // 如果是私有播放列表，自动转为未列出状态
+  if (playlist.visibility === 'private') {
+    mockDb.updatePlaylist(playlistId, userId, { visibility: 'unlisted' });
+  }
+
+  // 生成分享链接（实际应用中可能是创建短链接）
+  const shareLink = `https://atomvideo.com/playlist/${playlistId}`;
+
+  // 记录分享活动
+  mockDb.db.activities.push({
+    id: generateId('a-'),
+    userId,
+    action: '分享了播放列表',
+    target: playlist.title,
+    targetId: playlist.id,
+    timestamp: new Date().toISOString(),
+    type: 'video',
+  });
+
+  return HttpResponse.json({
+    success: true,
+    data: {
+      shareLink,
+      platform: data.platform,
+      shareType: data.shareType,
+    },
+  });
+});
+
 // 导出所有播放列表处理程序
 export const playlistHandlers = [
   getUserPlaylists,
@@ -488,6 +566,7 @@ export const playlistHandlers = [
   removeVideoFromPlaylist,
   updateVideoPosition,
   setPlaylistThumbnail,
+  sharePlaylist,
 ];
 
 export default playlistHandlers;

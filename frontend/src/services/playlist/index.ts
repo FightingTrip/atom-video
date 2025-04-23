@@ -371,3 +371,57 @@ export async function setPlaylistThumbnail(
     throw error;
   }
 }
+
+/**
+ * 分享播放列表
+ * @param playlistId 播放列表ID
+ * @param shareData 分享数据
+ * @returns 分享结果
+ */
+export async function sharePlaylist(
+  playlistId: string,
+  shareData: {
+    shareType: 'link' | 'social';
+    platform?: 'wechat' | 'weibo' | 'qq';
+    emailAddresses?: string[];
+  }
+): Promise<{ shareLink: string; platform?: string; shareType: string }> {
+  try {
+    await mockDelay();
+
+    // 从localStorage获取用户token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('未授权，请先登录');
+    }
+
+    // 获取用户ID
+    const userId = mockDb.getUserIdFromToken(token);
+    if (!userId) {
+      throw new Error('无效的用户令牌');
+    }
+
+    // 调用API
+    const response = await api.post(`/api/playlists/${playlistId}/share`, shareData);
+
+    return response.data.data;
+  } catch (error) {
+    console.error(`分享播放列表失败: ${playlistId}`, error);
+    throw error;
+  }
+}
+
+// 导出所有函数
+export default {
+  getUserPlaylists,
+  getPlaylistById,
+  getPlaylistVideos,
+  createPlaylist,
+  updatePlaylist,
+  deletePlaylist,
+  addVideoToPlaylist,
+  removeVideoFromPlaylist,
+  updateVideoPosition,
+  setPlaylistThumbnail,
+  sharePlaylist,
+};
