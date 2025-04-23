@@ -8,6 +8,32 @@
 3. **数据迁移系统** - 处理模型结构变更和数据迁移
 4. **开发工具** - 可视化界面用于管理和查看模拟数据
 
+## 最新更新
+
+### 性能优化
+- 使用`markRaw`包装图标组件，防止不必要的响应式处理，提高性能
+- 减少不必要的响应式对象创建，避免Vue警告
+
+### API处理器修复
+- 修复了创作者API处理程序注册问题，确保所有API端点能够正确响应
+- 解决了以下API端点的模拟处理：
+  - `/api/creator/stats`
+  - `/api/creator/videos`
+  - `/api/creator/comments`
+  - `/api/creator/trends/content`
+  - `/api/creator/trends/views`
+  - `/api/creator/channel`
+  - `/api/creator/trends/engagement`
+  - `/api/creator/trends/revenue`
+  - `/api/creator/top-videos`
+
+### 认证处理优化
+- 通知API在开发环境下即使未认证也能返回成功响应
+- 确保`/api/user/notifications/unread-count`在开发环境中能正确工作
+
+### UI组件改进
+- 添加缺失的`NSkeleton`组件到Naive UI导入，修复组件解析错误
+
 ## 模拟数据库迁移系统
 
 ### 背景

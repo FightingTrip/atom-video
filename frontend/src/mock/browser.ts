@@ -4,7 +4,21 @@
  */
 
 import { setupWorker } from 'msw/browser';
-import { handlers } from './handlers';
+import { authHandlers, adminHandlers } from './sharedHandlers';
+import { videoHandlers } from './videoHandlers';
+import { userHandlers } from './userHandlers';
+import { playlistHandlers } from './playlistHandlers';
+import { creatorHandlers } from './creatorHandlers';
+
+// 将所有处理程序合并为一个数组
+const handlers = [
+  ...authHandlers,
+  ...adminHandlers,
+  ...videoHandlers,
+  ...userHandlers,
+  ...playlistHandlers,
+  ...creatorHandlers,
+];
 
 // 创建浏览器worker实例
 export const worker = setupWorker(...handlers);

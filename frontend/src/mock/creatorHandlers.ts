@@ -609,41 +609,6 @@ export const creatorHandlers = [
     });
   }),
 
-  // 获取创作者频道信息
-  http.get('/api/creator/channel', async ({ request }) => {
-    const tokenHeader = request.headers.get('Authorization');
-
-    if (!tokenHeader) {
-      return HttpResponse.json(
-        {
-          success: false,
-          error: '未授权操作',
-        },
-        { status: 401 }
-      );
-    }
-
-    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
-    if (!userId) {
-      return HttpResponse.json(
-        {
-          success: false,
-          error: '无效的授权',
-        },
-        { status: 401 }
-      );
-    }
-
-    await mockDelay();
-
-    const channel = mockDb.getCreatorChannel(userId);
-
-    return HttpResponse.json({
-      success: true,
-      data: channel,
-    });
-  }),
-
   // 获取创作者评论
   http.get('/api/creator/comments', async ({ request }) => {
     const url = new URL(request.url);

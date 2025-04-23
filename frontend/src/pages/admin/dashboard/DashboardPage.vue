@@ -44,7 +44,7 @@
               <div class="stat-value">{{ stat.value }}</div>
               <div class="stat-trend" :class="getTrendClass(stat.change)">
                 <n-icon size="16">
-                  <component :is="stat.change > 0 ? TrendingUpOutline : TrendingDownOutline" />
+                  <component :is="stat.change > 0 ? trendingUpIcon : trendingDownIcon" />
                 </n-icon>
                 <span>{{ formatTrend(stat.change) }}</span>
               </div>
@@ -180,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, onBeforeUnmount, nextTick, computed, watch } from 'vue'
+  import { ref, onMounted, onBeforeUnmount, nextTick, computed, watch, markRaw } from 'vue'
   import {
     NButton,
     NButtonGroup,
@@ -237,6 +237,10 @@
   // 使用ref创建响应式变量
   const timeRange = ref('week')
 
+  // 使用markRaw包装图标组件以避免性能警告
+  const trendingUpIcon = markRaw(TrendingUpOutline)
+  const trendingDownIcon = markRaw(TrendingDownOutline)
+
   // 导入和初始化ECharts
   echarts.use([
     TitleComponent,
@@ -266,7 +270,7 @@
       title: '用户总数',
       value: '12,846',
       change: 5.8,
-      icon: PeopleOutline,
+      icon: markRaw(PeopleOutline),
       class: 'user-stat'
     },
     {
@@ -274,7 +278,7 @@
       title: '视频总数',
       value: '4,295',
       change: 12.4,
-      icon: PlayOutline,
+      icon: markRaw(PlayOutline),
       class: 'video-stat'
     },
     {
@@ -282,7 +286,7 @@
       title: '互动总数',
       value: '84,521',
       change: 8.2,
-      icon: HeartOutline,
+      icon: markRaw(HeartOutline),
       class: 'interaction-stat'
     },
     {
@@ -290,7 +294,7 @@
       title: '评论总数',
       value: '31,275',
       change: -3.6,
-      icon: ChatbubbleOutline,
+      icon: markRaw(ChatbubbleOutline),
       class: 'comment-stat'
     }
   ])

@@ -26,7 +26,7 @@ const creatorService = {
       const response = await api.get<{ success: boolean; data: CreatorStats }>(
         '/api/creator/stats',
         {
-          params: { period },
+      params: { period },
         }
       );
 
@@ -93,12 +93,12 @@ const creatorService = {
   // 内容趋势数据
   async getContentTrends(period: string = '30d'): Promise<TrendData> {
     try {
-      const response = await api.get<{ success: boolean; data: TrendData }>(
-        '/api/creator/trends/content',
-        {
-          params: { period },
-        }
-      );
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/content',
+      {
+        params: { period },
+      }
+    );
       return response.data || [];
     } catch (error) {
       console.error('获取内容趋势数据失败:', error);
@@ -109,12 +109,12 @@ const creatorService = {
   // 观看量趋势数据
   async getViewsTrends(period: string = '30d'): Promise<TrendData> {
     try {
-      const response = await api.get<{ success: boolean; data: TrendData }>(
-        '/api/creator/trends/views',
-        {
-          params: { period },
-        }
-      );
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/views',
+      {
+        params: { period },
+      }
+    );
       return response.data || [];
     } catch (error) {
       console.error('获取观看趋势数据失败:', error);
@@ -125,12 +125,12 @@ const creatorService = {
   // 互动趋势数据
   async getEngagementTrends(period: string = '30d'): Promise<TrendData> {
     try {
-      const response = await api.get<{ success: boolean; data: TrendData }>(
-        '/api/creator/trends/engagement',
-        {
-          params: { period },
-        }
-      );
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/engagement',
+      {
+        params: { period },
+      }
+    );
       return response.data || [];
     } catch (error) {
       console.error('获取互动趋势数据失败:', error);
@@ -141,12 +141,12 @@ const creatorService = {
   // 收入趋势数据
   async getRevenueTrends(period: string = '30d'): Promise<TrendData> {
     try {
-      const response = await api.get<{ success: boolean; data: TrendData }>(
-        '/api/creator/trends/revenue',
-        {
-          params: { period },
-        }
-      );
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/revenue',
+      {
+        params: { period },
+      }
+    );
       return response.data || [];
     } catch (error) {
       console.error('获取收入趋势数据失败:', error);
@@ -161,12 +161,12 @@ const creatorService = {
     limit: number;
   }): Promise<VideoStats[]> {
     try {
-      const response = await api.get<{ success: boolean; data: VideoStats[] }>(
-        '/api/creator/top-videos',
-        {
-          params,
-        }
-      );
+    const response = await api.get<{ success: boolean; data: VideoStats[] }>(
+      '/api/creator/top-videos',
+      {
+        params,
+      }
+    );
       return response.data || [];
     } catch (error) {
       console.error('获取表现最佳视频失败:', error);

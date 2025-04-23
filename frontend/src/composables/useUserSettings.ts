@@ -139,10 +139,10 @@ export function useUserSettings() {
       // 加载通知、隐私和外观设置
       loadSettingsFromLocalStorage();
 
-      toast.success('设置加载成功');
+      toast.showSuccess('设置加载成功');
     } catch (error) {
       console.error('加载用户设置失败:', error);
-      toast.error('加载用户设置失败');
+      toast.showError('加载用户设置失败');
     } finally {
       isLoading.value = false;
     }
@@ -192,6 +192,11 @@ export function useUserSettings() {
         }
       });
 
+      // 确保当前用户存在
+      if (!userStore.currentUser) {
+        throw new Error('用户未登录');
+      }
+
       // 更新用户数据
       const updatedUserData = {
         ...userStore.currentUser,
@@ -203,11 +208,11 @@ export function useUserSettings() {
       };
 
       // 保存到store
-      userStore.setUser(updatedUserData);
-      toast.success('个人资料已更新');
+      userStore.setUser(updatedUserData as User);
+      toast.showSuccess('个人资料已更新');
     } catch (error) {
       console.error('保存个人资料失败:', error);
-      toast.error('保存个人资料失败');
+      toast.showError('保存个人资料失败');
     } finally {
       saveLoading.value = false;
     }
@@ -216,7 +221,7 @@ export function useUserSettings() {
   // 保存账号设置
   const saveAccountSettings = async () => {
     if (!passwordsMatch.value) {
-      toast.error('两次输入的密码不一致');
+      toast.showError('两次输入的密码不一致');
       return;
     }
 
@@ -234,7 +239,7 @@ export function useUserSettings() {
         userStore.setUser(updatedUserData);
       }
 
-      toast.success('账号设置已更新');
+      toast.showSuccess('账号设置已更新');
 
       // 清空密码字段
       accountSettings.currentPassword = '';
@@ -242,7 +247,7 @@ export function useUserSettings() {
       accountSettings.confirmPassword = '';
     } catch (error) {
       console.error('保存账号设置失败:', error);
-      toast.error('保存账号设置失败');
+      toast.showError('保存账号设置失败');
     } finally {
       saveLoading.value = false;
     }
@@ -254,10 +259,10 @@ export function useUserSettings() {
     try {
       // 保存到localStorage
       localStorage.setItem('notificationSettings', JSON.stringify(notificationSettings));
-      toast.success('通知设置已更新');
+      toast.showSuccess('通知设置已更新');
     } catch (error) {
       console.error('保存通知设置失败:', error);
-      toast.error('保存通知设置失败');
+      toast.showError('保存通知设置失败');
     } finally {
       saveLoading.value = false;
     }
@@ -269,10 +274,10 @@ export function useUserSettings() {
     try {
       // 保存到localStorage
       localStorage.setItem('privacySettings', JSON.stringify(privacySettings));
-      toast.success('隐私设置已更新');
+      toast.showSuccess('隐私设置已更新');
     } catch (error) {
       console.error('保存隐私设置失败:', error);
-      toast.error('保存隐私设置失败');
+      toast.showError('保存隐私设置失败');
     } finally {
       saveLoading.value = false;
     }
@@ -294,10 +299,10 @@ export function useUserSettings() {
         `${appearanceSettings.fontSize}px`
       );
 
-      toast.success('外观设置已更新');
+      toast.showSuccess('外观设置已更新');
     } catch (error) {
       console.error('保存外观设置失败:', error);
-      toast.error('保存外观设置失败');
+      toast.showError('保存外观设置失败');
     } finally {
       saveLoading.value = false;
     }
