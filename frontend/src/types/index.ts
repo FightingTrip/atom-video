@@ -86,14 +86,20 @@ export interface Playlist {
 // 通知类型
 export interface Notification {
   id: string;
-  userId: string;
-  type: 'video_upload' | 'comment' | 'reply' | 'like' | 'subscribe' | 'mention';
+  type: 'comment' | 'like' | 'subscribe' | 'system' | string;
   title: string;
-  content: string;
-  isRead: boolean;
+  message: string;
+  read: boolean;
   createdAt: string;
-  relatedUserId?: string;
-  relatedVideoId?: string;
+  relatedId?: string; // 相关联的实体ID，比如视频ID或评论ID
+  link?: string; // 点击通知可能跳转的链接
+}
+
+// 通知分页响应
+export interface NotificationResponse {
+  notifications: Notification[];
+  total: number;
+  unreadCount: number;
 }
 
 // 标签相关类型

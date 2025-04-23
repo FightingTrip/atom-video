@@ -93,7 +93,7 @@
           <div v-else class="video-grid">
             <div v-for="video in filteredVideos" :key="video.id" class="video-card" @click="handleVideoClick(video)">
               <div class="video-thumbnail">
-                <img :src="video.thumbnailUrl" :alt="video.title" />
+                <img :src="video.coverUrl" :alt="video.title" />
                 <div class="video-duration">{{ formatDuration(video.duration) }}</div>
               </div>
               <div class="video-info">
@@ -101,7 +101,7 @@
                 <div class="video-meta">
                   <span class="video-author">{{ video.author.nickname }}</span>
                   <span class="video-stats">{{ formatNumber(video.views) }}次观看 · {{ formatTimeAgo(video.createdAt)
-                    }}</span>
+                  }}</span>
                 </div>
                 <p class="video-description">{{ truncateText(video.description, 100) }}</p>
               </div>
@@ -165,7 +165,7 @@
 <script setup lang="ts">
   import { ref, computed, watch, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import type { IVideo } from '@atom-video/shared-types';
+  import type { Video } from '@/types'; // 使用前端定义的Video类型
   import dayjs from 'dayjs';
   import relativeTime from 'dayjs/plugin/relativeTime';
   import 'dayjs/locale/zh-cn';
@@ -282,6 +282,15 @@
     }
   ]);
 
+  // 自定义视频标签类别映射
+  const videoCategories = {
+    'video-1': 'frontend',
+    'video-2': 'frontend',
+    'video-3': 'devops',
+    'video-4': 'backend',
+    // 为其他可能的视频添加映射
+  };
+
   // 计算属性
   const filteredVideos = computed(() => {
     let videos = [...mockVideos];
@@ -323,17 +332,19 @@
       });
     }
 
-    // 根据分类过滤
+    // 根据自定义分类映射过滤
     if (selectedCategories.value.length > 0) {
-      videos = videos.filter(video =>
-        selectedCategories.value.includes(video.category)
-      );
+      videos = videos.filter(video => {
+        // 使用自定义映射来处理分类
+        const category = videoCategories[video.id as keyof typeof videoCategories];
+        return category && selectedCategories.value.includes(category);
+      });
     }
 
     // 根据标签过滤
     if (selectedTags.value.length > 0) {
       videos = videos.filter(video =>
-        selectedTags.value.some(tag => video.tags.includes(tag))
+        video.tags && selectedTags.value.some(tag => video.tags.includes(tag))
       );
     }
 
@@ -355,10 +366,12 @@
         videos.sort((a, b) => a.views - b.views);
         break;
       case 'rating_desc':
-        videos.sort((a, b) => b.rating - a.rating);
+        // 使用likes作为评分的替代
+        videos.sort((a, b) => b.likes - a.likes);
         break;
       case 'rating_asc':
-        videos.sort((a, b) => a.rating - b.rating);
+        // 使用likes作为评分的替代
+        videos.sort((a, b) => a.likes - b.likes);
         break;
     }
 
@@ -380,7 +393,7 @@
   });
 
   // 方法
-  const handleVideoClick = (video: IVideo) => {
+  const handleVideoClick = (video: Video) => {
     router.push(`/video/${video.id}`);
   };
 
@@ -413,9 +426,9 @@
     loadSearchResults();
   };
 
-  const handleSizeChange = (pageSize: number) => {
+  const handleSizeChange = (size: number) => {
     currentPage.value = 1;
-    pageSize.value = pageSize;
+    pageSize.value = size;
     loadSearchResults();
   };
 
@@ -752,6 +765,4 @@
   .mt-2 {
     margin-top: 8px;
   }
-</style>
-}
 </style>

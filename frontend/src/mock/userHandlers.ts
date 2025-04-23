@@ -366,7 +366,7 @@ export const userHandlers = [
         data: {
           notifications: result.data,
           total: result.total,
-          unread: result.data.filter(n => !n.read).length,
+          unreadCount: result.data.filter(n => !n.read).length,
           hasMore: page * limit < result.total,
         },
       });
@@ -450,6 +450,43 @@ export const userHandlers = [
       return HttpResponse.json({
         success: true,
         data: { message: '所有通知已标记为已读' },
+      });
+    });
+  }),
+
+  // 获取未读通知数量
+  http.get('/api/user/notifications/unread-count', async ({ request }) => {
+    const tokenHeader = request.headers.get('Authorization');
+
+    if (!tokenHeader) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '未授权操作',
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
+    if (!userId) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '无效的授权',
+        },
+        { status: 401 }
+      );
+    }
+
+    return withDelay(() => {
+      const notifications = mockDb.db.notifications.filter(n => n.userId === userId && !n.read);
+
+      return HttpResponse.json({
+        success: true,
+        data: {
+          count: notifications.length,
+        },
       });
     });
   }),

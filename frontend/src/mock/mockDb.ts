@@ -3012,12 +3012,84 @@ class MockDatabase {
 
   /**
    * 初始化通知数据
-   * 确保数据库中存在notifications表
    */
-  private initializeNotifications(): void {
-    if (!this.db.notifications) {
-      this.db.notifications = [];
-    }
+  public initializeNotifications() {
+    // 如果已经有通知数据，不再重复初始化
+    if (this.db.notifications.length > 0) return;
+
+    // 获取一些用户
+    const users = this.db.users;
+    if (users.length === 0) return;
+
+    // 生成一些通知样本
+    users.forEach(user => {
+      // 系统通知
+      this.db.notifications.push({
+        id: generateId('n-'),
+        userId: user.id,
+        type: 'system',
+        title: '欢迎使用Atom Video',
+        message: '感谢您注册Atom Video，开始探索丰富的视频世界吧！',
+        read: Math.random() > 0.7,
+        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        relatedId: null,
+        actionUrl: '/explore',
+      });
+
+      // 评论通知
+      this.db.notifications.push({
+        id: generateId('n-'),
+        userId: user.id,
+        type: 'comment',
+        title: '新评论',
+        message: '有人评论了您的视频',
+        read: Math.random() > 0.5,
+        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        relatedId: this.db.videos[Math.floor(Math.random() * this.db.videos.length)]?.id,
+        actionUrl: '/video/detail',
+      });
+
+      // 点赞通知
+      this.db.notifications.push({
+        id: generateId('n-'),
+        userId: user.id,
+        type: 'like',
+        title: '获得点赞',
+        message: '您的视频收到了新的点赞',
+        read: Math.random() > 0.3,
+        createdAt: new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString(),
+        relatedId: this.db.videos[Math.floor(Math.random() * this.db.videos.length)]?.id,
+        actionUrl: '/video/detail',
+      });
+
+      // 订阅通知
+      if (Math.random() > 0.5) {
+        this.db.notifications.push({
+          id: generateId('n-'),
+          userId: user.id,
+          type: 'subscription',
+          title: '新的订阅者',
+          message: '有新用户订阅了您的频道',
+          read: Math.random() > 0.2,
+          createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
+          relatedId: users[Math.floor(Math.random() * users.length)]?.id,
+          actionUrl: '/channel/detail',
+        });
+      }
+    });
+  }
+
+  /**
+   * 标记所有通知为已读
+   * @param userId 用户ID
+   */
+  public markAllNotificationsRead(userId: string): void {
+    this.initializeNotifications();
+    this.db.notifications.forEach(notification => {
+      if (notification.userId === userId) {
+        notification.read = true;
+      }
+    });
   }
 
   /**
@@ -3074,21 +3146,6 @@ class MockDatabase {
     notification.read = true;
 
     return { success: true };
-  }
-
-  /**
-   * 标记所有通知为已读
-   * @param userId 用户ID
-   */
-  public markAllNotificationsRead(userId: string): void {
-    this.initializeNotifications();
-
-    // 获取用户的所有通知并标记为已读
-    this.db.notifications
-      .filter(notif => notif.userId === userId)
-      .forEach(notif => {
-        notif.read = true;
-      });
   }
 
   /**
