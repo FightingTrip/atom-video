@@ -22,54 +22,136 @@ import {
 const creatorService = {
   // 统计数据
   async getCreatorStats(period: string = '30d'): Promise<CreatorStats> {
-    const response = await api.get<{ success: boolean; data: CreatorStats }>('/api/creator/stats', {
-      params: { period },
-    });
-    return response.data;
+    try {
+      const response = await api.get<{ success: boolean; data: CreatorStats }>(
+        '/api/creator/stats',
+        {
+          params: { period },
+        }
+      );
+
+      // 确保返回数据字段完整，避免undefined值
+      return {
+        totalVideos: 0,
+        publishedVideos: 0,
+        draftVideos: 0,
+        videosTrend: 0,
+        publishedVideosTrend: 0,
+        draftVideosTrend: 0,
+        totalViews: 0,
+        totalMinutesWatched: 0,
+        averageViewDuration: 0,
+        viewsTrend: 0,
+        minutesWatchedTrend: 0,
+        viewDurationTrend: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        totalShares: 0,
+        likesTrend: 0,
+        commentsTrend: 0,
+        sharesTrend: 0,
+        totalRevenue: 0,
+        monthlyRevenue: 0,
+        pendingRevenue: 0,
+        revenueTrend: 0,
+        monthlyRevenueTrend: 0,
+        lastUpdated: new Date().toISOString(),
+        ...response.data,
+      };
+    } catch (error) {
+      console.error('获取创作者统计数据失败:', error);
+      // 返回默认值以防止UI出错
+      return {
+        totalVideos: 0,
+        publishedVideos: 0,
+        draftVideos: 0,
+        videosTrend: 0,
+        publishedVideosTrend: 0,
+        draftVideosTrend: 0,
+        totalViews: 0,
+        totalMinutesWatched: 0,
+        averageViewDuration: 0,
+        viewsTrend: 0,
+        minutesWatchedTrend: 0,
+        viewDurationTrend: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        totalShares: 0,
+        likesTrend: 0,
+        commentsTrend: 0,
+        sharesTrend: 0,
+        totalRevenue: 0,
+        monthlyRevenue: 0,
+        pendingRevenue: 0,
+        revenueTrend: 0,
+        monthlyRevenueTrend: 0,
+        lastUpdated: new Date().toISOString(),
+      };
+    }
   },
 
   // 内容趋势数据
   async getContentTrends(period: string = '30d'): Promise<TrendData> {
-    const response = await api.get<{ success: boolean; data: TrendData }>(
-      '/api/creator/trends/content',
-      {
-        params: { period },
-      }
-    );
-    return response.data;
+    try {
+      const response = await api.get<{ success: boolean; data: TrendData }>(
+        '/api/creator/trends/content',
+        {
+          params: { period },
+        }
+      );
+      return response.data || [];
+    } catch (error) {
+      console.error('获取内容趋势数据失败:', error);
+      return []; // 返回空数组，避免UI错误
+    }
   },
 
   // 观看量趋势数据
   async getViewsTrends(period: string = '30d'): Promise<TrendData> {
-    const response = await api.get<{ success: boolean; data: TrendData }>(
-      '/api/creator/trends/views',
-      {
-        params: { period },
-      }
-    );
-    return response.data;
+    try {
+      const response = await api.get<{ success: boolean; data: TrendData }>(
+        '/api/creator/trends/views',
+        {
+          params: { period },
+        }
+      );
+      return response.data || [];
+    } catch (error) {
+      console.error('获取观看趋势数据失败:', error);
+      return []; // 返回空数组，避免UI错误
+    }
   },
 
   // 互动趋势数据
   async getEngagementTrends(period: string = '30d'): Promise<TrendData> {
-    const response = await api.get<{ success: boolean; data: TrendData }>(
-      '/api/creator/trends/engagement',
-      {
-        params: { period },
-      }
-    );
-    return response.data;
+    try {
+      const response = await api.get<{ success: boolean; data: TrendData }>(
+        '/api/creator/trends/engagement',
+        {
+          params: { period },
+        }
+      );
+      return response.data || [];
+    } catch (error) {
+      console.error('获取互动趋势数据失败:', error);
+      return []; // 返回空数组，避免UI错误
+    }
   },
 
   // 收入趋势数据
   async getRevenueTrends(period: string = '30d'): Promise<TrendData> {
-    const response = await api.get<{ success: boolean; data: TrendData }>(
-      '/api/creator/trends/revenue',
-      {
-        params: { period },
-      }
-    );
-    return response.data;
+    try {
+      const response = await api.get<{ success: boolean; data: TrendData }>(
+        '/api/creator/trends/revenue',
+        {
+          params: { period },
+        }
+      );
+      return response.data || [];
+    } catch (error) {
+      console.error('获取收入趋势数据失败:', error);
+      return []; // 返回空数组，避免UI错误
+    }
   },
 
   // 获取表现最佳的视频
@@ -78,13 +160,18 @@ const creatorService = {
     period: string;
     limit: number;
   }): Promise<VideoStats[]> {
-    const response = await api.get<{ success: boolean; data: VideoStats[] }>(
-      '/api/creator/top-videos',
-      {
-        params,
-      }
-    );
-    return response.data;
+    try {
+      const response = await api.get<{ success: boolean; data: VideoStats[] }>(
+        '/api/creator/top-videos',
+        {
+          params,
+        }
+      );
+      return response.data || [];
+    } catch (error) {
+      console.error('获取表现最佳视频失败:', error);
+      return []; // 返回空数组，避免UI错误
+    }
   },
 
   // 视频数据

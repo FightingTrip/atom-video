@@ -495,21 +495,26 @@
 
   // 导出统计数据为CSV
   const exportStatsToCSV = () => {
+    // 确保所有值都是字符串，防止undefined.toString()错误
+    const safeToString = (value: any): string => {
+      return value !== undefined && value !== null ? value.toString() : '0';
+    };
+
     // 构建CSV数据
     const csvRows = [
       ['指标', '值', '趋势'],
-      ['总视频数', stats.totalVideos.toString(), stats.videosTrend.toString() + '%'],
-      ['已发布视频', stats.publishedVideos.toString(), stats.publishedVideosTrend.toString() + '%'],
-      ['草稿视频', stats.draftVideos.toString(), stats.draftVideosTrend.toString() + '%'],
-      ['总观看量', stats.totalViews.toString(), stats.viewsTrend.toString() + '%'],
-      ['总观看时长(分钟)', stats.totalMinutesWatched.toString(), stats.minutesWatchedTrend.toString() + '%'],
-      ['平均观看时长(秒)', stats.averageViewDuration.toString(), stats.viewDurationTrend.toString() + '%'],
-      ['总点赞数', stats.totalLikes.toString(), stats.likesTrend.toString() + '%'],
-      ['总评论数', stats.totalComments.toString(), stats.commentsTrend.toString() + '%'],
-      ['总分享数', stats.totalShares.toString(), stats.sharesTrend.toString() + '%'],
-      ['总收入(¥)', stats.totalRevenue.toString(), stats.revenueTrend.toString() + '%'],
-      ['本月收入(¥)', stats.monthlyRevenue.toString(), stats.monthlyRevenueTrend.toString() + '%'],
-      ['待结算收入(¥)', stats.pendingRevenue.toString(), '']
+      ['总视频数', safeToString(stats.totalVideos), safeToString(stats.videosTrend) + '%'],
+      ['已发布视频', safeToString(stats.publishedVideos), safeToString(stats.publishedVideosTrend) + '%'],
+      ['草稿视频', safeToString(stats.draftVideos), safeToString(stats.draftVideosTrend) + '%'],
+      ['总观看量', safeToString(stats.totalViews), safeToString(stats.viewsTrend) + '%'],
+      ['总观看时长(分钟)', safeToString(stats.totalMinutesWatched), safeToString(stats.minutesWatchedTrend) + '%'],
+      ['平均观看时长(秒)', safeToString(stats.averageViewDuration), safeToString(stats.viewDurationTrend) + '%'],
+      ['总点赞数', safeToString(stats.totalLikes), safeToString(stats.likesTrend) + '%'],
+      ['总评论数', safeToString(stats.totalComments), safeToString(stats.commentsTrend) + '%'],
+      ['总分享数', safeToString(stats.totalShares), safeToString(stats.sharesTrend) + '%'],
+      ['总收入(¥)', safeToString(stats.totalRevenue), safeToString(stats.revenueTrend) + '%'],
+      ['本月收入(¥)', safeToString(stats.monthlyRevenue), safeToString(stats.monthlyRevenueTrend) + '%'],
+      ['待结算收入(¥)', safeToString(stats.pendingRevenue), '']
     ];
 
     // 转换为CSV字符串
