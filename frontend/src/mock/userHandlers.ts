@@ -334,7 +334,20 @@ export const userHandlers = [
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const tokenHeader = request.headers.get('Authorization');
 
+    // 如果是开发环境，允许未授权访问，返回空数据
     if (!tokenHeader) {
+      if (import.meta.env.DEV) {
+        return HttpResponse.json({
+          success: true,
+          data: {
+            notifications: [],
+            total: 0,
+            unreadCount: 0,
+            hasMore: false,
+          },
+        });
+      }
+
       return HttpResponse.json(
         {
           success: false,
@@ -346,6 +359,18 @@ export const userHandlers = [
 
     const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
     if (!userId) {
+      if (import.meta.env.DEV) {
+        return HttpResponse.json({
+          success: true,
+          data: {
+            notifications: [],
+            total: 0,
+            unreadCount: 0,
+            hasMore: false,
+          },
+        });
+      }
+
       return HttpResponse.json(
         {
           success: false,
