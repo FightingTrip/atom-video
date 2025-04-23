@@ -12,6 +12,8 @@ import {
   CreatorComment,
   ChannelSettings,
   PaginatedResult,
+  VideoStats,
+  TrendData,
 } from './types';
 
 /**
@@ -19,8 +21,69 @@ import {
  */
 const creatorService = {
   // 统计数据
-  async getCreatorStats(): Promise<CreatorStats> {
-    const response = await api.get<{ success: boolean; data: CreatorStats }>('/api/creator/stats');
+  async getCreatorStats(period: string = '30d'): Promise<CreatorStats> {
+    const response = await api.get<{ success: boolean; data: CreatorStats }>('/api/creator/stats', {
+      params: { period },
+    });
+    return response.data;
+  },
+
+  // 内容趋势数据
+  async getContentTrends(period: string = '30d'): Promise<TrendData> {
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/content',
+      {
+        params: { period },
+      }
+    );
+    return response.data;
+  },
+
+  // 观看量趋势数据
+  async getViewsTrends(period: string = '30d'): Promise<TrendData> {
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/views',
+      {
+        params: { period },
+      }
+    );
+    return response.data;
+  },
+
+  // 互动趋势数据
+  async getEngagementTrends(period: string = '30d'): Promise<TrendData> {
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/engagement',
+      {
+        params: { period },
+      }
+    );
+    return response.data;
+  },
+
+  // 收入趋势数据
+  async getRevenueTrends(period: string = '30d'): Promise<TrendData> {
+    const response = await api.get<{ success: boolean; data: TrendData }>(
+      '/api/creator/trends/revenue',
+      {
+        params: { period },
+      }
+    );
+    return response.data;
+  },
+
+  // 获取表现最佳的视频
+  async getTopVideos(params: {
+    metric: string;
+    period: string;
+    limit: number;
+  }): Promise<VideoStats[]> {
+    const response = await api.get<{ success: boolean; data: VideoStats[] }>(
+      '/api/creator/top-videos',
+      {
+        params,
+      }
+    );
     return response.data;
   },
 
@@ -37,6 +100,19 @@ const creatorService = {
       '/api/creator/videos',
       { params }
     );
+
+    // 确保返回的数据符合预期格式
+    if (!response.data) {
+      // 如果没有data字段，创建一个空的默认返回值
+      return {
+        data: [],
+        total: 0,
+        page: params?.page || 1,
+        pageSize: params?.pageSize || 10,
+        totalPages: 0,
+      };
+    }
+
     return response.data;
   },
 
@@ -81,6 +157,19 @@ const creatorService = {
       '/api/creator/comments',
       { params }
     );
+
+    // 确保返回的数据符合预期格式
+    if (!response.data) {
+      // 如果没有data字段，创建一个空的默认返回值
+      return {
+        data: [],
+        total: 0,
+        page: params?.page || 1,
+        pageSize: params?.pageSize || 10,
+        totalPages: 0,
+      };
+    }
+
     return response.data;
   },
 

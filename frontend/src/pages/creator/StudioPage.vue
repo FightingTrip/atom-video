@@ -123,13 +123,19 @@
         sortOrder: 'desc'
       });
 
-      recentVideos.value = videosResult.data.map(video => ({
-        id: video.id,
-        title: video.title,
-        coverUrl: video.thumbnail,
-        createdAt: video.uploadDate,
-        views: video.views
-      }));
+      // 确保有数据再映射，避免undefined错误
+      if (videosResult && videosResult.data) {
+        recentVideos.value = videosResult.data.map(video => ({
+          id: video.id,
+          title: video.title,
+          coverUrl: video.thumbnail || '/images/default-thumbnail.jpg',
+          createdAt: video.uploadDate,
+          views: video.views || 0
+        }));
+      } else {
+        recentVideos.value = [];
+        console.warn('获取最近视频返回空数据');
+      }
 
       // 获取最近评论
       const commentsResult = await creatorService.getCreatorComments({
@@ -137,15 +143,34 @@
         pageSize: 5
       });
 
-      recentComments.value = commentsResult.data;
+      // 确保有数据再赋值，避免undefined错误
+      if (commentsResult && commentsResult.data) {
+        recentComments.value = commentsResult.data;
+      } else {
+        recentComments.value = [];
+        console.warn('获取最近评论返回空数据');
+      }
 
       // 获取频道设置
-      const channelSettings = await creatorService.getChannelSettings();
-      channelDescription.value = channelSettings.description;
-      selectedThemeColor.value = channelSettings.themeColor;
+      try {
+        const channelSettings = await creatorService.getChannelSettings();
+        if (channelSettings) {
+          channelDescription.value = channelSettings.description || '';
+          selectedThemeColor.value = channelSettings.themeColor || '#3fb950';
+        }
+      } catch (settingsError) {
+        console.error('获取频道设置失败:', settingsError);
+        // 设置默认值，避免UI出错
+        channelDescription.value = '';
+        selectedThemeColor.value = '#3fb950';
+      }
     } catch (error) {
       console.error('加载数据失败:', error);
       message.error('加载数据失败，请稍后重试');
+
+      // 设置默认值，避免UI出错
+      recentVideos.value = [];
+      recentComments.value = [];
     }
   };
 

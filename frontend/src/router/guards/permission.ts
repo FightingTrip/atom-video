@@ -18,7 +18,7 @@ export const permissionGuard = async (
   next: NavigationGuardNext
 ) => {
   const authStore = useAuthStore();
-  const toast = useToast();
+  const { showWarning, showError } = useToast();
 
   // 检查路由是否需要特定角色
   const requiredRoles = to.meta.roles as string[] | undefined;
@@ -31,7 +31,7 @@ export const permissionGuard = async (
   // 如果需要角色但用户未登录，重定向到登录页
   if (!authStore.isAuthenticated) {
     // 显示提示信息
-    toast.warning('需要登录才能访问该页面');
+    showWarning('需要登录才能访问该页面');
 
     // 延迟重定向，确保消息显示
     setTimeout(() => {
@@ -52,7 +52,7 @@ export const permissionGuard = async (
     return next();
   } else {
     // 没有所需角色，拒绝访问并提示
-    toast.error('您没有权限访问此页面');
+    showError('您没有权限访问此页面');
 
     // 延迟执行重定向，确保消息显示
     setTimeout(() => {

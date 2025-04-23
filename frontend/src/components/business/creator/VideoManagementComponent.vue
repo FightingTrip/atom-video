@@ -48,9 +48,9 @@
 </template>
 
 <script setup lang="ts">
-  import { h, ref, computed, onMounted } from 'vue';
+  import { h, ref, computed, onMounted, watch } from 'vue';
   import { useRouter } from 'vue-router';
-  import { useMessage } from 'naive-ui';
+  import { useToast } from '@/composables/useToast';
   import {
     NDataTable,
     NButton,
@@ -73,7 +73,10 @@
     PlayOutline,
     AddOutline,
     SearchOutline,
-    ShareSocialOutline
+    ShareSocialOutline,
+    PencilOutline,
+    BarChartOutline,
+    CalendarOutline
   } from '@vicons/ionicons5';
   import creatorService from '@/services/creator/creatorService';
   import type { CreatorVideo } from '@/services/creator/types';
@@ -82,11 +85,15 @@
     title: {
       type: String,
       default: '视频管理'
+    },
+    showHeader: {
+      type: Boolean,
+      default: true
     }
   });
 
   const router = useRouter();
-  const message = useMessage();
+  const { showError, showSuccess } = useToast();
 
   // 视频列表状态
   const loading = ref(false);
@@ -117,21 +124,28 @@
   const createColumns = () => {
     return [
       {
-        title: '视频',
-        key: 'title',
+        title: '视频信息',
+        key: 'video',
+        width: 400,
+        fixed: 'left',
         render(row: CreatorVideo) {
           return h('div', { class: 'video-info-cell' }, [
             h('img', {
-              src: row.thumbnail,
-              class: 'video-thumbnail'
+              src: row.thumbnail || '/images/default-thumbnail.jpg',
+              class: 'video-thumbnail',
+              alt: row.title
             }),
             h('div', { class: 'video-details' }, [
               h('div', { class: 'video-title' }, row.title),
               h('div', { class: 'video-meta' }, [
-                h('span', { class: 'video-duration' }, [
-                  h(NIcon, { size: 14 }, { default: () => h(TimeOutline) }),
-                  ' ' + row.duration
-                ])
+                row.duration
+                  ? [
+                    h(NIcon, { size: 14 }, { default: () => h(TimeOutline) }),
+                    ' ' + formatDuration(row.duration)
+                  ]
+                  : null,
+                h(NIcon, { size: 14 }, { default: () => h(CalendarOutline) }),
+                ' ' + formatDate(row.uploadDate)
               ])
             ])
           ]);
@@ -142,71 +156,66 @@
         key: 'status',
         width: 120,
         render(row: CreatorVideo) {
-          const statusMap: Record<string, { text: string, type: 'success' | 'warning' | 'info' | 'error' | 'default' }> = {
-            published: { text: '已发布', type: 'success' },
-            draft: { text: '草稿', type: 'default' },
-            processing: { text: '处理中', type: 'warning' },
-            scheduled: { text: '计划发布', type: 'info' },
-            rejected: { text: '已拒绝', type: 'error' }
+          const status = row.status || 'draft';
+          const statusMap: Record<string, { type: string; text: string }> = {
+            published: { type: 'success', text: '已发布' },
+            draft: { type: 'default', text: '草稿' },
+            processing: { type: 'warning', text: '处理中' },
+            scheduled: { type: 'info', text: '已安排' },
+            failed: { type: 'error', text: '失败' }
           };
 
-          const status = statusMap[row.status] || { text: row.status, type: 'default' };
-
-          return h(NTag, {
-            type: status.type,
-            size: 'small',
-            round: true
-          }, { default: () => status.text });
+          return h(
+            NTag,
+            {
+              type: statusMap[status]?.type as 'success' | 'warning' | 'error' | 'default' | 'info',
+              size: 'small',
+              round: true
+            },
+            { default: () => statusMap[status]?.text || status }
+          );
         }
       },
       {
         title: '可见性',
         key: 'privacy',
-        width: 100,
-        render(row: CreatorVideo) {
-          const privacyMap: Record<string, { text: string, icon: any }> = {
-            public: { text: '公开', icon: EyeOutline },
-            private: { text: '私有', icon: LockClosedOutline },
-            unlisted: { text: '不公开', icon: LockClosedOutline }
-          };
-
-          const privacy = privacyMap[row.privacy] || { text: row.privacy, icon: EyeOutline };
-
-          return h(NPopover, {
-            trigger: 'hover'
-          }, {
-            trigger: () => h('div', { class: 'privacy-info' }, [
-              h(NIcon, { size: 16 }, { default: () => h(privacy.icon) }),
-              ' ' + privacy.text
-            ]),
-            default: () => `此视频为${privacy.text}可见`
-          });
-        }
-      },
-      {
-        title: '上传日期',
-        key: 'uploadDate',
         width: 120,
         render(row: CreatorVideo) {
-          return formatDate(row.uploadDate);
+          const visibility = row.visibility || 'public';
+          const visibilityMap: Record<string, { type: string; text: string }> = {
+            public: { type: 'success', text: '公开' },
+            unlisted: { type: 'info', text: '不公开' },
+            private: { type: 'default', text: '私密' }
+          };
+
+          return h(
+            NTag,
+            {
+              type: visibilityMap[visibility]?.type as 'success' | 'info' | 'default',
+              size: 'small',
+              round: true
+            },
+            { default: () => visibilityMap[visibility]?.text || visibility }
+          );
         }
       },
       {
         title: '数据',
         key: 'stats',
+        width: 200,
         render(row: CreatorVideo) {
-          return h('div', { class: 'video-stats' }, [
+          return h('div', { class: 'stats-cell' }, [
             h('span', { class: 'stat-item' }, [
-              h(NIcon, { size: 16 }, { default: () => h(EyeOutline) }),
-              ' ' + formatNumber(row.views)
+              h(NIcon, { size: 14 }, { default: () => h(EyeOutline) }),
+              ' ' + formatNumber(row.views || 0)
             ]),
             h('span', { class: 'stat-item' }, [
-              h(NIcon, { size: 16 }, { default: () => h(ThumbsUpOutline) }),
-              ' ' + formatNumber(row.likes)
+              h(NIcon, { size: 14 }, { default: () => h(ThumbsUpOutline) }),
+              ' ' + formatNumber(row.likes || 0)
             ]),
             h('span', { class: 'stat-item' }, [
-              h(NIcon, { size: 16 }, { default: () => h(ChatbubbleOutline) }),
-              ' ' + formatNumber(row.comments)
+              h(NIcon, { size: 14 }, { default: () => h(ChatbubbleOutline) }),
+              ' ' + formatNumber(row.comments || 0)
             ])
           ]);
         }
@@ -214,47 +223,67 @@
       {
         title: '操作',
         key: 'actions',
-        width: 250,
+        width: 280,
+        fixed: 'right',
         render(row: CreatorVideo) {
-          return h(NSpace, { align: 'center' }, {
-            default: () => [
-              h(NButton, {
+          return h('div', { class: 'action-buttons' }, [
+            // 视频预览按钮
+            h(
+              NButton,
+              {
                 size: 'small',
                 quaternary: true,
                 circle: true,
                 onClick: () => previewVideo(row.id)
-              }, { icon: () => h(NIcon, {}, { default: () => h(PlayOutline) }) }),
-
-              h(NButton, {
+              },
+              { icon: () => h(NIcon, {}, { default: () => h(EyeOutline) }) }
+            ),
+            // 编辑按钮
+            h(
+              NButton,
+              {
                 size: 'small',
                 quaternary: true,
                 circle: true,
                 onClick: () => editVideo(row.id)
-              }, { icon: () => h(NIcon, {}, { default: () => h(CreateOutline) }) }),
-
-              h(NButton, {
+              },
+              { icon: () => h(NIcon, {}, { default: () => h(PencilOutline) }) }
+            ),
+            // 统计按钮
+            h(
+              NButton,
+              {
                 size: 'small',
                 quaternary: true,
                 circle: true,
                 onClick: () => viewStats(row.id)
-              }, { icon: () => h(NIcon, {}, { default: () => h(StatsChartOutline) }) }),
-
-              h(NButton, {
+              },
+              { icon: () => h(NIcon, {}, { default: () => h(BarChartOutline) }) }
+            ),
+            // 分享按钮
+            h(
+              NButton,
+              {
                 size: 'small',
                 quaternary: true,
                 circle: true,
                 onClick: () => shareVideo(row.id)
-              }, { icon: () => h(NIcon, {}, { default: () => h(ShareSocialOutline) }) }),
-
-              h(NButton, {
+              },
+              { icon: () => h(NIcon, {}, { default: () => h(ShareSocialOutline) }) }
+            ),
+            // 删除按钮
+            h(
+              NButton,
+              {
                 size: 'small',
                 quaternary: true,
                 circle: true,
                 type: 'error',
                 onClick: () => handleDelete(row)
-              }, { icon: () => h(NIcon, {}, { default: () => h(TrashOutline) }) })
-            ]
-          });
+              },
+              { icon: () => h(NIcon, {}, { default: () => h(TrashOutline) }) }
+            )
+          ]);
         }
       }
     ];
@@ -279,7 +308,7 @@
       videos.value = result.data;
     } catch (error) {
       console.error('获取视频失败:', error);
-      message.error('获取视频列表失败');
+      showError('获取视频列表失败');
     } finally {
       loading.value = false;
     }
@@ -321,15 +350,15 @@
       try {
         const result = await creatorService.deleteVideo(videoToDelete.value.id);
         if (result.success) {
-          message.success('视频已成功删除');
+          showSuccess('视频已成功删除');
           // 重新获取视频列表
           await fetchVideos();
         } else {
-          message.error(`删除失败: ${result.message}`);
+          showError(`删除失败: ${result.message}`);
         }
       } catch (error) {
         console.error('删除视频失败:', error);
-        message.error('删除视频失败，请稍后重试');
+        showError('删除视频失败，请稍后重试');
       } finally {
         videoToDelete.value = null;
         showDeleteModal.value = false;
@@ -372,11 +401,16 @@
     return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : num;
   };
 
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   import {
     ThumbsUpOutline,
     ChatbubbleOutline
   } from '@vicons/ionicons5';
-  import { watch } from 'vue';
 </script>
 
 <style scoped>

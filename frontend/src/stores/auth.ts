@@ -82,7 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 异步操作
   async function login(email: string, password: string): Promise<boolean> {
-    const toast = useToast();
+    const { showSuccess, showError } = useToast();
     loading.value = true;
     error.value = null;
 
@@ -104,7 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
           joinedAt: new Date().toISOString(),
         });
         demoMode.value = true;
-        toast.success('演示模式登录成功');
+        showSuccess('演示模式登录成功');
         return true;
       }
 
@@ -118,7 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
         setToken(response.token);
         setUser(mappedUser);
         demoMode.value = false;
-        toast.success('登录成功');
+        showSuccess('登录成功');
         // 调试信息：记录当前用户角色
         console.log('[AuthStore] 登录成功，当前用户:', mappedUser);
         console.log('[AuthStore] 用户角色:', userRole.value);
@@ -134,7 +134,7 @@ export const useAuthStore = defineStore('auth', () => {
         // 确保错误信息不为undefined
         const errorMsg = response.error || '登录失败，请检查用户名和密码';
         error.value = errorMsg;
-        toast.error(errorMsg);
+        showError(errorMsg);
         return false;
       }
     } catch (err: any) {
@@ -144,7 +144,8 @@ export const useAuthStore = defineStore('auth', () => {
           ? err.message || '登录过程中发生错误'
           : '登录过程中发生未知错误';
       error.value = errorMsg;
-      toast.error(errorMsg);
+      console.error('[AuthStore] 登录错误:', err);
+      showError(errorMsg);
       return false;
     } finally {
       loading.value = false;
@@ -157,7 +158,7 @@ export const useAuthStore = defineStore('auth', () => {
     nickname?: string,
     email?: string
   ): Promise<boolean> {
-    const toast = useToast();
+    const { showSuccess, showError } = useToast();
     loading.value = true;
     error.value = null;
     try {
@@ -171,12 +172,12 @@ export const useAuthStore = defineStore('auth', () => {
       });
 
       if (response.success) {
-        toast.success('注册成功，请登录');
+        showSuccess('注册成功，请登录');
         return true;
       } else {
         const errorMsg = response.error || '注册失败，请稍后重试';
         error.value = errorMsg;
-        toast.error(errorMsg);
+        showError(errorMsg);
         return false;
       }
     } catch (err: any) {
@@ -186,7 +187,8 @@ export const useAuthStore = defineStore('auth', () => {
           ? err.message || '注册过程中发生错误'
           : '注册过程中发生未知错误';
       error.value = errorMsg;
-      toast.error(errorMsg);
+      console.error('[AuthStore] 注册错误:', err);
+      showError(errorMsg);
       return false;
     } finally {
       loading.value = false;
@@ -229,18 +231,18 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout(): void {
-    const toast = useToast();
+    const { showSuccess } = useToast();
     setToken(null);
     setUser(null);
     error.value = null;
     demoMode.value = false;
-    toast.success('已退出登录');
+    showSuccess('已退出登录');
   }
 
   function enableDemoMode() {
     demoMode.value = true;
-    const toast = useToast();
-    toast.success('已启用演示模式');
+    const { showSuccess } = useToast();
+    showSuccess('已启用演示模式');
   }
 
   function disableDemoMode() {

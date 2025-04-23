@@ -44,32 +44,32 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   error => {
-    const toast = useToast();
+    const { showError } = useToast();
     if (error.response) {
       // HTTP错误处理
       switch (error.response.status) {
         case 401:
-          toast.error('身份验证失败，请重新登录');
+          showError('身份验证失败，请重新登录');
           // 可以在这里自动跳转到登录页
           break;
         case 403:
-          toast.error('禁止访问该资源');
+          showError('禁止访问该资源');
           break;
         case 404:
-          toast.error('请求的资源不存在');
+          showError('请求的资源不存在');
           break;
         case 500:
-          toast.error('服务器内部错误');
+          showError('服务器内部错误');
           break;
         default:
-          toast.error(`请求失败 (${error.response.status})`);
+          showError(`请求失败 (${error.response.status})`);
       }
     } else if (error.request) {
       // 请求发送但没有收到响应
-      toast.error('无法连接到服务器，请检查您的网络连接');
+      showError('无法连接到服务器，请检查您的网络连接');
     } else {
       // 请求配置出错
-      toast.error('请求配置错误');
+      showError('请求配置错误');
     }
     return Promise.reject(error);
   }
@@ -120,7 +120,28 @@ class ApiService {
         }
 
         console.warn(`No mock handler found for GET ${url}`);
-        return this.mockResponse({} as T);
+        // 返回一个安全的默认响应格式，避免undefined错误
+        return this.mockResponse({
+          success: true,
+          data:
+            url.includes('stats') || url.includes('trends')
+              ? { data: [], labels: [], trend: 0 }
+              : url.includes('videos')
+                ? { data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 }
+                : url.includes('comments')
+                  ? { data: [], total: 0, page: 1, pageSize: 10, totalPages: 0 }
+                  : url.includes('channel')
+                    ? {
+                        id: '1',
+                        name: 'Default Channel',
+                        description: '',
+                        themeColor: '#3fb950',
+                        bannerImage: '',
+                        avatar: '',
+                      }
+                    : {},
+          message: 'Mock data not available',
+        } as T);
       } catch (error) {
         console.error(`Mock GET error for ${url}:`, error);
         throw error;
@@ -149,7 +170,12 @@ class ApiService {
         }
 
         console.warn(`No mock handler found for POST ${url}`);
-        return this.mockResponse({} as T);
+        // 返回一个安全的默认响应格式
+        return this.mockResponse({
+          success: true,
+          data: {},
+          message: 'Mock data not available',
+        } as T);
       } catch (error) {
         console.error(`Mock POST error for ${url}:`, error);
         throw error;
@@ -178,7 +204,12 @@ class ApiService {
         }
 
         console.warn(`No mock handler found for PUT ${url}`);
-        return this.mockResponse({} as T);
+        // 返回一个安全的默认响应格式
+        return this.mockResponse({
+          success: true,
+          data: {},
+          message: 'Mock data not available',
+        } as T);
       } catch (error) {
         console.error(`Mock PUT error for ${url}:`, error);
         throw error;
@@ -207,7 +238,11 @@ class ApiService {
         }
 
         console.warn(`No mock handler found for DELETE ${url}`);
-        return this.mockResponse({} as T);
+        // 返回一个安全的默认响应格式
+        return this.mockResponse({
+          success: true,
+          message: 'Mock deletion successful',
+        } as T);
       } catch (error) {
         console.error(`Mock DELETE error for ${url}:`, error);
         throw error;
