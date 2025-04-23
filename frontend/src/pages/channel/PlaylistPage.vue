@@ -107,49 +107,24 @@
       </div>
 
       <!-- 视频列表 -->
-      <div class="videos-container">
-        <h2 class="section-title">视频列表</h2>
-
-        <div v-if="loadingVideos" class="loading-videos">
-          <n-spin size="medium" />
-        </div>
-
-        <div v-else-if="videos.length === 0" class="empty-videos">
-          <n-empty description="该播放列表没有视频" />
-        </div>
-
-        <div v-else class="video-list">
-          <div v-for="(video, index) in videos" :key="video.id" class="video-item" @click="playVideo(video)">
-            <div class="video-index">{{ index + 1 }}</div>
-            <div class="video-thumbnail">
-              <img :src="video.thumbnailUrl" alt="视频缩略图" />
-              <div class="video-duration">{{ formatDuration(video.duration) }}</div>
-            </div>
-            <div class="video-details">
-              <h3 class="video-title">{{ video.title }}</h3>
-              <div class="video-meta">
-                <span class="video-author">{{ video.author.nickname }}</span>
-                <span class="divider">•</span>
-                <span class="video-views">{{ formatNumber(video.views) }}次观看</span>
-              </div>
-            </div>
-            <div v-if="isOwner" class="video-actions">
-              <n-button quaternary circle @click.stop="removeVideo(video)">
-                <template #icon>
-                  <n-icon>
-                    <CloseOutline />
-                  </n-icon>
-                </template>
-              </n-button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 加载更多 -->
-        <div v-if="hasMoreVideos && !loadingVideos" class="load-more">
-          <n-button @click="loadMoreVideos" :loading="loadingMoreVideos">加载更多</n-button>
-        </div>
+      <div v-if="videos.length > 0" class="video-list-container mt-4">
+        <playlist-sorter :playlist-id="playlistId" :videos="videos" :title="'播放列表视频'" :can-remove="isOwner"
+          @update-videos="handleVideosUpdated" @remove-video="removeVideoHandler" @order-changed="handleOrderChanged" />
       </div>
+
+      <n-empty v-else description="播放列表还没有视频" class="mt-8">
+        <template #extra>
+          <n-button v-if="isOwner" type="primary" @click="navigateToAdd">
+            添加视频
+          </n-button>
+        </template>
+      </n-empty>
+
+      <!-- 视频移除确认弹窗 -->
+      <n-modal v-model:show="showRemoveModal" preset="dialog" title="确认移除视频" positive-text="确认" negative-text="取消"
+        @positive-click="confirmRemoveVideo" @negative-click="cancelRemoveVideo">
+        <div>确定要从播放列表中移除这个视频吗？</div>
+      </n-modal>
     </template>
 
     <!-- 编辑播放列表弹窗 -->
@@ -174,94 +149,15 @@
       </n-form>
     </n-modal>
 
-    <!-- 添加分享弹窗 -->
-    <n-modal v-model:show="showShareModal" preset="card" title="分享播放列表" style="width: 500px;">
-      <div class="share-container">
-        <div class="share-info mb-4">
-          <div class="share-thumbnail">
-            <img :src="playlist.thumbnailUrl" alt="播放列表缩略图" style="width: 120px; height: 68px; object-fit: cover;" />
-          </div>
-          <div class="share-details">
-            <h3 class="share-title text-lg font-bold">{{ playlist.title }}</h3>
-            <p class="share-video-count text-sm text-gray-500">{{ playlist.videoCount }}个视频</p>
-          </div>
-        </div>
-        
-        <div v-if="shareResult" class="share-link-result mb-4">
-          <n-input-group>
-            <n-input readonly :value="shareResult.shareLink" />
-            <n-button type="primary" @click="copyShareLink(shareResult.shareLink)">复制</n-button>
-          </n-input-group>
-          <p class="text-xs text-gray-500 mt-1">
-            链接已生成，可以复制后分享给好友
-          </p>
-        </div>
-        
-        <div class="share-options">
-          <div class="share-title mb-2 font-bold">选择分享方式</div>
-          <div class="social-buttons grid grid-cols-4 gap-4">
-            <n-button @click="shareToSocial('wechat')" class="social-button">
-              <template #icon><n-icon><LogoWechat /></n-icon></template>
-              微信
-            </n-button>
-            <n-button @click="shareToSocial('weibo')" class="social-button">
-              <template #icon><n-icon><LogoWeibo /></n-icon></template>
-              微博
-            </n-button>
-            <n-button @click="shareToSocial('qq')" class="social-button">
-              <template #icon><n-icon><LogoQQ /></n-icon></template>
-              QQ
-            </n-button>
-            <n-button @click="shareViaLink" class="social-button">
-              <template #icon><n-icon><LinkOutline /></n-icon></template>
-              链接
-            </n-button>
-          </div>
-        </div>
-        
-        <div class="mt-4">
-          <n-alert v-if="isOwner && playlist.visibility === 'private'" type="warning">
-            注意：分享私密播放列表时，将自动转为"不公开"，其他人可以通过链接访问。
-          </n-alert>
-        </div>
-      </div>
-    </n-modal>
+    <!-- 使用增强的分享组件替换原有分享弹窗 -->
+    <playlist-share-modal v-model:show="showShareModal" :playlist="playlist" @success="onShareSuccess"
+      @error="onShareError" />
 
-    <!-- 添加封面上传弹窗 -->
+    <!-- 使用封面上传组件替换原有上传弹窗 -->
     <n-modal v-model:show="showUploadCoverModal" preset="card" title="更换播放列表封面" style="width: 500px;">
       <div class="upload-cover-container">
-        <div class="current-cover mb-4">
-          <div class="text-sm mb-1 text-gray-500">当前封面</div>
-          <img :src="playlist.thumbnailUrl" alt="当前封面" style="width: 320px; height: 180px; object-fit: cover;" />
-        </div>
-        
-        <n-upload
-          v-if="!uploading"
-          :custom-request="uploadCover"
-          :max="1"
-          accept="image/*"
-          list-type="image-card"
-        >
-          <div style="margin-bottom: 12px;">
-            <n-icon size="48" :depth="3">
-              <ImageOutline />
-            </n-icon>
-          </div>
-          <n-text style="font-size: 14px;">
-            点击或拖拽上传封面
-          </n-text>
-          <n-p depth="3" style="font-size: 12px; margin: 8px 0 0 0;">
-            建议尺寸: 320×180px
-          </n-p>
-        </n-upload>
-        
-        <n-spin v-else description="上传中..."></n-spin>
-        
-        <div class="mt-4">
-          <n-alert type="info">
-            上传新封面后，将自动保存并更新播放列表。
-          </n-alert>
-        </div>
+        <playlist-cover-upload ref="coverUploadRef" :current-cover="playlist.thumbnailUrl" :disabled="uploading"
+          @select-file="handleCoverFileSelected" @upload-error="handleUploadError" />
       </div>
     </n-modal>
   </div>
@@ -307,15 +203,21 @@
   import { useToast } from '@/composables/useToast';
   import type { ChannelPlaylist, ChannelVideo } from '@/types/channel';
   import dayjs from 'dayjs';
-  import { 
-    getPlaylistById, 
-    getPlaylistVideos, 
-    updatePlaylist, 
+  import {
+    getPlaylistById,
+    getPlaylistVideos,
+    updatePlaylist,
     removeVideoFromPlaylist,
     setPlaylistThumbnail,
-    sharePlaylist
+    sharePlaylist,
+    updatePlaylistVideoPositions
   } from '@/services/playlist';
   import { getChannelById } from '@/services/channel';
+
+  // 导入新组件
+  import PlaylistCoverUpload from '@/components/business/playlist/PlaylistCoverUpload.vue';
+  import PlaylistShareModal from '@/components/business/playlist/PlaylistShareModal.vue';
+  import PlaylistSorter from '@/components/business/playlist/PlaylistSorter.vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -333,7 +235,7 @@
   const channelAvatar = ref('');
 
   // 视频列表状态
-  const videos = ref<any[]>([]); // 使用any临时解决类型问题
+  const videos = ref<ChannelVideo[]>([]);
   const loadingVideos = ref(false);
   const loadingMoreVideos = ref(false);
   const hasMoreVideos = ref(false);
@@ -346,7 +248,7 @@
   const editForm = ref({
     title: '',
     description: '',
-    visibility: 'public' as 'public' | 'private' | 'unlisted'
+    visibility: 'public'
   });
 
   // 表单规则
@@ -367,14 +269,14 @@
   // 添加状态
   const showShareModal = ref(false);
   const showUploadCoverModal = ref(false);
-  const shareResult = ref<{shareLink: string; shareType: string; platform?: string} | null>(null);
+  const shareResult = ref<{ shareLink: string; platform?: string; shareType: string } | null>(null);
   const uploading = ref(false);
 
   // 模拟定义LogoQQ图标组件
   const LogoQQ = {
     render() {
-      return h('svg', { 
-        viewBox: '0 0 24 24', 
+      return h('svg', {
+        viewBox: '0 0 24 24',
         width: '1em',
         height: '1em',
         style: { fill: 'currentColor' }
@@ -559,88 +461,126 @@
     return num.toString();
   }
 
-  // 分享相关函数
-  async function shareViaLink() {
-    try {
-      shareResult.value = await sharePlaylist(playlistId.value, {
-        shareType: 'link'
-      });
-      toast.success('链接生成成功，请复制后分享');
-    } catch (err) {
-      console.error('分享失败', err);
-      toast.error('分享失败，请重试');
+  // 分享成功处理
+  function onShareSuccess(result: { shareLink: string; platform?: string; shareType: string }) {
+    shareResult.value = result;
+
+    if (result.platform) {
+      toast.success(`已生成${result.platform === 'wechat' ? '微信' :
+        result.platform === 'weibo' ? '微博' :
+          result.platform === 'qq' ? 'QQ' : '社交媒体'
+        }分享链接`);
+    }
+
+    // 如果是私有播放列表被分享，更新本地状态
+    if (playlist.value.visibility === 'private') {
+      playlist.value.visibility = 'unlisted';
     }
   }
 
-  async function shareToSocial(platform: 'wechat' | 'weibo' | 'qq') {
-    try {
-      shareResult.value = await sharePlaylist(playlistId.value, {
-        shareType: 'social',
-        platform
-      });
-      toast.success(`已生成${platform === 'wechat' ? '微信' : platform === 'weibo' ? '微博' : 'QQ'}分享链接`);
-    } catch (err) {
-      console.error('分享失败', err);
-      toast.error('分享失败，请重试');
-    }
+  // 分享错误处理
+  function onShareError(error: string) {
+    toast.error(error || '分享失败，请重试');
   }
 
-  function copyShareLink(link: string) {
-    navigator.clipboard.writeText(link).then(() => {
-      toast.success('链接已复制到剪贴板');
-    }).catch(() => {
-      toast.error('复制失败，请手动复制');
-    });
-  }
-
-  // 封面上传相关函数
-  async function uploadCover({ file }: { file: File }) {
-    if (!file) return;
-    
-    // 确认文件类型
-    if (!file.type.startsWith('image/')) {
-      toast.error('请上传图片文件');
-      return;
-    }
-    
+  // 处理封面图片选择
+  async function handleCoverFileSelected(file: File) {
     uploading.value = true;
-    
+
     try {
-      // 在实际应用中，这里应该先上传图片到服务器，获取URL
-      // 为了演示，我们模拟这个过程，创建一个本地URL
+      // 在实际应用中，这里应该先将文件上传到服务器获取URL
+      // 为了演示，我们使用FileReader创建本地URL
       const reader = new FileReader();
-      
+
       reader.onload = async (e) => {
         try {
           const imageUrl = e.target?.result as string;
-          
+
           // 调用API更新封面
           await setPlaylistThumbnail(playlistId.value, imageUrl);
-          
+
           // 刷新播放列表数据
           await loadPlaylist();
-          
+
           toast.success('封面更新成功');
           showUploadCoverModal.value = false;
         } catch (error) {
-          console.error('更新封面失败', error);
-          toast.error('更新封面失败，请重试');
+          handleUploadError('更新封面失败，请重试');
         } finally {
           uploading.value = false;
         }
       };
-      
+
       reader.onerror = () => {
-        uploading.value = false;
-        toast.error('读取文件失败，请重试');
+        handleUploadError('读取文件失败，请重试');
       };
-      
+
       reader.readAsDataURL(file);
     } catch (error) {
-      uploading.value = false;
-      console.error('上传封面失败', error);
-      toast.error('上传封面失败，请重试');
+      handleUploadError('处理图片失败，请重试');
     }
+  }
+
+  // 处理上传错误
+  function handleUploadError(error: string) {
+    uploading.value = false;
+    toast.error(error || '上传失败，请重试');
+  }
+
+  // 视频移除相关
+  const showRemoveModal = ref(false);
+  const videoToRemove = ref<{ index: number; videoId: string } | null>(null);
+
+  // 处理排序后的视频更新
+  async function handleOrderChanged(newVideoIds: string[]) {
+    try {
+      // 调用API更新视频顺序
+      await updatePlaylistVideoPositions(playlistId.value, newVideoIds);
+      toast.success('视频顺序已更新');
+
+      // 重新加载最新的视频列表
+      await loadPlaylistVideos();
+    } catch (error) {
+      console.error('更新视频顺序失败', error);
+      toast.error('更新视频顺序失败，请重试');
+    }
+  }
+
+  // 处理视频列表更新
+  function handleVideosUpdated(updatedVideos: ChannelVideo[]) {
+    videos.value = updatedVideos;
+  }
+
+  // 处理视频移除
+  function removeVideoHandler(index: number, videoId: string) {
+    videoToRemove.value = { index, videoId };
+    showRemoveModal.value = true;
+  }
+
+  // 确认移除视频
+  async function confirmRemoveVideo() {
+    if (!videoToRemove.value) return;
+
+    try {
+      await removeVideoFromPlaylist(playlistId.value, videoToRemove.value.videoId);
+
+      // 从本地数组移除
+      videos.value.splice(videoToRemove.value.index, 1);
+
+      toast.success('视频已从播放列表中移除');
+    } catch (error) {
+      console.error('移除视频失败', error);
+      toast.error('移除视频失败，请重试');
+    } finally {
+      showRemoveModal.value = false;
+      videoToRemove.value = null;
+    }
+  }
+
+  // 取消移除视频
+  function cancelRemoveVideo() {
+    showRemoveModal.value = false;
+    videoToRemove.value = null;
   }
 
   // 初始化
@@ -922,7 +862,7 @@
   .share-container {
     padding: 10px;
   }
-  
+
   .share-info {
     display: flex;
     align-items: center;
@@ -933,54 +873,54 @@
   .mb-4 {
     margin-bottom: 1rem;
   }
-  
+
   .mb-2 {
     margin-bottom: 0.5rem;
   }
-  
+
   .mb-1 {
     margin-bottom: 0.25rem;
   }
-  
+
   .mt-4 {
     margin-top: 1rem;
   }
-  
+
   .mt-1 {
     margin-top: 0.25rem;
   }
-  
+
   .grid {
     display: grid;
   }
-  
+
   .grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  
+
   .gap-4 {
     gap: 1rem;
   }
-  
+
   .text-xs {
     font-size: 0.75rem;
     line-height: 1rem;
   }
-  
+
   .text-sm {
     font-size: 0.875rem;
     line-height: 1.25rem;
   }
-  
+
   .text-lg {
     font-size: 1.125rem;
     line-height: 1.75rem;
   }
-  
+
   .font-bold {
     font-weight: 700;
   }
-  
+
   .text-gray-500 {
     color: rgba(107, 114, 128, 1);
   }
@@ -989,7 +929,7 @@
   .upload-cover-container {
     padding: 10px;
   }
-  
+
   .current-cover {
     margin-bottom: 1rem;
   }

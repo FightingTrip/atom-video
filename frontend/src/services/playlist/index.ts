@@ -411,6 +411,47 @@ export async function sharePlaylist(
   }
 }
 
+/**
+ * 批量更新播放列表中视频的位置
+ * @param playlistId 播放列表ID
+ * @param videoPositions 视频位置数组，每个元素包含videoId和position
+ * @returns 是否成功
+ */
+export async function updatePlaylistVideoPositions(
+  playlistId: string,
+  videoPositions: Array<{ videoId: string; position: number }>
+): Promise<boolean> {
+  try {
+    await mockDelay();
+
+    // 从localStorage获取用户token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('未授权，请先登录');
+    }
+
+    // 获取用户ID
+    const userId = mockDb.getUserIdFromToken(token);
+    if (!userId) {
+      throw new Error('无效的用户令牌');
+    }
+
+    // 调用API进行批量更新
+    const response = await api.post(`/api/playlists/${playlistId}/videos/positions`, {
+      videoPositions,
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || '批量更新视频位置失败');
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`批量更新播放列表视频位置失败: ${playlistId}`, error);
+    throw error;
+  }
+}
+
 // 导出所有函数
 export default {
   getUserPlaylists,
@@ -422,6 +463,7 @@ export default {
   addVideoToPlaylist,
   removeVideoFromPlaylist,
   updateVideoPosition,
+  updatePlaylistVideoPositions,
   setPlaylistThumbnail,
   sharePlaylist,
 };

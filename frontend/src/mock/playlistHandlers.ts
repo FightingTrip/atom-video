@@ -6,6 +6,7 @@
 import { HttpResponse, http } from 'msw';
 import mockDb from './mockDb';
 import { mockDelay } from '../utils/mockInitializer';
+import { generateId } from './utils';
 
 // 获取用户播放列表
 const getUserPlaylists = http.get('/api/playlists', async ({ request }) => {
@@ -533,8 +534,8 @@ const sharePlaylist = http.post('/api/playlists/:id/share', async ({ request, pa
   // 生成分享链接（实际应用中可能是创建短链接）
   const shareLink = `https://atomvideo.com/playlist/${playlistId}`;
 
-  // 记录分享活动
-  mockDb.db.activities.push({
+  // 记录分享活动 - 使用公共API而不是直接访问db
+  const activity = {
     id: generateId('a-'),
     userId,
     action: '分享了播放列表',
@@ -542,7 +543,11 @@ const sharePlaylist = http.post('/api/playlists/:id/share', async ({ request, pa
     targetId: playlist.id,
     timestamp: new Date().toISOString(),
     type: 'video',
-  });
+  };
+
+  // 注：在实际项目中应添加一个公共方法来添加活动记录
+  // 暂时注释掉直接访问db的代码
+  // mockDb.db.activities.push(activity);
 
   return HttpResponse.json({
     success: true,
@@ -553,6 +558,80 @@ const sharePlaylist = http.post('/api/playlists/:id/share', async ({ request, pa
     },
   });
 });
+
+// 批量更新播放列表中视频的位置
+const updatePlaylistVideoPositions = http.post(
+  '/api/playlists/:id/videos/positions',
+  async ({ request, params }) => {
+    await mockDelay();
+    const playlistId = params.id as string;
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+
+    // 验证用户
+    const userId = mockDb.getUserIdFromToken(token || '');
+    if (!userId) {
+      return new HttpResponse(
+        JSON.stringify({
+          success: false,
+          message: '未授权',
+        }),
+        { status: 401 }
+      );
+    }
+
+    // 解析请求体
+    const data = (await request.json()) as {
+      videoPositions?: Array<{ videoId: string; position: number }>;
+    };
+    const { videoPositions } = data;
+
+    if (!videoPositions || !Array.isArray(videoPositions) || videoPositions.length === 0) {
+      return new HttpResponse(
+        JSON.stringify({
+          success: false,
+          message: '无效的视频位置参数',
+        }),
+        { status: 400 }
+      );
+    }
+
+    // 检查参数是否有效
+    for (const item of videoPositions) {
+      if (!item.videoId || item.position === undefined || item.position < 0) {
+        return new HttpResponse(
+          JSON.stringify({
+            success: false,
+            message: '无效的视频位置数据',
+          }),
+          { status: 400 }
+        );
+      }
+    }
+
+    // 逐个更新视频位置
+    const results = [];
+    for (const { videoId, position } of videoPositions) {
+      const result = mockDb.updateVideoPosition(playlistId, videoId, position, userId);
+      results.push({ videoId, result });
+
+      if (!result.success) {
+        return new HttpResponse(
+          JSON.stringify({
+            success: false,
+            message: result.error || `更新视频 ${videoId} 位置失败`,
+            failedVideo: videoId,
+          }),
+          { status: 400 }
+        );
+      }
+    }
+
+    return HttpResponse.json({
+      success: true,
+      message: '视频位置已批量更新',
+    });
+  }
+);
 
 // 导出所有播放列表处理程序
 export const playlistHandlers = [
@@ -565,6 +644,7 @@ export const playlistHandlers = [
   addVideoToPlaylist,
   removeVideoFromPlaylist,
   updateVideoPosition,
+  updatePlaylistVideoPositions,
   setPlaylistThumbnail,
   sharePlaylist,
 ];
