@@ -75,5 +75,8 @@
     "overrides": {
       "vue": "^3.4.15"
     }
+  },
+  "dependencies": {
+    "echarts": "5.6.0"
   }
 }

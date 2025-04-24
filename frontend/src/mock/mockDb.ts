@@ -810,33 +810,63 @@ class MockDatabase {
 
   // 生成随机通知
   private generateRandomNotifications(count: number): void {
-    // 通知类型数组
+    // 通知类型数组 - 移除mention类型以匹配前端类型定义
     const notificationTypes = ['video', 'comment', 'subscription', 'system', 'like'];
 
     // 通知标题模板
     const titleTemplates = {
-      video: ['新视频发布', '视频推荐', '热门视频'],
-      comment: ['新评论', '评论回复', '评论获赞'],
-      subscription: ['新关注者', '关注动态', '创作者更新'],
-      system: ['系统通知', '账号安全', '功能更新'],
-      like: ['获得点赞', '内容受欢迎', '互动提醒'],
+      video: ['新视频发布', '视频推荐', '热门视频', '直播开始', '视频处理完成', '视频达到里程碑'],
+      comment: ['新评论', '评论回复', '评论获赞', '精选评论', '评论被引用'],
+      subscription: ['新关注者', '关注动态', '创作者更新', '创作者开播', '创作者成就'],
+      system: ['系统通知', '账号安全', '功能更新', '账户验证', '活动邀请', '协议更新'],
+      like: ['获得点赞', '内容受欢迎', '互动提醒', '里程碑点赞', '点赞达成'],
     };
 
     // 通知内容模板
     const messageTemplates = {
       video: [
-        '你关注的创作者发布了新视频',
-        '根据你的喜好，为你推荐这个视频',
-        '你可能对这个热门视频感兴趣',
+        '你关注的创作者@{username}发布了新视频《{title}》',
+        '根据你的喜好，为你推荐视频《{title}》',
+        '热门视频《{title}》正在流行，不要错过',
+        '创作者@{username}正在直播，点击观看',
+        '你上传的视频《{title}》已处理完成',
+        '恭喜！你的视频《{title}》观看次数已超过1000',
       ],
-      comment: ['有人评论了你的视频', '有人回复了你的评论', '你的评论获得了点赞'],
-      subscription: ['有新用户关注了你', '你关注的创作者有新动态', '创作者更新了个人资料'],
-      system: ['你的账号安全设置已更新', '平台新功能上线，点击了解详情', '你的账号完成了安全检查'],
-      like: ['你的视频获得了新的点赞', '你的内容很受欢迎', '有新的互动等待你查看'],
+      comment: [
+        '用户@{username}评论了你的视频："{comment}"',
+        '用户@{username}回复了你的评论："{comment}"',
+        '你的评论获得了{count}个赞',
+        '你的评论被设为精选评论',
+        '创作者@{username}引用了你的评论',
+      ],
+      subscription: [
+        '新用户@{username}关注了你，现在你有{count}个粉丝',
+        '你关注的创作者@{username}更新了{count}个视频',
+        '创作者@{username}更新了个人资料',
+        '你关注的创作者@{username}开始了直播',
+        '恭喜！创作者@{username}获得了创作者勋章',
+      ],
+      system: [
+        '你的账号安全设置已更新，点击查看详情',
+        'Atom Video新功能上线：{feature}，立即体验',
+        '你的账号已完成安全检查',
+        '恭喜！你的账号已通过实名认证',
+        'Atom Video正在举办创作者大赛，点击报名',
+        'Atom Video用户协议已更新，请查看最新内容',
+      ],
+      like: [
+        '你的视频《{title}》获得了{count}个新的点赞',
+        '你的视频《{title}》很受欢迎，最近获得了很多点赞',
+        '有{count}个新的互动等待你查看',
+        '恭喜！你的视频《{title}》点赞数突破1000',
+        '你的点赞为创作者@{username}带来了鼓励',
+      ],
     };
 
     // 为每个活跃用户生成通知
     const activeUsers = this.db.users.filter(user => user.status === 'active');
+    const allUsers = this.db.users;
+    const allVideos = this.db.videos;
 
     for (let i = 0; i < count; i++) {
       // 随机选择用户
@@ -850,12 +880,74 @@ class MockDatabase {
         | 'system'
         | 'like';
 
-      // 随机选择标题和消息
+      // 随机选择标题
       const title = faker.helpers.arrayElement(titleTemplates[notificationType]);
-      const message = faker.helpers.arrayElement(messageTemplates[notificationType]);
+
+      // 准备消息模板参数
+      const randomUsername = faker.helpers.arrayElement(allUsers).nickname || 'User';
+      const randomVideoTitle =
+        allVideos.length > 0 ? faker.helpers.arrayElement(allVideos).title : '精彩视频';
+      const randomCount = Math.floor(Math.random() * 1000) + 1;
+      const randomComment = faker.lorem.sentence();
+      const randomFeature = faker.helpers.arrayElement([
+        '视频章节',
+        '自动字幕',
+        '数据分析',
+        '互动评论',
+        '自定义缩略图',
+        '高级滤镜',
+      ]);
+
+      // 随机选择消息模板并替换参数
+      let messageTemplate = faker.helpers.arrayElement(messageTemplates[notificationType]);
+      let message = messageTemplate
+        .replace('{username}', randomUsername)
+        .replace('{title}', randomVideoTitle)
+        .replace('{count}', randomCount.toString())
+        .replace('{comment}', randomComment)
+        .replace('{feature}', randomFeature);
 
       // 生成随机日期（过去30天内）
       const createdAt = faker.date.recent({ days: 30 }).toISOString();
+
+      // 获取相关ID
+      let relatedId: string | undefined = undefined;
+      if (
+        notificationType === 'video' ||
+        notificationType === 'comment' ||
+        notificationType === 'like'
+      ) {
+        // 修复: 将null改为undefined
+        relatedId = allVideos.length > 0 ? faker.helpers.arrayElement(allVideos).id : undefined;
+      } else if (notificationType === 'subscription') {
+        relatedId = faker.helpers.arrayElement(allUsers).id;
+      }
+
+      // 生成操作URL
+      let actionUrl = '/';
+      switch (notificationType) {
+        case 'video':
+          actionUrl = relatedId ? `/video/${relatedId}` : '/explore';
+          break;
+        case 'comment':
+          actionUrl = relatedId ? `/video/${relatedId}?comment=true` : '/notifications';
+          break;
+        case 'subscription':
+          actionUrl = relatedId ? `/channel/${relatedId}` : '/notifications';
+          break;
+        case 'like':
+          actionUrl = relatedId ? `/video/${relatedId}` : '/notifications';
+          break;
+        case 'system':
+          actionUrl = faker.helpers.arrayElement([
+            '/settings/account',
+            '/settings/security',
+            '/explore',
+            '/announcements',
+            '/events',
+          ]);
+          break;
+      }
 
       // 创建通知
       const notification = {
@@ -866,8 +958,8 @@ class MockDatabase {
         message,
         read: faker.datatype.boolean(0.3), // 70%未读，30%已读
         createdAt,
-        relatedId: faker.helpers.maybe(() => generateId(), { probability: 0.7 }),
-        actionUrl: faker.helpers.maybe(() => faker.internet.url(), { probability: 0.8 }),
+        relatedId: relatedId || undefined, // 使用undefined而非null
+        actionUrl,
       };
 
       this.db.notifications.push(notification);
@@ -3021,62 +3113,124 @@ class MockDatabase {
     const users = this.db.users;
     if (users.length === 0) return;
 
-    // 生成一些通知样本
+    // 为了类型安全，定义通知类型
+    type NotificationType = 'video' | 'comment' | 'subscription' | 'system' | 'like';
+
+    // 确保一定会为标准用户(u-user)添加通知
+    const standardUser = this.db.users.find(u => u.id === 'u-user');
+    if (standardUser) {
+      // 添加几条必定存在的通知
+      this.db.notifications.push({
+        id: generateId('n-'),
+        userId: 'u-user',
+        type: 'system' as NotificationType,
+        title: '欢迎使用Atom Video',
+        message: '感谢您注册Atom Video，开始探索丰富的视频世界吧！',
+        read: false,
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        relatedId: undefined,
+        actionUrl: '/explore',
+      });
+
+      this.db.notifications.push({
+        id: generateId('n-'),
+        userId: 'u-user',
+        type: 'video' as NotificationType,
+        title: '新视频推荐',
+        message: '根据您的观看历史，我们为您推荐了一些精彩视频',
+        read: false,
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        relatedId: this.getRandomVideoId(),
+        actionUrl: '/video/detail',
+      });
+
+      this.db.notifications.push({
+        id: generateId('n-'),
+        userId: 'u-user',
+        type: 'like' as NotificationType,
+        title: '获得点赞',
+        message: '您的评论收到了新的点赞',
+        read: false,
+        createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        relatedId: this.getRandomVideoId(),
+        actionUrl: '/video/detail?comment=true',
+      });
+    }
+
+    // 为所有用户生成通知
     users.forEach(user => {
-      // 系统通知
+      // 系统通知 - 欢迎
       this.db.notifications.push({
         id: generateId('n-'),
         userId: user.id,
-        type: 'system',
+        type: 'system' as NotificationType,
         title: '欢迎使用Atom Video',
         message: '感谢您注册Atom Video，开始探索丰富的视频世界吧！',
         read: Math.random() > 0.7,
         createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        relatedId: null,
+        relatedId: undefined,
         actionUrl: '/explore',
       });
 
-      // 评论通知
+      // 修复其他通知中的类型问题，将null改为undefined
+      // 系统通知 - 功能更新
       this.db.notifications.push({
         id: generateId('n-'),
         userId: user.id,
-        type: 'comment',
-        title: '新评论',
-        message: '有人评论了您的视频',
-        read: Math.random() > 0.5,
-        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        relatedId: this.db.videos[Math.floor(Math.random() * this.db.videos.length)]?.id,
-        actionUrl: '/video/detail',
+        type: 'system' as NotificationType,
+        title: '新功能上线',
+        message: 'Atom Video新增了视频章节功能，现在您可以更方便地定位视频内容。',
+        read: Math.random() > 0.6,
+        createdAt: new Date(Date.now() - Math.random() * 15 * 24 * 60 * 60 * 1000).toISOString(),
+        relatedId: undefined,
+        actionUrl: '/settings/features',
       });
 
-      // 点赞通知
+      // 系统通知 - 账号安全
       this.db.notifications.push({
         id: generateId('n-'),
         userId: user.id,
-        type: 'like',
-        title: '获得点赞',
-        message: '您的视频收到了新的点赞',
-        read: Math.random() > 0.3,
-        createdAt: new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString(),
-        relatedId: this.db.videos[Math.floor(Math.random() * this.db.videos.length)]?.id,
-        actionUrl: '/video/detail',
+        type: 'system' as NotificationType,
+        title: '账号安全提醒',
+        message: '我们注意到您的账号最近从新设备登录，请确认是您本人的操作。',
+        read: Math.random() > 0.4,
+        createdAt: new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString(),
+        relatedId: undefined,
+        actionUrl: '/settings/security',
       });
-
-      // 订阅通知
-      if (Math.random() > 0.5) {
-        this.db.notifications.push({
-          id: generateId('n-'),
-          userId: user.id,
-          type: 'subscription',
-          title: '新的订阅者',
-          message: '有新用户订阅了您的频道',
-          read: Math.random() > 0.2,
-          createdAt: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-          relatedId: users[Math.floor(Math.random() * users.length)]?.id,
-          actionUrl: '/channel/detail',
-        });
-      }
     });
+
+    // 生成额外的随机通知
+    this.generateRandomNotifications(50);
+  }
+
+  // 获取随机用户名
+  private getRandomUsername(): string {
+    const users = this.db.users;
+    if (users.length === 0) return '用户';
+    const randomUser = users[Math.floor(Math.random() * users.length)];
+    return randomUser.nickname || randomUser.username;
+  }
+
+  // 获取随机视频ID
+  private getRandomVideoId(): string {
+    const videos = this.db.videos;
+    if (videos.length === 0) return '';
+    return videos[Math.floor(Math.random() * videos.length)].id;
+  }
+
+  // 获取随机用户ID
+  private getRandomUserId(): string {
+    const users = this.db.users;
+    if (users.length === 0) return '';
+    return users[Math.floor(Math.random() * users.length)].id;
+  }
+
+  // 获取随机视频标题
+  private getRandomVideoTitle(): string {
+    const videos = this.db.videos;
+    if (videos.length === 0) return '视频';
+    return videos[Math.floor(Math.random() * videos.length)].title;
   }
 
   /**
@@ -3102,11 +3256,31 @@ class MockDatabase {
     userId: string,
     params: { page?: number; limit?: number }
   ): { data: any[]; total: number } {
-    const { page = 1, limit = 10 } = params;
-    this.initializeNotifications();
+    this.initializeNotifications(); // 确保通知数据已初始化
+
+    // 定义正确的通知类型
+    type NotificationType = 'video' | 'comment' | 'subscription' | 'system' | 'like';
 
     // 获取用户通知
-    const userNotifications = this.db.notifications.filter(notif => notif.userId === userId);
+    let userNotifications = this.db.notifications.filter(notif => notif.userId === userId);
+
+    // 如果通知为空，确保添加至少一条系统通知
+    if (userNotifications.length === 0) {
+      const notification = {
+        id: generateId('n-'),
+        userId: userId,
+        type: 'system' as NotificationType,
+        title: '欢迎使用Atom Video',
+        message: '感谢您使用Atom Video，开始探索丰富的视频世界吧！',
+        read: false,
+        createdAt: new Date().toISOString(),
+        relatedId: undefined,
+        actionUrl: '/explore',
+      };
+
+      this.db.notifications.push(notification);
+      userNotifications = [notification];
+    }
 
     // 按最新优先排序
     userNotifications.sort(
@@ -3114,6 +3288,7 @@ class MockDatabase {
     );
 
     // 分页
+    const { page = 1, limit = 10 } = params;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     const paginatedNotifications = userNotifications.slice(startIndex, endIndex);

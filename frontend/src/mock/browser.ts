@@ -20,6 +20,17 @@ const handlers = [
   ...creatorHandlers,
 ];
 
+// 添加日志
+console.log(
+  '[MSW] 注册处理程序:',
+  `认证(${authHandlers.length})`,
+  `管理(${adminHandlers.length})`,
+  `视频(${videoHandlers.length})`,
+  `用户(${userHandlers.length})`,
+  `播放列表(${playlistHandlers.length})`,
+  `创作者(${creatorHandlers.length})`
+);
+
 // 创建浏览器worker实例
 export const worker = setupWorker(...handlers);
 
@@ -27,12 +38,34 @@ export const worker = setupWorker(...handlers);
 export const setupMockWorker = async () => {
   // 打印启动信息
   console.log('[MSW] 模拟API已启动');
+  console.log('[MSW] 共注册了', handlers.length, '个API处理程序');
 
-  // 启动worker
+  // 启动worker并启用详细调试
   await worker.start({
-    // 静默启动，不显示默认的MSW浏览器通知
-    onUnhandledRequest: 'bypass',
+    // 只警告API请求的未处理情况，忽略其他资源
+    onUnhandledRequest(request, print) {
+      // 只对API请求发出警告
+      const url = new URL(request.url);
+      if (url.pathname.startsWith('/api/')) {
+        // 对API请求显示警告
+        print.warning();
+      } else {
+        // 忽略非API请求，如Vue组件、静态资源等
+        // 不输出任何内容
+      }
+    },
+
+    // 添加详细日志
+    serviceWorker: {
+      url: '/mockServiceWorker.js',
+      options: {
+        // 使用scope '/'确保捕获所有API请求
+        scope: '/',
+      },
+    },
   });
+
+  console.log('[MSW] 服务工作器已启动和激活');
 
   return worker;
 };

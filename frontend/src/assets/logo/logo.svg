@@ -1,6 +1,18 @@
-<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="120" height="120" rx="16" fill="#0F172A"/>
-  <path d="M30 60C30 46.1929 41.1929 35 55 35H65C78.8071 35 90 46.1929 90 60V60C90 73.8071 78.8071 85 65 85H55C41.1929 85 30 73.8071 30 60V60Z" fill="#3B82F6"/>
-  <path d="M60 42V78" stroke="white" stroke-width="8" stroke-linecap="round"/>
-  <path d="M43 60H77" stroke="white" stroke-width="8" stroke-linecap="round"/>
+<svg width="500" height="800" viewBox="0 0 500 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 原子图标 -->
+  <g fill="#f0f0f0">
+    <!-- 外部椭圆轨道 -->
+    <ellipse cx="250" cy="350" rx="230" ry="230" stroke="#f0f0f0" stroke-width="15" fill="none"/>
+    
+    <!-- 交叉轨道 -->
+    <ellipse cx="250" cy="350" rx="230" ry="100" stroke="#f0f0f0" stroke-width="15" fill="none" transform="rotate(60 250 350)"/>
+    <ellipse cx="250" cy="350" rx="230" ry="100" stroke="#f0f0f0" stroke-width="15" fill="none" transform="rotate(-60 250 350)"/>
+    
+    <!-- 中心播放按钮 -->
+    <path d="M200,350 L325,350 L250,250 Z" fill="#f0f0f0" transform="rotate(90 250 350)"/>
+  </g>
+  
+  <!-- 文字部分 -->
+  <text x="132" y="650" font-family="Arial, sans-serif" font-size="70" font-weight="bold" fill="#f0f0f0">ATOM-VIDEO</text>
+  <text x="132" y="700" font-family="Arial, sans-serif" font-size="25" fill="#f0f0f0">VIDEO SHARING FOR DEVELOPERS</text>
 </svg> 

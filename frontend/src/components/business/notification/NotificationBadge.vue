@@ -9,7 +9,7 @@
     </div>
 
     <div v-if="isNotificationPanelOpen" class="notification-panel-container">
-      <notification-list />
+      <notification-center />
     </div>
   </div>
 </template>
@@ -19,7 +19,7 @@
   import { NotificationsOutline } from '@vicons/ionicons5';
   import { NIcon, NBadge } from 'naive-ui';
   import { useNotificationStore } from '@/stores/notification';
-  import NotificationList from '@/components/business/notification/NotificationList.vue';
+  import NotificationCenter from '@/components/business/notification/NotificationCenter.vue';
   import { onClickOutside } from '@vueuse/core';
   import { useAuthStore } from '@/stores/auth';
 
@@ -27,9 +27,9 @@
   const authStore = useAuthStore();
   const isNotificationPanelOpen = ref(false);
   const hasNewNotification = ref(false);
-  const containerRef = ref(null);
+  const containerRef = ref<HTMLElement | null>(null);
 
-  // 使用onClickOutside而不是v-on-click-outside指令
+  // 使用onClickOutside
   onClickOutside(containerRef, () => {
     closeNotificationPanel();
   });
@@ -37,13 +37,15 @@
   // 计算未读通知数量
   const unreadCount = computed(() => notificationStore.unreadCount);
 
-  // 获取通知数据
-  onMounted(async () => {
+  // 监听自定义事件来关闭通知面板
+  onMounted(() => {
+    document.addEventListener('close-notification-panel', closeNotificationPanel);
+
     // 只有在用户已认证的情况下才获取通知
     if (authStore.isAuthenticated) {
       try {
         // 初始化通知数据
-        await notificationStore.fetchUnreadCount();
+        notificationStore.fetchUnreadCount();
 
         // 创建轮询以定期检查新通知
         startNotificationPolling();
@@ -89,11 +91,12 @@
     }, 60000); // 60秒
   }
 
-  // 组件卸载前清除轮询
+  // 组件卸载前清除轮询和事件监听
   onBeforeUnmount(() => {
     if (pollingInterval !== null) {
       clearInterval(pollingInterval);
     }
+    document.removeEventListener('close-notification-panel', closeNotificationPanel);
   });
 
   // 切换通知面板显示状态
@@ -106,9 +109,13 @@
 
     // 如果打开面板，加载通知列表
     if (isNotificationPanelOpen.value) {
-      notificationStore.fetchNotifications().catch(error => {
+      // 刷新通知数据
+      notificationStore.initialize().catch(error => {
         console.error('Failed to load notifications:', error);
       });
+
+      // 显示调试信息
+      console.log('通知面板已打开，通知数据:', notificationStore.notifications);
     }
 
     // 停止动画提示
@@ -134,37 +141,85 @@
     position: relative;
     padding: 8px;
     border-radius: 50%;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
   }
 
   .notification-icon:hover {
-    background-color: rgba(128, 128, 128, 0.1);
+    background-color: var(--hover-color, rgba(128, 128, 128, 0.1));
   }
 
   .notification-panel-container {
     position: absolute;
     top: 44px;
-    right: -10px;
+    right: -120px;
     width: 380px;
     max-height: 80vh;
-    background-color: #fff;
+    background-color: var(--bg-color, #fff);
     border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     z-index: 1000;
+    overflow: hidden;
+    border: 1px solid var(--border-color, #eee);
+    animation: slideDown 0.2s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   :deep(.n-badge-sup) {
     padding: 2px 6px;
     font-size: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
   }
 
   /* 暗色主题适配 */
-  :deep(.dark-theme) .notification-panel-container {
-    background-color: #1f1f1f;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  :deep([data-theme="dark"]) .notification-panel-container {
+    background-color: var(--bg-color-overlay, #1f1f1f);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-color: var(--border-color, #333);
   }
 
-  :deep(.dark-theme) .notification-icon:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+  :deep([data-theme="dark"]) .notification-icon:hover {
+    background-color: var(--hover-color-dark, rgba(255, 255, 255, 0.1));
+  }
+
+  :deep([data-theme="dark"]) .n-badge-sup {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  /* 响应式处理 */
+  @media (max-width: 768px) {
+    .notification-panel-container {
+      width: 100vw;
+      max-width: 100vw;
+      right: -60px;
+      top: 48px;
+      position: fixed;
+      left: 0;
+      border-radius: 0;
+      animation: slideDownMobile 0.2s ease-out;
+    }
+
+    @keyframes slideDownMobile {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   }
 </style>
