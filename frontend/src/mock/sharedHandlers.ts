@@ -455,41 +455,74 @@ export const adminHandlers = [
 // 创作者空间相关处理程序
 export const creatorHandlers = [
   // 获取创作者统计数据
-  http.get('/api/creator/stats', async () => {
+  http.get('/api/creator/stats', async ({ request }) => {
+    const tokenHeader = request.headers.get('Authorization');
+
+    if (!tokenHeader) {
+      return withDelay(() => {
+        return HttpResponse.json(
+          {
+            success: false,
+            error: '未授权操作',
+          },
+          { status: 401 }
+        );
+      });
+    }
+
+    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
+    if (!userId) {
+      return withDelay(() => {
+        return HttpResponse.json(
+          {
+            success: false,
+            error: '无效的授权',
+          },
+          { status: 401 }
+        );
+      });
+    }
+
     return withDelay(() => {
-      // 此处可以从mockDb中获取创作者相关的统计数据
-      // 目前仍使用模拟数据，后续可以扩展mockDb的方法来支持
+      // 从模拟数据库中获取创作者统计数据
+      const stats = mockDb.getCreatorStats(userId);
+
+      // 将模拟数据库格式转换为前端API格式
       return HttpResponse.json({
         success: true,
         data: {
-          totalVideos: 42,
-          publishedVideos: 35,
-          draftVideos: 7,
+          totalVideos: stats.totalVideos || 0,
+          publishedVideos: Math.floor(stats.totalVideos * 0.85) || 0,
+          draftVideos: Math.floor(stats.totalVideos * 0.15) || 0,
           videosTrend: 12.5,
           publishedVideosTrend: 8.3,
           draftVideosTrend: 25.0,
 
-          totalViews: 245000,
-          totalMinutesWatched: 1250000,
+          totalViews: stats.totalViews || 0,
+          totalMinutesWatched: stats.totalViews * 5 || 0,
           averageViewDuration: 5.1,
           viewsTrend: 18.2,
           minutesWatchedTrend: 22.4,
           viewDurationTrend: 3.7,
 
-          totalLikes: 12500,
-          totalComments: 3200,
-          totalShares: 1800,
+          totalLikes: stats.totalLikes || 0,
+          totalComments: stats.totalComments || 0,
+          totalShares: Math.floor(stats.totalViews * 0.01) || 0,
           likesTrend: 15.3,
           commentsTrend: 8.9,
           sharesTrend: 21.6,
 
-          totalRevenue: 45000,
-          monthlyRevenue: 3800,
-          pendingRevenue: 1200,
+          totalRevenue: stats.revenueGenerated || 0,
+          monthlyRevenue: Math.floor((stats.revenueGenerated || 0) / 12),
+          pendingRevenue: Math.floor((stats.revenueGenerated || 0) * 0.1),
           revenueTrend: 12.8,
           monthlyRevenueTrend: 9.4,
 
-          lastUpdated: new Date().toISOString(),
+          subscribersCount: stats.totalSubscribers || 0,
+          subscribersGrowth: stats.newSubscribers || 0,
+          subscribersTrend: 5.2,
+
+          lastUpdated: stats.lastUpdated || new Date().toISOString(),
         },
       });
     });

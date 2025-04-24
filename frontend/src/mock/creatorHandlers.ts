@@ -453,6 +453,178 @@ export const creatorHandlers = [
     });
   }),
 
+  // 获取创作者评论列表
+  http.get('/api/creator/comments', async ({ request }) => {
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '10');
+    const status = url.searchParams.get('status') || undefined;
+    const videoId = url.searchParams.get('videoId') || undefined;
+    const tokenHeader = request.headers.get('Authorization');
+
+    if (!tokenHeader) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '未授权操作',
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
+    if (!userId) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '无效的授权',
+        },
+        { status: 401 }
+      );
+    }
+
+    await mockDelay();
+
+    // 模拟获取创作者所有评论的逻辑
+    // 由于mockDb中没有直接提供此方法，我们可以使用已有方法组合实现
+    // 或增加一个模拟实现
+
+    // 先获取创作者所有视频
+    const videos = mockDb.getCreatorVideos(userId, {
+      page: 1,
+      limit: 100,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    });
+
+    // 模拟评论数据
+    const comments = [];
+    let total = 0;
+
+    for (const video of videos.data.slice(0, 5)) {
+      // 只取前5个视频的评论，避免数据过多
+      if (videoId && video.id !== videoId) continue;
+
+      const videoComments = mockDb.getCreatorVideoComments(userId, video.id, {
+        page: 1,
+        limit: 10,
+      });
+      comments.push(
+        ...videoComments.data.map(comment => ({
+          ...comment,
+          videoTitle: video.title,
+          videoThumbnail: video.thumbnail,
+        }))
+      );
+
+      total += videoComments.total;
+    }
+
+    // 分页处理
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedComments = comments.slice(startIndex, endIndex);
+
+    return HttpResponse.json({
+      success: true,
+      data: {
+        data: paginatedComments,
+        total: total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
+  }),
+
+  // 删除评论
+  http.delete('/api/creator/comments/:id', async ({ params, request }) => {
+    const { id } = params;
+    const tokenHeader = request.headers.get('Authorization');
+
+    if (!tokenHeader) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '未授权操作',
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
+    if (!userId) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '无效的授权',
+        },
+        { status: 401 }
+      );
+    }
+
+    await mockDelay();
+
+    // 模拟删除评论的逻辑
+    // 这里简单返回成功，实际需要检查评论是否存在、是否属于该创作者等
+
+    return HttpResponse.json({
+      success: true,
+      data: {
+        message: '评论已删除',
+      },
+    });
+  }),
+
+  // 回复评论
+  http.post('/api/creator/comments/:id/reply', async ({ params, request }) => {
+    const { id } = params;
+    const tokenHeader = request.headers.get('Authorization');
+
+    if (!tokenHeader) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '未授权操作',
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
+    if (!userId) {
+      return HttpResponse.json(
+        {
+          success: false,
+          error: '无效的授权',
+        },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { content } = body;
+
+    await mockDelay();
+
+    // 模拟回复评论的逻辑
+    // 这里简单返回一个模拟的回复对象
+
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id: `reply-${Date.now()}`,
+        parentId: id,
+        content,
+        userId,
+        userAvatar: 'https://i.pravatar.cc/150?u=creator',
+        username: '创作者',
+        createdAt: new Date().toISOString(),
+        likes: 0,
+      },
+    });
+  }),
+
   // 获取内容趋势数据
   http.get('/api/creator/trends/content', async ({ request }) => {
     const url = new URL(request.url);
@@ -521,9 +693,9 @@ export const creatorHandlers = [
 
     await mockDelay();
 
-    // 生成模拟的观看趋势数据
+    // 生成模拟的观看量趋势数据
     const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-    const trendData = generateTrendData(days, { min: 50, max: 500 });
+    const trendData = generateTrendData(days, { min: 10, max: 500 });
 
     return HttpResponse.json({
       success: true,
@@ -562,7 +734,7 @@ export const creatorHandlers = [
 
     // 生成模拟的互动趋势数据
     const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-    const trendData = generateEngagementTrendData(days, { min: 20, max: 200 });
+    const trendData = generateEngagementTrendData(days, { min: 1, max: 50 });
 
     return HttpResponse.json({
       success: true,
@@ -601,7 +773,7 @@ export const creatorHandlers = [
 
     // 生成模拟的收入趋势数据
     const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-    const trendData = generateTrendData(days, { min: 10, max: 100 });
+    const trendData = generateTrendData(days, { min: 0, max: 100 });
 
     return HttpResponse.json({
       success: true,
@@ -609,14 +781,12 @@ export const creatorHandlers = [
     });
   }),
 
-  // 获取创作者评论
-  http.get('/api/creator/comments', async ({ request }) => {
+  // 获取表现最佳的视频
+  http.get('/api/creator/top-videos', async ({ request }) => {
     const url = new URL(request.url);
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const pageSize = parseInt(url.searchParams.get('pageSize') || '10');
-    const status = url.searchParams.get('status');
-    const videoId = url.searchParams.get('videoId');
-
+    const metric = url.searchParams.get('metric') || 'views';
+    const period = url.searchParams.get('period') || '30d';
+    const limit = parseInt(url.searchParams.get('limit') || '5');
     const tokenHeader = request.headers.get('Authorization');
 
     if (!tokenHeader) {
@@ -643,138 +813,38 @@ export const creatorHandlers = [
     await mockDelay();
 
     // 获取创作者的视频列表
-    const creatorVideos = mockDb
-      .getCreatorVideos(userId, {
-        page: 1,
-        limit: 100,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-      })
-      .data.map(video => video.id);
-
-    // 模拟数据：20条评论
-    const totalComments = 20;
-    const commentsPerPage = [];
-
-    for (let i = (page - 1) * pageSize; i < Math.min(page * pageSize, totalComments); i++) {
-      const commentVideoId =
-        videoId || creatorVideos[Math.floor(Math.random() * creatorVideos.length)];
-      const commentStatus =
-        status || ['normal', 'hidden', 'pending'][Math.floor(Math.random() * 3)];
-
-      commentsPerPage.push({
-        id: `comment-${i}`,
-        videoId: commentVideoId,
-        videoTitle: `视频标题 ${(i % 5) + 1}`,
-        userId: `user-${i}`,
-        userName: `用户${i}`,
-        userAvatar: `https://i.pravatar.cc/150?u=user${i}`,
-        content: `这是第${i + 1}条评论，内容非常精彩！`,
-        likes: Math.floor(Math.random() * 100),
-        createdAt: new Date(
-          Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
-        ).toISOString(),
-        status: commentStatus,
-        replies: Math.floor(Math.random() * 5),
-        hasReplied: Math.random() > 0.5,
-      });
-    }
-
-    return HttpResponse.json({
-      success: true,
-      data: {
-        data: commentsPerPage,
-        total: totalComments,
-        page,
-        pageSize,
-        totalPages: Math.ceil(totalComments / pageSize),
-      },
+    const videos = mockDb.getCreatorVideos(userId, {
+      page: 1,
+      limit: 50, // 获取更多视频，以便筛选
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
     });
-  }),
 
-  // 获取表现最佳的视频
-  http.get('/api/creator/top-videos', async ({ request }) => {
-    const url = new URL(request.url);
-    const metric = url.searchParams.get('metric') || 'views';
-    const period = url.searchParams.get('period') || '30d';
-    const limit = parseInt(url.searchParams.get('limit') || '5');
+    // 根据指标对视频进行排序
+    let sortedVideos = [...videos.data];
 
-    const tokenHeader = request.headers.get('Authorization');
-
-    if (!tokenHeader) {
-      return HttpResponse.json(
-        {
-          success: false,
-          error: '未授权操作',
-        },
-        { status: 401 }
-      );
+    if (metric === 'views') {
+      sortedVideos.sort((a, b) => (b.views || 0) - (a.views || 0));
+    } else if (metric === 'likes') {
+      sortedVideos.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else if (metric === 'comments') {
+      sortedVideos.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+    } else if (metric === 'revenue') {
+      sortedVideos.sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
     }
 
-    const userId = mockDb.getUserIdFromToken(tokenHeader.replace('Bearer ', ''));
-    if (!userId) {
-      return HttpResponse.json(
-        {
-          success: false,
-          error: '无效的授权',
-        },
-        { status: 401 }
-      );
-    }
-
-    await mockDelay();
-
-    // 生成表现最佳的视频数据
-    const topVideos = [];
-    for (let i = 0; i < limit; i++) {
-      const viewCount = 1000 + Math.floor(Math.random() * 9000);
-      topVideos.push({
-        id: `video-top-${i}`,
-        title: `表现最佳视频 ${i + 1}`,
-        thumbnailUrl: `https://picsum.photos/300/180?random=${i}`,
-        duration: 180 + Math.floor(Math.random() * 600),
-        views: viewCount,
-        likes: Math.floor(viewCount * 0.1),
-        comments: Math.floor(viewCount * 0.02),
-        shares: Math.floor(viewCount * 0.01),
-        revenue: Math.floor(viewCount * 0.05),
-        publishDate: new Date(
-          Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000
-        ).toISOString(),
-      });
-    }
-
-    // 根据指定的指标排序
-    topVideos.sort((a, b) => {
-      // 使用类型安全的方式访问属性
-      const metricA =
-        metric === 'views'
-          ? a.views
-          : metric === 'likes'
-            ? a.likes
-            : metric === 'comments'
-              ? a.comments
-              : metric === 'shares'
-                ? a.shares
-                : metric === 'revenue'
-                  ? a.revenue
-                  : a.views;
-
-      const metricB =
-        metric === 'views'
-          ? b.views
-          : metric === 'likes'
-            ? b.likes
-            : metric === 'comments'
-              ? b.comments
-              : metric === 'shares'
-                ? b.shares
-                : metric === 'revenue'
-                  ? b.revenue
-                  : b.views;
-
-      return metricB - metricA;
-    });
+    // 获取前N个视频
+    const topVideos = sortedVideos.slice(0, limit).map(video => ({
+      id: video.id,
+      title: video.title,
+      thumbnailUrl: video.thumbnail || '/images/default-thumbnail.jpg',
+      views: video.views || 0,
+      likes: video.likes || 0,
+      comments: video.comments || 0,
+      revenue: video.revenue || 0,
+      publishDate: video.uploadDate || new Date().toISOString(),
+      duration: video.duration || 300,
+    }));
 
     return HttpResponse.json({
       success: true,
@@ -783,50 +853,54 @@ export const creatorHandlers = [
   }),
 ];
 
-// 辅助函数：生成模拟的趋势数据
+// 生成趋势数据的辅助函数
 function generateTrendData(days: number, range: { min: number; max: number }) {
-  const trendData: { date: string; value: number }[] = [];
-  const now = new Date();
+  const data = [];
+  const labels = [];
+  const today = new Date();
 
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now);
+    const date = new Date(today);
     date.setDate(date.getDate() - i);
 
-    trendData.push({
-      date: date.toISOString().split('T')[0],
-      value: Math.floor(Math.random() * (range.max - range.min + 1)) + range.min,
-    });
+    labels.push(date.toISOString().slice(0, 10));
+    data.push(Math.floor(Math.random() * (range.max - range.min + 1)) + range.min);
   }
 
-  return trendData;
+  return {
+    data,
+    labels,
+    trend: Math.random() > 0.5 ? Math.random() * 20 : -Math.random() * 20, // 随机趋势
+  };
 }
 
-// 生成互动趋势数据，包含likes, comments, shares
+// 生成多条线的互动趋势数据
 function generateEngagementTrendData(days: number, range: { min: number; max: number }) {
-  const trendData: {
-    date: string;
-    value: number;
-    likes: number;
-    comments: number;
-    shares: number;
-  }[] = [];
-  const now = new Date();
+  const likesData = [];
+  const commentsData = [];
+  const sharesData = [];
+  const labels = [];
+  const today = new Date();
 
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now);
+    const date = new Date(today);
     date.setDate(date.getDate() - i);
-    const value = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
 
-    trendData.push({
-      date: date.toISOString().split('T')[0],
-      value,
-      likes: Math.round(value * 0.6),
-      comments: Math.round(value * 0.3),
-      shares: Math.round(value * 0.1),
-    });
+    labels.push(date.toISOString().slice(0, 10));
+    likesData.push(Math.floor(Math.random() * (range.max - range.min + 1)) + range.min);
+    commentsData.push(Math.floor(Math.random() * (range.max / 2 - range.min + 1)) + range.min);
+    sharesData.push(Math.floor(Math.random() * (range.max / 3 - range.min + 1)) + range.min);
   }
 
-  return trendData;
+  return {
+    data: [
+      { name: '点赞', data: likesData },
+      { name: '评论', data: commentsData },
+      { name: '分享', data: sharesData },
+    ],
+    labels,
+    trend: Math.random() > 0.5 ? Math.random() * 15 : -Math.random() * 15, // 随机趋势
+  };
 }
 
 export default creatorHandlers;

@@ -10,6 +10,25 @@
 
 一个面向开发者的视频技术分享与学习平台，采用 Monorepo 架构，使用 Vue 3、TypeScript 和 Express 构建。
 
+## 项目概述
+
+Atom Video是一个现代化的视频分享平台，为用户提供高质量的视频内容服务。平台采用前后端分离架构，使用最新的Web技术栈，提供流畅、易用且功能丰富的视频观看和分享体验。
+
+### 核心特性
+
+- 🎥 高质量视频分享与观看
+- 👥 活跃的用户社区与互动系统
+- 📋 强大的播放列表管理功能
+- 🔍 智能内容推荐与搜索
+- 🌐 多语言国际化支持
+- 🎨 现代化 UI/UX 设计
+- ⚡ 高性能与可扩展性架构
+- 🔒 完善的用户认证与授权
+- 📱 全面响应式设计
+- 🌙 深色/亮色主题切换
+- ♿ 无障碍支持
+- 🔄 实时互动更新
+
 ## 项目开发进度
 
 ### 已完成功能
@@ -32,7 +51,7 @@
   - [x] 社交账号登录（Google, GitHub）
   - [x] 忘记密码/重置密码
   - [x] 记住我功能
-  - [x] 基于JWT的认证（前端部分）
+  - [x] 基于JWT的认证
 
 - [x] **国际化支持**
   - [x] 中文/英文切换
@@ -46,6 +65,9 @@
   - [x] 快捷键控制
   - [x] 自适应布局
   - [x] 主题适配
+  - [x] 视频进度记忆功能
+  - [x] 画中画模式
+  - [x] 视频截图功能
 
 - [x] **用户个人中心**
   - [x] 用户资料展示
@@ -53,8 +75,24 @@
   - [x] 关注/取消关注功能
   - [x] 无限滚动加载
   - [x] 头像上传功能
+  - [x] 个人数据统计
 
-- [x] **后端模块化重构**
+- [x] **视频互动系统**
+  - [x] 评论功能（支持嵌套评论）
+  - [x] 点赞/取消点赞功能
+  - [x] 收藏功能
+  - [x] 分享功能（链接、社交媒体）
+  - [x] 视频举报功能
+
+- [x] **播放列表系统**
+  - [x] 播放列表创建与管理
+  - [x] 视频添加/移除
+  - [x] 播放列表权限控制（公开/私有/未上市）
+  - [x] 播放列表分享
+  - [x] 视频排序功能
+  - [x] 播放列表封面设置
+
+- [x] **后端模块化架构**
   - [x] 认证模块 (auth)
   - [x] 用户模块 (user)
   - [x] 视频模块 (video)
@@ -64,67 +102,64 @@
   - [x] 收藏模块 (favorite)
   - [x] 订阅模块 (subscription)
   - [x] 互动模块 (interaction)
+  - [x] 播放列表模块 (playlist)
   - [x] 通用模块 (common)
 
 ### 进行中功能
 
-- [ ] **视频互动系统**
-  - [x] 评论功能
-  - [x] 点赞功能
-  - [x] 收藏功能
-  - [ ] 分享功能
+- [ ] **搜索增强系统**
+  - [x] 基础搜索功能
+  - [ ] 高级过滤选项
+  - [ ] 搜索建议和自动完成
+  - [ ] 搜索历史记录
 
-- [ ] **用户设置**
+- [ ] **用户通知系统**
+  - [ ] 实时通知
+  - [ ] 通知中心
+  - [ ] 通知偏好设置
+  - [ ] 邮件通知集成
+
+- [ ] **用户设置中心**
   - [x] 个人资料编辑
   - [x] 账号安全设置
   - [ ] 通知设置
   - [ ] 隐私设置
+  - [ ] 个性化推荐设置
 
-- [ ] **后端API开发**
-  - [x] 用户认证API
-  - [x] 视频管理API
-  - [x] 评论系统API
-  - [x] 用户互动API
+- [ ] **创作者数据分析**
+  - [ ] 视频数据统计
+  - [ ] 观众数据分析
+  - [ ] 互动数据报表
+  - [ ] 自定义数据导出
 
-## 技术栈
+## 技术架构
 
-### 前端
-- Vue 3.4.15
-- TypeScript 5.3.3
-- Pinia (状态管理)
-- Vue Router
-- Tailwind CSS
-- Vite
+Atom Video采用Monorepo架构设计，使用pnpm workspaces + Lerna管理多个相关包，支持代码共享、统一版本控制，并简化了协作流程。
 
-### 后端
-- Express.js
-- TypeScript 5.3.3
-- PostgreSQL
-- Prisma ORM
-- Redis
-- JWT 认证
+### 前端技术栈
+- **核心框架**: Vue 3.4.15 + TypeScript
+- **构建工具**: Vite
+- **状态管理**: Pinia
+- **路由**: Vue Router
+- **UI组件库**: Naive UI
+- **CSS框架**: Tailwind CSS
+- **HTTP客户端**: Axios
+- **测试**: Vitest
+
+### 后端技术栈
+- **框架**: Express.js + TypeScript
+- **数据库**: PostgreSQL
+- **ORM**: Prisma
+- **缓存**: Redis
+- **认证**: JWT
+- **文档**: Swagger/OpenAPI
 
 ### 开发工具
-- pnpm 8.15.4
-- ESLint + Prettier
-- Jest/Vitest
-- GitHub Actions
-- Docker
-
-## 特性
-
-- 🎥 技术视频分享与学习
-- 👥 开发者社区与互动
-- 🔍 智能标签与搜索
-- 🌐 国际化支持
-- 🎨 现代化 UI/UX
-- ⚡ 高性能与可扩展性
-- 🔒 安全认证与授权
-- 📱 响应式设计
-- 🌙 深色模式
-- ♿ 无障碍支持
-- 🔄 实时更新
-- 📊 数据分析
+- **包管理器**: pnpm 8.15.4
+- **代码规范**: ESLint + Prettier
+- **测试框架**: Jest/Vitest
+- **CI/CD**: GitHub Actions
+- **容器化**: Docker
 
 ## 快速开始
 
@@ -139,7 +174,7 @@
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/FightingTrip/atom-video.git
+git clone https://github.com/your-username/atom-video.git
 cd atom-video
 ```
 
@@ -167,6 +202,31 @@ pnpm dev
 # 或分别启动
 pnpm dev:frontend
 pnpm dev:backend
+
+# 以Mock模式启动前端（无需后端）
+pnpm dev:mock
+```
+
+## 使用测试账号
+
+平台提供了多种测试账号，方便在开发环境中测试不同用户角色和权限：
+
+### 管理员账号
+```
+账号: admin@atomvideo.com
+密码: Admin@123
+```
+
+### 创作者账号
+```
+账号: creator@atomvideo.com
+密码: Password123
+```
+
+### 普通用户账号
+```
+账号: user@atomvideo.com
+密码: Password123
 ```
 
 ## 项目文档
@@ -182,10 +242,11 @@ pnpm dev:backend
 - [后端架构](./docs/technical/backend-architecture.md)
 - [测试指南](./docs/development/testing.md)
 - [部署指南](./docs/deployment/README.md)
+- [Monorepo开发指南](./docs/monorepo-guide.md)
 
 ## 贡献指南
 
-我们欢迎所有形式的贡献，无论是新功能、bug修复还是文档改进。请查看[贡献指南](./docs/development/contributing.md)了解更多详情。
+我们欢迎所有形式的贡献，无论是新功能、bug修复还是文档改进。请查看[贡献指南](./CONTRIBUTING.md)了解更多详情。
 
 ## 许可证
 

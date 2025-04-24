@@ -47,7 +47,7 @@
               </n-icon>
               <h2>内容数据</h2>
             </div>
-            <n-button text @click="showContentTrends = true">
+            <n-button text @click="openTrendModal('content')">
               <template #icon><n-icon><trending-up-outline /></n-icon></template>
               查看趋势
             </n-button>
@@ -86,7 +86,7 @@
               </n-icon>
               <h2>观看数据</h2>
             </div>
-            <n-button text @click="showViewsTrends = true">
+            <n-button text @click="openTrendModal('views')">
               <template #icon><n-icon><trending-up-outline /></n-icon></template>
               查看趋势
             </n-button>
@@ -125,7 +125,7 @@
               </n-icon>
               <h2>互动数据</h2>
             </div>
-            <n-button text @click="showEngagementTrends = true">
+            <n-button text @click="openTrendModal('engagement')">
               <template #icon><n-icon><trending-up-outline /></n-icon></template>
               查看趋势
             </n-button>
@@ -164,7 +164,7 @@
               </n-icon>
               <h2>收入数据</h2>
             </div>
-            <n-button text @click="showRevenueTrends = true">
+            <n-button text @click="openTrendModal('revenue')">
               <template #icon><n-icon><trending-up-outline /></n-icon></template>
               查看趋势
             </n-button>
@@ -234,22 +234,21 @@
       </div>
 
       <!-- 趋势图表模态框 -->
-      <n-modal v-model:show="showContentTrends" preset="card" title="内容发布趋势" style="width: 800px; max-width: 90vw;">
-        <trend-chart :data="contentTrendsData" title="内容发布趋势" sub-title="按时间查看您的内容发布数据" color="#ff7d00" />
-      </n-modal>
+      <trend-chart-modal v-model:show="showContentTrends" title="内容发布趋势" subtitle="按时间查看您的内容发布数据"
+        :chart-data="contentTrendsData" chart-type="content" color="#ff7d00"
+        @period-change="(period) => handlePeriodChange('content', period)" />
 
-      <n-modal v-model:show="showViewsTrends" preset="card" title="观看趋势" style="width: 800px; max-width: 90vw;">
-        <trend-chart :data="viewsTrendsData" title="观看趋势" sub-title="按时间查看您的视频观看数据" color="#00c2ff" />
-      </n-modal>
+      <trend-chart-modal v-model:show="showViewsTrends" title="观看趋势" subtitle="按时间查看您的视频观看数据"
+        :chart-data="viewsTrendsData" chart-type="views" color="#00c2ff"
+        @period-change="(period) => handlePeriodChange('views', period)" />
 
-      <n-modal v-model:show="showEngagementTrends" preset="card" title="互动趋势" style="width: 800px; max-width: 90vw;">
-        <trend-chart :data="engagementTrendsData" title="互动趋势" sub-title="按时间查看您的视频互动数据" color="#ff2d55"
-          :multi-line="true" />
-      </n-modal>
+      <trend-chart-modal v-model:show="showEngagementTrends" title="互动趋势" subtitle="按时间查看您的视频互动数据"
+        :chart-data="engagementTrendsData" chart-type="engagement" color="#ff2d55" :multi-line="true"
+        @period-change="(period) => handlePeriodChange('engagement', period)" />
 
-      <n-modal v-model:show="showRevenueTrends" preset="card" title="收入趋势" style="width: 800px; max-width: 90vw;">
-        <trend-chart :data="revenueTrendsData" title="收入趋势" sub-title="按时间查看您的收入数据" color="#34c759" />
-      </n-modal>
+      <trend-chart-modal v-model:show="showRevenueTrends" title="收入趋势" subtitle="按时间查看您的收入数据"
+        :chart-data="revenueTrendsData" chart-type="revenue" color="#34c759"
+        @period-change="(period) => handlePeriodChange('revenue', period)" />
     </n-spin>
   </div>
 </template>
@@ -267,7 +266,7 @@
     CashOutline
   } from '@vicons/ionicons5';
   import { creatorService } from '@/services/creator';
-  import TrendChart from './TrendChart.vue';
+  import TrendChartModal from './TrendChartModal.vue';
 
   // 定义接口
   interface VideoStats {
@@ -370,16 +369,17 @@
     { label: '收入', value: 'revenue' }
   ];
 
-  // 趋势数据和模态框状态
-  const contentTrendsData = ref<TrendDataItem[]>([]);
-  const viewsTrendsData = ref<TrendDataItem[]>([]);
-  const engagementTrendsData = ref<TrendDataItem[]>([]);
-  const revenueTrendsData = ref<TrendDataItem[]>([]);
-
+  // 趋势图表状态
   const showContentTrends = ref(false);
   const showViewsTrends = ref(false);
   const showEngagementTrends = ref(false);
   const showRevenueTrends = ref(false);
+
+  // 趋势数据
+  const contentTrendsData = ref({ data: [], labels: [], trend: 0 });
+  const viewsTrendsData = ref({ data: [], labels: [], trend: 0 });
+  const engagementTrendsData = ref({ data: [], labels: [], trend: 0 });
+  const revenueTrendsData = ref({ data: [], labels: [], trend: 0 });
 
   // 计算属性
   const formattedLastUpdate = computed(() => {
@@ -562,6 +562,60 @@
   const changePeriod = (newPeriod: '7d' | '30d' | '90d') => {
     period.value = newPeriod;
     refreshData();
+  };
+
+  // 加载趋势数据
+  const loadTrendsData = async (type, period = '30d') => {
+    try {
+      let result;
+      switch (type) {
+        case 'content':
+          result = await creatorService.getContentTrends(period);
+          contentTrendsData.value = result;
+          break;
+        case 'views':
+          result = await creatorService.getViewsTrends(period);
+          viewsTrendsData.value = result;
+          break;
+        case 'engagement':
+          result = await creatorService.getEngagementTrends(period);
+          engagementTrendsData.value = result;
+          break;
+        case 'revenue':
+          result = await creatorService.getRevenueTrends(period);
+          revenueTrendsData.value = result;
+          break;
+      }
+    } catch (error) {
+      console.error(`获取${type}趋势数据失败:`, error);
+    }
+  };
+
+  // 显示趋势图表
+  const openTrendModal = async (type) => {
+    // 加载数据
+    await loadTrendsData(type);
+
+    // 显示对应的模态框
+    switch (type) {
+      case 'content':
+        showContentTrends.value = true;
+        break;
+      case 'views':
+        showViewsTrends.value = true;
+        break;
+      case 'engagement':
+        showEngagementTrends.value = true;
+        break;
+      case 'revenue':
+        showRevenueTrends.value = true;
+        break;
+    }
+  };
+
+  // 处理周期变化
+  const handlePeriodChange = async (type, period) => {
+    await loadTrendsData(type, period);
   };
 
   // 在组件挂载时获取数据

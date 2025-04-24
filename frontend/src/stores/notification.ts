@@ -39,9 +39,41 @@ export const useNotificationStore = defineStore('notification', () => {
       currentPage.value = page;
       hasMoreNotifications.value = response.hasMore;
 
+      // 确保通知列表永远不为空
+      if (notifications.value.length === 0) {
+        // 添加一个默认通知
+        const defaultNotification: Notification = {
+          id: 'default-notif-1',
+          type: 'system',
+          title: '欢迎使用Atom Video',
+          message: '感谢您使用Atom Video，开始探索丰富的视频世界吧！',
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        notifications.value = [defaultNotification];
+        totalNotifications.value = 1;
+        unreadCount.value = 1;
+      }
+
       return response;
     } catch (error) {
       console.error('获取通知失败', error);
+      
+      // 确保出错时也添加一个默认通知
+      if (notifications.value.length === 0) {
+        const defaultNotification: Notification = {
+          id: 'default-notif-2',
+          type: 'system',
+          title: '欢迎使用Atom Video',
+          message: '感谢您使用Atom Video，开始探索丰富的视频世界吧！',
+          read: false,
+          createdAt: new Date().toISOString(),
+        };
+        notifications.value = [defaultNotification];
+        totalNotifications.value = 1;
+        unreadCount.value = 1;
+      }
+      
       throw error;
     } finally {
       loading.value = false;
@@ -116,6 +148,17 @@ export const useNotificationStore = defineStore('notification', () => {
     await Promise.all([fetchNotifications(), fetchUnreadCount()]);
   }
 
+  // 强制刷新所有通知数据（用于开发测试）
+  async function refreshNotifications() {
+    // 清空现有数据
+    notifications.value = [];
+    unreadCount.value = 0;
+    currentPage.value = 1;
+
+    // 重新加载数据
+    return await initialize();
+  }
+
   return {
     // 状态
     notifications,
@@ -134,5 +177,6 @@ export const useNotificationStore = defineStore('notification', () => {
     markAllAsRead,
     loadMoreNotifications,
     initialize,
+    refreshNotifications,
   };
 });

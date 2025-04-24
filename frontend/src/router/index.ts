@@ -145,6 +145,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: '/notifications',
+        name: 'notifications',
+        component: () => import('@/pages/user/NotificationsPage.vue'),
+        meta: {
+          title: '通知中心 - Atom Video',
+          requiresAuth: true,
+        },
+      },
+      {
         path: '/user/:id',
         name: 'user-profile',
         component: () => import('@/pages/user/ProfilePage.vue'),

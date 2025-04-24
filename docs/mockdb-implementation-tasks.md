@@ -67,13 +67,27 @@
 - [ ] `markAllNotificationsRead(userId: string): void` - 标记所有通知为已读
 - [ ] `changePassword(userId: string, currentPassword: string, newPassword: string): { success: boolean; error?: string }` - 修改密码
 
+## 播放列表模块
+
+- [x] `getUserPlaylists(userId: string, params: { page?: number; limit?: number; search?: string; visibility?: 'public' | 'private' | 'unlisted' | 'all' }): { data: Playlist[]; total: number }` - 获取用户播放列表
+- [x] `getPlaylistById(id: string): Playlist | null` - 获取播放列表详情
+- [x] `getPlaylistVideos(playlistId: string, params: { page?: number; limit?: number }): { data: Video[]; total: number }` - 获取播放列表中的视频
+- [x] `createPlaylist(userId: string, data: { title: string; description?: string; visibility: 'public' | 'private' | 'unlisted'; videoIds?: string[] }): Playlist` - 创建播放列表
+- [x] `updatePlaylist(playlistId: string, userId: string, data: Partial<Playlist>): { success: boolean; playlist?: Playlist; error?: string }` - 更新播放列表
+- [x] `deletePlaylist(playlistId: string, userId: string): { success: boolean; error?: string }` - 删除播放列表
+- [x] `addVideoToPlaylist(playlistId: string, userId: string, videoId: string): { success: boolean; error?: string }` - 添加视频到播放列表
+- [x] `removeVideoFromPlaylist(playlistId: string, userId: string, videoId: string): { success: boolean; error?: string }` - 从播放列表中移除视频
+- [x] `reorderPlaylistVideos(playlistId: string, userId: string, videoIds: string[]): { success: boolean; error?: string }` - 重新排序播放列表视频
+
 ## 实施计划
 
-1. 优先实现通用方法和认证相关方法
-2. 实现视频模块的方法
-3. 实现用户模块的方法
-4. 实现创作者模块的方法
-5. 实现管理员模块剩余的方法
+1. ✅ 优先实现通用方法和认证相关方法
+2. ✅ 实现视频模块的方法
+3. ✅ 实现用户模块的方法
+4. ✅ 实现播放列表模块的方法 
+5. ⬜ 实现通知系统和搜索增强功能
+6. ⬜ 实现数据导出功能
+7. ⬜ 实现管理员模块剩余的方法
 
 ## 注意事项
 

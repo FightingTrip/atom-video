@@ -182,6 +182,36 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('user');
   }
 
+  // 获取用户通知设置
+  async function getUserNotificationSettings() {
+    if (!currentUser.value) return null;
+
+    try {
+      const userSettings = await import('@/services/user/settings').then(module =>
+        module.getUserNotificationSettings(currentUser.value!.id)
+      );
+      return userSettings;
+    } catch (error) {
+      console.error('获取通知设置失败:', error);
+      return null;
+    }
+  }
+
+  // 更新用户通知设置
+  async function updateNotificationSettings(settings: any) {
+    if (!currentUser.value) return false;
+
+    try {
+      await import('@/services/user/settings').then(module =>
+        module.updateUserNotificationSettings(currentUser.value!.id, settings)
+      );
+      return true;
+    } catch (error) {
+      console.error('更新通知设置失败:', error);
+      return false;
+    }
+  }
+
   return {
     // 状态
     currentUser,
@@ -198,5 +228,7 @@ export const useUserStore = defineStore('user', () => {
     updatePreferences,
     updateProfile,
     clearUser,
+    getUserNotificationSettings,
+    updateNotificationSettings,
   };
 });
