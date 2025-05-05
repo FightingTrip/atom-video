@@ -293,7 +293,7 @@ const routes: RouteRecordRaw[] = [
 const getBaseUrl = () => {
   // 在生产环境中使用 BASE_URL 环境变量或默认值
   if (import.meta.env.PROD) {
-    return import.meta.env.BASE_URL || '/Atom-Video/';
+    return import.meta.env.BASE_URL || '/atom-video/';
   }
   return '/';
 };
