@@ -217,7 +217,7 @@
                 <n-avatar :style="{ backgroundColor: session.current ? '#1890ff' : '#ccc' }">
                   <template #icon>
                     <n-icon>
-                      <ComputerOutline />
+                      <Desktop />
                     </n-icon>
                   </template>
                 </n-avatar>
@@ -292,7 +292,7 @@
     PersonOutline,
     ShieldOutline,
     NotificationsOutline,
-    ComputerOutline,
+    Desktop,
     LogOutOutline,
     LocationOutline,
     TimeOutline,
