@@ -48,7 +48,9 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: |
+          pnpm install
+          pnpm add uuid -w
 
       - name: Build frontend (mock mode)
         run: cd frontend && pnpm build
