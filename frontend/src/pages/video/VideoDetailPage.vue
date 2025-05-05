@@ -8,8 +8,50 @@
 <template>
   <div class="video-detail-container">
     <div v-if="loading" class="loading-state">
-        <n-spin size="large" />
-      <p>加载视频中...</p>
+      <div class="skeleton-container">
+        <!-- 视频播放器骨架屏 -->
+        <div class="player-skeleton">
+          <Skeleton height="480px" rounded />
+        </div>
+
+        <!-- 视频信息骨架屏 -->
+        <div class="video-info-skeleton">
+          <Skeleton height="32px" width="70%" class="title-skeleton" />
+          <div class="stats-skeleton">
+            <Skeleton height="16px" width="30%" />
+          </div>
+
+          <!-- 频道信息骨架屏 -->
+          <div class="channel-skeleton">
+            <div class="avatar-skeleton">
+              <Skeleton width="48px" height="48px" :rounded="true" />
+            </div>
+            <div class="channel-info-skeleton">
+              <Skeleton height="20px" width="40%" />
+              <Skeleton height="16px" width="20%" />
+            </div>
+          </div>
+
+          <!-- 视频描述骨架屏 -->
+          <div class="description-skeleton">
+            <Skeleton height="16px" width="100%" :rows="3" />
+          </div>
+        </div>
+
+        <!-- 评论区骨架屏 -->
+        <div class="comments-skeleton">
+          <Skeleton height="24px" width="40%" class="mb-4" />
+          <div class="comment-skeleton" v-for="i in 3" :key="i">
+            <div class="comment-avatar-skeleton">
+              <Skeleton width="40px" height="40px" :rounded="true" />
+            </div>
+            <div class="comment-content-skeleton">
+              <Skeleton height="16px" width="20%" class="mb-2" />
+              <Skeleton height="16px" width="90%" :rows="2" />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div v-else-if="error" class="error-state">
       <n-result status="error" :title="error" :description="'无法加载视频信息，请稍后重试'">
@@ -44,7 +86,7 @@
                   <template #icon>
                     <n-icon :color="interaction.liked ? '#f00' : undefined">
                       <ThumbsUpOutline />
-        </n-icon>
+                    </n-icon>
                   </template>
                 </n-button>
                 <span>{{ formatNumber(video.likes) }}</span>
@@ -61,11 +103,11 @@
               <div class="action-button">
                 <n-button quaternary circle @click="openShareDialog">
                   <template #icon>
-      <n-icon>
+                    <n-icon>
                       <ShareSocialOutline />
-      </n-icon>
+                    </n-icon>
                   </template>
-      </n-button>
+                </n-button>
                 <span>分享</span>
               </div>
               <div class="action-button">
@@ -101,7 +143,7 @@
               </div>
             </div>
           </div>
-    </div>
+        </div>
 
         <!-- 频道信息 -->
         <div class="video-owner-info">
@@ -132,7 +174,7 @@
               <p class="description-text">{{ video.description }}</p>
               <div class="tags">
                 <n-tag v-for="tag in video.tags" :key="tag" size="small">{{ tag }}</n-tag>
-      </div>
+              </div>
             </div>
             <div class="show-more" v-if="isDescriptionLong">
               <n-button text @click="toggleDescription">
@@ -186,7 +228,7 @@
                     <template #icon>
                       <n-icon :color="comment.userLiked ? '#f00' : undefined">
                         <ThumbsUpOutline />
-              </n-icon>
+                      </n-icon>
                     </template>
                   </n-button>
                   <span class="like-count">{{ formatNumber(comment.likes) }}</span>
@@ -198,14 +240,14 @@
                     </template>
                   </n-button>
                   <n-button text size="small">回复</n-button>
-            </div>
+                </div>
                 <div class="replies" v-if="comment.replyCount > 0">
                   <n-button text size="small">
                     <template #icon>
                       <n-icon>
                         <ChevronDownOutline />
                       </n-icon>
-          </template>
+                    </template>
                     查看{{ comment.replyCount }}条回复
                   </n-button>
                 </div>
@@ -258,6 +300,7 @@
     ChevronDownOutline
   } from '@vicons/ionicons5';
   import VideoPlayerTemp from './VideoPlayerTemp.vue';
+  import Skeleton from '@/components/common/loading/Skeleton.vue';
 
   // 定义视频类型接口
   interface VideoAuthor {
@@ -467,7 +510,7 @@
       console.error('加载视频失败:', err);
       error.value = '加载视频失败';
     } finally {
-        loading.value = false;
+      loading.value = false;
     }
   }
 
@@ -750,7 +793,7 @@
 
     if (comment.userLiked) {
       comment.likes += 1;
-      } else {
+    } else {
       comment.likes -= 1;
     }
 
@@ -1276,5 +1319,92 @@
 
   .share-option:hover {
     background-color: #e5e5e5;
+  }
+
+  /* 骨架屏样式 */
+  .loading-state {
+    min-height: 100vh;
+  }
+
+  .skeleton-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .player-skeleton {
+    width: 100%;
+    height: 480px;
+    margin-bottom: 24px;
+  }
+
+  .title-skeleton {
+    margin-bottom: 16px;
+  }
+
+  .stats-skeleton {
+    margin-bottom: 24px;
+  }
+
+  .channel-skeleton {
+    display: flex;
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .avatar-skeleton {
+    flex-shrink: 0;
+  }
+
+  .channel-info-skeleton {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .description-skeleton {
+    margin: 24px 0;
+  }
+
+  .comments-skeleton {
+    margin-top: 40px;
+  }
+
+  .comment-skeleton {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .comment-avatar-skeleton {
+    flex-shrink: 0;
+  }
+
+  .comment-content-skeleton {
+    flex: 1;
+  }
+
+  .mb-2 {
+    margin-bottom: 8px;
+  }
+
+  .mb-4 {
+    margin-bottom: 16px;
+  }
+
+  /* 响应式设计 */
+  @media (max-width: 768px) {
+    .player-skeleton {
+      height: auto;
+      aspect-ratio: 16/9;
+    }
+
+    .channel-skeleton {
+      gap: 12px;
+    }
   }
 </style>

@@ -85,7 +85,9 @@
       <n-tabs v-model:value="activeTab" type="line" animated>
         <n-tab-pane name="videos" tab="视频">
           <div v-if="loading" class="loading-state">
-            <n-spin size="large" />
+            <div v-if="activeTab === 'videos'" class="skeleton-container video-skeletons">
+              <VideoCardSkeletonComponent v-for="i in 6" :key="'skeleton-' + i" layout="list" />
+            </div>
           </div>
           <div v-else-if="filteredVideos.length === 0" class="empty-state">
             <n-empty description="没有找到相关视频" />
@@ -111,7 +113,18 @@
 
         <n-tab-pane name="channels" tab="频道">
           <div v-if="loading" class="loading-state">
-            <n-spin size="large" />
+            <div v-if="activeTab === 'channels'" class="skeleton-container channel-skeletons">
+              <div v-for="i in 4" :key="'channel-skeleton-' + i" class="channel-skeleton">
+                <div class="avatar-skeleton">
+                  <Skeleton width="60px" height="60px" :rounded="true" />
+                </div>
+                <div class="channel-info-skeleton">
+                  <Skeleton height="20px" width="40%" class="channel-name-skeleton" />
+                  <Skeleton height="16px" width="60%" />
+                  <Skeleton height="16px" width="30%" />
+                </div>
+              </div>
+            </div>
           </div>
           <div v-else-if="channels.length === 0" class="empty-state">
             <n-empty description="没有找到相关频道" />
@@ -131,7 +144,18 @@
 
         <n-tab-pane name="playlists" tab="播放列表">
           <div v-if="loading" class="loading-state">
-            <n-spin size="large" />
+            <div v-if="activeTab === 'playlists'" class="skeleton-container playlist-skeletons">
+              <div v-for="i in 4" :key="'playlist-skeleton-' + i" class="playlist-skeleton">
+                <div class="playlist-thumbnail-skeleton">
+                  <Skeleton height="120px" :rounded="true" />
+                </div>
+                <div class="playlist-info-skeleton">
+                  <Skeleton height="20px" width="70%" class="playlist-title-skeleton" />
+                  <Skeleton height="16px" width="40%" />
+                  <Skeleton height="16px" width="30%" />
+                </div>
+              </div>
+            </div>
           </div>
           <div v-else-if="playlists.length === 0" class="empty-state">
             <n-empty description="没有找到相关播放列表" />
@@ -189,6 +213,8 @@
     NDynamicTags
   } from 'naive-ui';
   import { SettingsOutline } from '@vicons/ionicons5';
+  import VideoCardSkeletonComponent from '@/components/business/video/VideoCardSkeletonComponent.vue';
+  import Skeleton from '@/components/common/loading/Skeleton.vue';
 
   dayjs.extend(relativeTime);
   dayjs.locale('zh-cn');
@@ -764,5 +790,42 @@
   /* 工具类 */
   .mt-2 {
     margin-top: 8px;
+  }
+
+  /* 骨架屏样式 */
+  .skeleton-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .channel-skeleton,
+  .playlist-skeleton {
+    display: flex;
+    padding: 16px;
+    gap: 16px;
+    background-color: var(--bg-color-secondary);
+    border-radius: var(--radius-lg);
+  }
+
+  .avatar-skeleton {
+    flex-shrink: 0;
+  }
+
+  .channel-info-skeleton,
+  .playlist-info-skeleton {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .channel-name-skeleton,
+  .playlist-title-skeleton {
+    margin-bottom: 8px;
+  }
+
+  .playlist-thumbnail-skeleton {
+    flex: 0 0 160px;
   }
 </style>

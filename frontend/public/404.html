@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Atom Video - 页面重定向中</title>
+  <script>
+    // 适用于GitHub Pages的SPA路由重定向脚本
+    // 将路径保存到会话存储，然后重定向到首页
+    (function() {
+      var segmentCount = 1; // 设置为1表示 '/Atom-Video/...'
+
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?p=/' +
+        l.pathname.slice(1).split('/').slice(segmentCount).join('/') +
+        (l.search ? '&q=' + l.search.slice(1) : '') +
+        l.hash
+      );
+    })();
+  </script>
+</head>
+<body>
+  <h2>页面重定向中...</h2>
+  <p>如果您未被自动重定向，请<a id="homeLink" href="/">点击此处</a>返回首页。</p>
+  <script>
+    // 更新首页链接
+    document.getElementById('homeLink').href = window.location.pathname.split('/').slice(0, 2).join('/') + '/';
+  </script>
+</body>
+</html> 

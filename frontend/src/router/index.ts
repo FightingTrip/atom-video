@@ -289,9 +289,19 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
+// 获取基础路径，适配GitHub Pages
+const getBaseUrl = () => {
+  // 在生产环境中使用 BASE_URL 环境变量或默认值
+  if (import.meta.env.PROD) {
+    return import.meta.env.BASE_URL || '/Atom-Video/';
+  }
+  return '/';
+};
+
 // 创建路由实例
 const router = createRouter({
-  history: createWebHistory(),
+  // 使用适配GitHub Pages的基础路径
+  history: createWebHistory(getBaseUrl()),
   routes,
   scrollBehavior(to, from, savedPosition) {
     // 如果有保存的位置，则使用保存的位置

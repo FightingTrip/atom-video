@@ -19,8 +19,9 @@
 
     <!-- 视频列表 -->
     <div v-if="loading" class="loading-container">
-      <n-spin size="large" />
-      <p>加载中...</p>
+      <div class="skeleton-grid">
+        <VideoCardSkeletonComponent v-for="i in 6" :key="'skeleton-' + i" />
+      </div>
     </div>
 
     <template v-else>
@@ -45,6 +46,7 @@
   import { useRouter } from 'vue-router';
   import { NSpin, NEmpty, NButton, NSpace } from 'naive-ui';
   import VideoCard from '@/components/common/VideoCard.vue';
+  import VideoCardSkeletonComponent from '@/components/business/video/VideoCardSkeletonComponent.vue';
   import { useVideoStore } from '@/stores/video';
   import type { Video } from '@/types';
   import videoService from '@/services/videoService';
@@ -139,17 +141,14 @@
     border-radius: 16px;
   }
 
-  .videos-grid {
+  .videos-grid,
+  .skeleton-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 24px;
   }
 
   .loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     min-height: 300px;
   }
 
@@ -166,7 +165,9 @@
   }
 
   @media (max-width: 768px) {
-    .videos-grid {
+
+    .videos-grid,
+    .skeleton-grid {
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 16px;
     }
