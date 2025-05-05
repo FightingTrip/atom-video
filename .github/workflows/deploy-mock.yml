@@ -54,7 +54,7 @@ jobs:
         run: cd frontend && pnpm build
         env:
           VITE_USE_MOCK: 'true'
-          BASE_URL: '/Atom-Video/'
+          BASE_URL: '/atom-video/'
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
