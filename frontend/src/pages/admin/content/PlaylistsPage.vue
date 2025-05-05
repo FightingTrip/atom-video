@@ -187,7 +187,7 @@
           <AlertCircleOutline />
         </n-icon>
       </template>
-      <div>确认要删除播放列表 <strong>{{ deletePlaylist?.title }}</strong> 吗？此操作不可逆。</div>
+      <div>确认要删除播放列表 <strong>{{ playlistToDelete?.title }}</strong> 吗？此操作不可逆。</div>
     </n-modal>
 
     <!-- 视频移除确认对话框 -->
@@ -303,9 +303,8 @@
     visibility: 'public'
   })
 
-  // 删除对话框
-  const showDeleteModal = ref(false)
-  const deletePlaylist = ref(null)
+  // 需要声明一个ref变量来存储要删除的播放列表
+  const playlistToDelete = ref(null)
 
   // 移除视频对话框
   const showRemoveVideoModal = ref(false)
@@ -570,23 +569,23 @@
 
   // 删除播放列表
   function deletePlaylist(playlist) {
-    deletePlaylist.value = playlist
+    playlistToDelete.value = playlist
     showDeleteModal.value = true
   }
 
   // 确认删除
   async function confirmDelete() {
-    if (!deletePlaylist.value) return
+    if (!playlistToDelete.value) return
 
     try {
       // 模拟API调用
       await new Promise(resolve => setTimeout(resolve, 600))
 
       // 从列表中移除
-      playlists.value = playlists.value.filter(item => item.id !== deletePlaylist.value.id)
+      playlists.value = playlists.value.filter(item => item.id !== playlistToDelete.value.id)
 
       // 如果当前正在查看此播放列表，关闭详情抽屉
-      if (currentPlaylist.value && currentPlaylist.value.id === deletePlaylist.value.id) {
+      if (currentPlaylist.value && currentPlaylist.value.id === playlistToDelete.value.id) {
         showDetail.value = false
       }
 
