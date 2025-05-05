@@ -38,20 +38,32 @@
     <script>
       // 处理GitHub Pages的SPA路由
       (function() {
-        // 检查是否有路由参数
+        // 尝试从会话存储中恢复重定向路径
         var redirect = sessionStorage.redirect;
         delete sessionStorage.redirect;
         
-        // 如果存在查询参数p，则恢复路由
+        // 尝试从URL参数p获取路径
         var urlParams = new URLSearchParams(window.location.search);
         var path = urlParams.get('p');
         
         if (path) {
-          // 恢复路由路径
+          // 从URL参数恢复路径
+          console.log('从URL参数恢复路径:', path);
           history.replaceState(null, null, path);
-        } else if (redirect && redirect != location.href) {
-          // 恢复重定向
-          history.replaceState(null, null, redirect);
+        } else if (redirect && redirect !== window.location.href) {
+          // 从会话存储恢复重定向
+          console.log('从会话存储恢复重定向:', redirect);
+          
+          // 从完整URL中提取路径部分
+          var url = new URL(redirect);
+          var pathSegments = url.pathname.split('/');
+          
+          // 移除第一段(空字符串)和仓库名，得到应用路径
+          if (pathSegments.length > 2) {
+            var appPath = '/' + pathSegments.slice(2).join('/');
+            console.log('提取的应用路径:', appPath);
+            history.replaceState(null, null, appPath);
+          }
         }
       })();
     </script>

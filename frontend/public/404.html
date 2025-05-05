@@ -5,18 +5,21 @@
   <title>Atom Video - 页面重定向中</title>
   <script>
     // 适用于GitHub Pages的SPA路由重定向脚本
-    // 将路径保存到会话存储，然后重定向到首页
     (function() {
-      var segmentCount = 1; // 设置为1表示 '/atom-video/...'
-
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?p=/' +
-        l.pathname.slice(1).split('/').slice(segmentCount).join('/') +
-        (l.search ? '&q=' + l.search.slice(1) : '') +
-        l.hash
-      );
+      // 保存当前URL到会话存储中，以便在主页面恢复
+      sessionStorage.redirect = window.location.href;
+      
+      // 获取仓库名，默认为'atom-video'
+      var pathSegments = window.location.pathname.split('/');
+      var repo = pathSegments[1] || 'atom-video';
+      
+      // 计算基础URL
+      var baseUrl = window.location.protocol + '//' + window.location.hostname + 
+                   (window.location.port ? ':' + window.location.port : '') + 
+                   '/' + repo + '/';
+      
+      // 重定向到首页，让入口脚本处理路由
+      window.location.replace(baseUrl);
     })();
   </script>
 </head>
@@ -25,7 +28,9 @@
   <p>如果您未被自动重定向，请<a id="homeLink" href="/">点击此处</a>返回首页。</p>
   <script>
     // 更新首页链接
-    document.getElementById('homeLink').href = window.location.pathname.split('/').slice(0, 2).join('/') + '/';
+    var pathSegments = window.location.pathname.split('/');
+    var repo = pathSegments[1] || 'atom-video';
+    document.getElementById('homeLink').href = '/' + repo + '/';
   </script>
 </body>
 </html> 
