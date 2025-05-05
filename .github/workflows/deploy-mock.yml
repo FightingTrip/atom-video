@@ -49,7 +49,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pnpm install
+          pnpm install --no-frozen-lockfile
           pnpm add uuid -w
 
       - name: Build frontend (mock mode)
@@ -67,9 +67,9 @@ jobs:
           path: './frontend/dist/build'
 
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # environment:
+    #   name: ''
+    #   url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
     steps:
