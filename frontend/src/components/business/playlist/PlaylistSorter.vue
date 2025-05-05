@@ -2,51 +2,53 @@
   <div class="playlist-sorter">
     <div class="sorter-header">
       <h3 class="sorter-title">{{ title }}</h3>
-      <div v-if="isEditing" class="sorter-actions">
-        <n-button size="small" @click="cancelEdit">取消</n-button>
-        <n-button type="primary" size="small" :loading="saving" @click="saveOrder">保存</n-button>
-      </div>
-      <div v-else class="sorter-actions">
-        <n-button size="small" type="primary" :disabled="videos.length < 2" @click="startEdit">
-          重新排序
+      <div class="sorter-actions">
+        <n-button size="small" type="primary" @click="handleReorder" :disabled="videos.length < 2">
+          {{ isEditing ? '保存顺序' : '重新排序' }}
         </n-button>
+        <n-button v-if="isEditing" size="small" @click="cancelEdit">取消</n-button>
       </div>
     </div>
 
     <n-scrollbar style="max-height: 500px">
-      <draggable v-model="sortableVideos" v-bind="dragOptions" :disabled="!isEditing" class="video-list" item-key="id">
-        <template #item="{ element, index }">
-          <div class="video-item" :class="{ 'is-editing': isEditing }">
-            <div class="video-index">{{ index + 1 }}</div>
-            <div class="video-thumbnail">
-              <img :src="element.coverUrl || element.thumbnailUrl" :alt="element.title" />
-              <div class="video-duration">{{ formatDuration(element.duration) }}</div>
-            </div>
-            <div class="video-details">
-              <h4 class="video-title">{{ element.title }}</h4>
-              <div class="video-meta">
-                <span class="video-author">{{ element.author.nickname }}</span>
-                <span class="video-views">{{ formatNumber(element.views) }}次观看</span>
-              </div>
-            </div>
-            <div v-if="isEditing" class="drag-handle">
-              <n-icon>
-                <menu-outline />
-              </n-icon>
-            </div>
-            <div v-else-if="canRemove" class="video-actions">
-              <n-button quaternary circle size="small" @click="removeVideo(element.id)"
-                :disabled="removing === element.id" :loading="removing === element.id">
-                <template #icon>
-                  <n-icon>
-                    <close-outline />
-                  </n-icon>
-                </template>
-              </n-button>
+      <div class="video-list">
+        <div v-for="(video, index) in sortableVideos" :key="video.id" class="video-item"
+          :class="{ 'is-editing': isEditing }">
+          <div class="video-index">{{ index + 1 }}</div>
+          <div class="video-thumbnail">
+            <img :src="video.coverUrl || video.thumbnailUrl" :alt="video.title" />
+            <div class="video-duration">{{ formatDuration(video.duration) }}</div>
+          </div>
+          <div class="video-details">
+            <h4 class="video-title">{{ video.title }}</h4>
+            <div class="video-meta">
+              <span class="video-author">{{ video.author.nickname }}</span>
+              <span class="video-views">{{ formatNumber(video.views) }}次观看</span>
             </div>
           </div>
-        </template>
-      </draggable>
+          <div v-if="isEditing" class="video-actions">
+            <n-button quaternary circle size="small" @click="moveUp(index)" :disabled="index === 0">
+              <template #icon>
+                <n-icon><arrow-up-outline /></n-icon>
+              </template>
+            </n-button>
+            <n-button quaternary circle size="small" @click="moveDown(index)"
+              :disabled="index === sortableVideos.length - 1">
+              <template #icon>
+                <n-icon><arrow-down-outline /></n-icon>
+              </template>
+            </n-button>
+          </div>
+          <div v-else-if="canRemove" class="video-actions">
+            <n-button quaternary circle size="small" @click="removeVideo(video.id)" :disabled="removing === video.id"
+              :loading="removing === video.id">
+              <template #icon>
+                <n-icon><close-outline /></n-icon>
+              </template>
+            </n-button>
+          </div>
+        </div>
+      </div>
     </n-scrollbar>
 
     <div v-if="videos.length === 0" class="empty-state">
@@ -56,10 +58,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, defineProps, defineEmits, watch } from 'vue';
+  import { ref, defineProps, defineEmits, watch } from 'vue';
   import { NButton, NIcon, NEmpty, NScrollbar, useMessage } from 'naive-ui';
-  import { CloseOutline, MenuOutline } from '@vicons/ionicons5';
-  import { VueDraggableNext as draggable } from 'vue-draggable-next';
+  import { CloseOutline, ArrowUpOutline, ArrowDownOutline } from '@vicons/ionicons5';
   import { updatePlaylistVideoPositions, removeVideoFromPlaylist } from '@/services/playlist';
 
   const props = defineProps({
@@ -100,22 +101,22 @@
     sortableVideos.value = [...newVideos];
   }, { deep: true, immediate: true });
 
-  // 拖拽配置
-  const dragOptions = computed(() => {
-    return {
-      animation: 200,
-      disabled: !isEditing.value,
-      ghostClass: 'ghost',
-      handle: '.drag-handle'
-    };
-  });
-
-  // 开始编辑
-  function startEdit() {
+  // 处理重新排序按钮点击
+  function handleReorder() {
     if (props.videos.length < 2) {
       message.info('至少需要两个视频才能排序');
       return;
     }
+
+    if (isEditing.value) {
+      saveOrder();
+    } else {
+      startEdit();
+    }
+  }
+
+  // 开始编辑
+  function startEdit() {
     isEditing.value = true;
   }
 
@@ -123,6 +124,30 @@
   function cancelEdit() {
     isEditing.value = false;
     sortableVideos.value = [...props.videos];
+  }
+
+  // 上移视频
+  function moveUp(index: number) {
+    if (index <= 0) return;
+
+    const temp = sortableVideos.value[index];
+    sortableVideos.value[index] = sortableVideos.value[index - 1];
+    sortableVideos.value[index - 1] = temp;
+
+    // 创建新数组以触发更新
+    sortableVideos.value = [...sortableVideos.value];
+  }
+
+  // 下移视频
+  function moveDown(index: number) {
+    if (index >= sortableVideos.value.length - 1) return;
+
+    const temp = sortableVideos.value[index];
+    sortableVideos.value[index] = sortableVideos.value[index + 1];
+    sortableVideos.value[index + 1] = temp;
+
+    // 创建新数组以触发更新
+    sortableVideos.value = [...sortableVideos.value];
   }
 
   // 保存排序
@@ -251,18 +276,16 @@
   .video-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-height: 50px;
+    gap: 12px;
   }
 
   .video-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 8px;
+    border-radius: 6px;
     background-color: var(--bg-color);
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease;
   }
 
   .video-item:hover {
@@ -275,19 +298,23 @@
   }
 
   .video-index {
-    width: 24px;
-    text-align: center;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 14px;
-    font-weight: 500;
-    color: var(--text-color-secondary);
+    color: var(--text-color-2);
+    margin-right: 12px;
   }
 
   .video-thumbnail {
     position: relative;
     width: 120px;
     height: 68px;
-    border-radius: 4px;
     overflow: hidden;
+    border-radius: 4px;
+    margin-right: 16px;
     flex-shrink: 0;
   }
 
@@ -303,68 +330,61 @@
     right: 4px;
     background-color: rgba(0, 0, 0, 0.7);
     color: white;
+    font-size: 12px;
     padding: 1px 4px;
     border-radius: 2px;
-    font-size: 12px;
   }
 
   .video-details {
     flex: 1;
-    min-width: 0;
+    overflow: hidden;
   }
 
   .video-title {
-    margin: 0 0 4px;
+    margin: 0 0 4px 0;
     font-size: 14px;
     font-weight: 500;
+    line-height: 1.4;
     color: var(--text-color);
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
 
   .video-meta {
     font-size: 12px;
-    color: var(--text-color-secondary);
+    color: var(--text-color-3);
     display: flex;
-    gap: 8px;
+    flex-direction: column;
   }
 
-  .drag-handle {
-    cursor: move;
-    padding: 4px;
-    color: var(--text-color-secondary);
+  .video-author {
+    margin-bottom: 2px;
   }
 
   .video-actions {
-    flex-shrink: 0;
+    margin-left: 8px;
+    display: flex;
+    gap: 4px;
   }
 
   .empty-state {
     padding: 32px 0;
-  }
-
-  .ghost {
-    opacity: 0.5;
-    background-color: var(--primary-color-hover) !important;
+    text-align: center;
   }
 
   @media (max-width: 640px) {
     .video-thumbnail {
       width: 80px;
       height: 45px;
+      margin-right: 8px;
     }
 
-    .video-title {
-      font-size: 13px;
-    }
-
-    .video-meta {
-      font-size: 11px;
-      flex-direction: column;
-      gap: 2px;
+    .video-index {
+      width: 20px;
+      margin-right: 8px;
     }
   }
 </style>
