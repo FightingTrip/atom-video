@@ -150,7 +150,7 @@
           <div class="playlist-actions">
             <n-space>
               <n-button type="primary" @click="editPlaylist(currentPlaylist)">编辑播放列表</n-button>
-              <n-button type="error" @click="deletePlaylist(currentPlaylist)">删除播放列表</n-button>
+              <n-button type="error" @click="handleDeletePlaylist(currentPlaylist)">删除播放列表</n-button>
               <n-button @click="showDetail = false">关闭</n-button>
             </n-space>
           </div>
@@ -440,7 +440,7 @@
                   size: 'small',
                   type: 'error',
                   ghost: true,
-                  onClick: () => deletePlaylist(row)
+                  onClick: () => handleDeletePlaylist(row)
                 },
                 { default: () => '删除' }
               )
@@ -569,7 +569,7 @@
   }
 
   // 删除播放列表
-  function deletePlaylist(playlist) {
+  function handleDeletePlaylist(playlist) {
     deletePlaylist.value = playlist
     showDeleteModal.value = true
   }
