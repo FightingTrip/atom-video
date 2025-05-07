@@ -5,7 +5,7 @@
  * @module creator/services/creator
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { 
   CreatorApplicationDto, 
   CreatorApplicationStatus, 
@@ -17,6 +17,25 @@ import {
 } from '../models/creator.model';
 import { UserRole } from '../../common/middleware/auth.middleware';
 import { HttpException } from '../../common/exceptions/http.exception';
+
+interface VideoWithContentAccuracy {
+  contentAccuracy?: {
+    overallRating: number;
+  } | null;
+}
+
+interface CreatorWithCounts {
+  id: string;
+  username: string;
+  name: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  channelDescription: string | null;
+  _count: {
+    videos: number;
+    subscribersFrom: number;
+  };
+}
 
 /**
  * 创作者服务类
@@ -192,7 +211,7 @@ export class CreatorService {
     }
 
     // 开启事务
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 更新申请状态
       const updatedApplication = await tx.creatorApplication.update({
         where: { id },
@@ -382,13 +401,13 @@ export class CreatorService {
           },
         },
       },
-    });
+    }) as VideoWithContentAccuracy[];
 
     const ratings = videos
-      .filter((v) => v.contentAccuracy?.overallRating !== undefined)
-      .map((v) => v.contentAccuracy!.overallRating);
+      .filter((v: VideoWithContentAccuracy) => v.contentAccuracy?.overallRating !== undefined)
+      .map((v: VideoWithContentAccuracy) => v.contentAccuracy!.overallRating);
     const averageVideoRating =
-      ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+      ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0;
 
     return {
       totalVideos,
@@ -428,9 +447,9 @@ export class CreatorService {
         { subscribersFrom: { _count: 'desc' } },
         { videos: { _count: 'desc' } },
       ],
-    });
+    }) as CreatorWithCounts[];
 
-    return creators.map((creator) => ({
+    return creators.map((creator: CreatorWithCounts) => ({
       ...creator,
       videosCount: creator._count.videos,
       subscribersCount: creator._count.subscribersFrom,

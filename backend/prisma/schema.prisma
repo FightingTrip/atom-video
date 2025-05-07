@@ -31,56 +31,52 @@ enum ExperienceLevel {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  email        String   @unique
-  passwordHash String
-  name         String?
-  bio          String?  @db.Text
-  avatarUrl    String?
-  role         UserRole @default(USER)
-  isVerified   Boolean  @default(false)
-
-  // 开发者特有属性
-  githubProfile        String?
-  stackOverflowProfile String?
-  personalWebsite      String?
-  company              String?
-  position             String?
-  experienceLevel      ExperienceLevel?
-
-  // 内容创作相关
-  isCreator          Boolean @default(false)
-  channelDescription String? @db.Text
-  channelBannerUrl   String?
+  id                String    @id @default(uuid())
+  username          String    @unique
+  email             String    @unique
+  password          String
+  name              String?
+  avatarUrl         String?
+  bio               String?
+  isCreator         Boolean   @default(false)
+  role              String    @default("USER")
+  channelDescription String?
+  channelBannerUrl  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // 关联
-  videos                   Video[]
-  playlists                Playlist[]
-  watchHistory             WatchHistory[]
-  videoProgress            VideoProgress[]
-  comments                 Comment[]
-  commentLikes             CommentLike[]
-  videoLikes               Like[]
-  subscriptionsTo          Subscription[]            @relation("UserSubscribers")
-  subscribersFrom          Subscription[]            @relation("CreatorSubscribers")
-  savedVideos              SavedVideo[]
-  notifications            Notification[]
-  userActivities           UserActivity[]
-  userProgrammingLanguages UserProgrammingLanguage[]
-  userTechnologies         UserTechnology[]
-  reports                  Report[]                  @relation("ReportSubmitter")
-  reportsModerator         Report[]                  @relation("ReportModerator")
-  searchHistory            SearchHistory[]
-  recommendations          Recommendation[]
-  certificates             Certificate[]
-  questions                Question[]
-  answers                  Answer[]
-  answerVotes              AnswerVote[]
+  creatorApplications CreatorApplication[]
+  reviewedApplications CreatorApplication[] @relation("Reviewer")
+  videos              Video[]
+  subscribersFrom     Subscription[] @relation("Subscriber")
+  subscribersTo       Subscription[] @relation("Creator")
+  notifications       Notification[]
+  programmingLanguages UserProgrammingLanguage[]
+  technologies        UserTechnology[]
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Series    Series[]
+model CreatorApplication {
+  id                  String    @id @default(uuid())
+  userId              String
+  status              String    @default("PENDING")
+  motivation          String
+  portfolioUrl        String?
+  experienceDescription String
+  socialMediaLinks    String[]
+  creatorType         String
+  specializations     String[]
+  programmingLanguages String[]
+  technologies        String[]
+  reviewerId          String?
+  reviewerComment     String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  reviewedAt          DateTime?
+
+  // 关联
+  user                User      @relation(fields: [userId], references: [id])
+  reviewer            User?     @relation("Reviewer", fields: [reviewerId], references: [id])
 }
 
 // =========================================
@@ -112,64 +108,23 @@ enum VideoType {
 }
 
 model Video {
-  id           String          @id @default(uuid())
-  title        String
-  description  String?         @db.Text
-  thumbnailUrl String
-  videoUrl     String
-  duration     Int // 秒数
-  visibility   VideoVisibility @default(PUBLIC)
-
-  // 开发者特有属性
-  difficultyLevel DifficultyLevel
-  sourceCodeUrl   String? // GitHub仓库链接等
-  liveDemo        String? // 演示地址
-
-  // 视频类型
-  videoType VideoType @default(TUTORIAL)
-
-  // 内容元数据
-  prerequisites    String? @db.Text
-  learningOutcomes String? @db.Text
-
-  // 统计数据
-  viewCount    Int @default(0)
-  likeCount    Int @default(0)
-  commentCount Int @default(0)
+  id                String    @id @default(uuid())
+  creatorId         String
+  title             String
+  description       String?
+  url               String
+  thumbnailUrl      String?
+  duration          Int
+  viewCount         Int       @default(0)
+  likeCount         Int       @default(0)
+  commentCount      Int       @default(0)
+  status            String    @default("DRAFT")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // 关联
-  creator     User    @relation(fields: [creatorId], references: [id])
-  creatorId   String
-  series      Series? @relation(fields: [seriesId], references: [id])
-  seriesId    String?
-  seriesOrder Int? // 在系列中的顺序
-
-  programmingLanguage ProgrammingLanguage? @relation(fields: [languageId], references: [id])
-  languageId          String?
-
-  chapters          Chapter[]
-  videoTechnologies VideoTechnology[]
-  codeSnippets      CodeSnippet[]
-  comments          Comment[]
-  likes             Like[]
-  watchHistory      WatchHistory[]
-  progress          VideoProgress[]
-  savedBy           SavedVideo[]
-  playlists         PlaylistVideo[]
-  videoTags         VideoTag[]
-  videoCategories   VideoCategory[]
-  questions         Question[]
-  resources         Resource[]
+  creator           User      @relation(fields: [creatorId], references: [id])
   contentAccuracy   ContentAccuracy?
-
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  publishedAt    DateTime?
-  Recommendation Recommendation[]
-
-  @@index([creatorId])
-  @@index([publishedAt])
-  @@index([visibility, publishedAt])
 }
 
 model Chapter {
@@ -225,34 +180,25 @@ model Certificate {
 // Programming Language and Technology models
 // =========================================
 model ProgrammingLanguage {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  slug        String  @unique
-  description String?
-  iconUrl     String?
+  id                String    @id @default(uuid())
+  name              String    @unique
+  description       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // 关联
-  videos        Video[]
-  userLanguages UserProgrammingLanguage[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  users             UserProgrammingLanguage[]
 }
 
 model Technology {
-  id          String             @id @default(uuid())
-  name        String             @unique
-  slug        String             @unique
-  description String?
-  iconUrl     String?
-  category    TechnologyCategory
+  id                String    @id @default(uuid())
+  name              String    @unique
+  description       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   // 关联
-  videoTechnologies VideoTechnology[]
-  userTechnologies  UserTechnology[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  users             UserTechnology[]
 }
 
 enum TechnologyCategory {
@@ -272,23 +218,27 @@ enum TechnologyCategory {
 }
 
 model UserProgrammingLanguage {
-  id               String              @id @default(uuid())
-  user             User                @relation(fields: [userId], references: [id])
-  userId           String
-  language         ProgrammingLanguage @relation(fields: [languageId], references: [id])
-  languageId       String
-  proficiencyLevel Int                 @default(1) // 1-5 scale
+  id                String    @id @default(uuid())
+  userId            String
+  languageId        String
+  createdAt         DateTime  @default(now())
+
+  // 关联
+  user              User      @relation(fields: [userId], references: [id])
+  language          ProgrammingLanguage @relation(fields: [languageId], references: [id])
 
   @@unique([userId, languageId])
 }
 
 model UserTechnology {
-  id               String     @id @default(uuid())
-  user             User       @relation(fields: [userId], references: [id])
-  userId           String
-  technology       Technology @relation(fields: [technologyId], references: [id])
-  technologyId     String
-  proficiencyLevel Int        @default(1) // 1-5 scale
+  id                String    @id @default(uuid())
+  userId            String
+  technologyId      String
+  createdAt         DateTime  @default(now())
+
+  // 关联
+  user              User      @relation(fields: [userId], references: [id])
+  technology        Technology @relation(fields: [technologyId], references: [id])
 
   @@unique([userId, technologyId])
 }
@@ -446,19 +396,16 @@ model Like {
 }
 
 model Subscription {
-  id           String @id @default(uuid())
-  subscriber   User   @relation("UserSubscribers", fields: [subscriberId], references: [id])
-  subscriberId String
-  creator      User   @relation("CreatorSubscribers", fields: [creatorId], references: [id])
-  creatorId    String
+  id                String    @id @default(uuid())
+  subscriberId      String
+  creatorId         String
+  createdAt         DateTime  @default(now())
 
-  notificationsEnabled Boolean @default(true)
-
-  createdAt DateTime @default(now())
+  // 关联
+  subscriber        User      @relation("Subscriber", fields: [subscriberId], references: [id])
+  creator           User      @relation("Creator", fields: [creatorId], references: [id])
 
   @@unique([subscriberId, creatorId])
-  @@index([subscriberId])
-  @@index([creatorId])
 }
 
 model SavedVideo {
@@ -523,23 +470,16 @@ enum NotificationType {
 }
 
 model Notification {
-  id      String           @id @default(uuid())
-  user    User             @relation(fields: [userId], references: [id])
-  userId  String
-  type    NotificationType
-  message String
-  isRead  Boolean          @default(false)
+  id                String    @id @default(uuid())
+  userId            String
+  type              String
+  title             String
+  content           String
+  isRead            Boolean   @default(false)
+  createdAt         DateTime  @default(now())
 
-  // 相关内容引用
-  relatedVideoId  String?
-  relatedUserId   String?
-  relatedSeriesId String?
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([isRead])
-  @@index([createdAt])
+  // 关联
+  user              User      @relation(fields: [userId], references: [id])
 }
 
 enum ActivityType {
@@ -656,19 +596,17 @@ model Report {
 }
 
 model ContentAccuracy {
-  id      String @id @default(uuid())
-  video   Video  @relation(fields: [videoId], references: [id])
-  videoId String @unique
+  id                String    @id @default(uuid())
+  videoId           String    @unique
+  overallRating     Float
+  technicalAccuracy Float
+  educationalValue  Float
+  clarity           Float
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  isUpToDate     Boolean  @default(true)
-  lastVerifiedAt DateTime @default(now())
-  versionInfo    String? // 例如："React 18.2.0"
-
-  // 过期/过时标记
-  isDeprecated    Boolean @default(false)
-  deprecationNote String?
-
-  updatedAt DateTime @updatedAt
+  // 关联
+  video             Video     @relation(fields: [videoId], references: [id])
 }
 
 // =========================================

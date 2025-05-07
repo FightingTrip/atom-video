@@ -6,6 +6,7 @@
  */
 
 import { UserRole } from '../../common/middleware/auth.middleware';
+import { Prisma } from '@prisma/client';
 
 /**
  * 创作者申请状态枚举
@@ -32,12 +33,12 @@ export interface CreatorApplicationDto {
   userId: string;
   motivation: string; // 申请动机
   portfolioUrl?: string; // 作品集链接
-  experienceDescription?: string; // 经验描述
+  experienceDescription: string; // 经验描述
   socialMediaLinks?: string[]; // 社交媒体链接
-  creatorType?: CreatorType; // 创作者类型
-  specializations?: string[]; // 专长领域
-  programmingLanguages?: string[]; // 编程语言
-  technologies?: string[]; // 技术栈
+  creatorType: string; // 创作者类型
+  specializations: string[]; // 专长领域
+  programmingLanguages: string[]; // 编程语言
+  technologies: string[]; // 技术栈
 }
 
 /**
@@ -59,12 +60,12 @@ export interface CreatorApplicationDetailDto extends CreatorApplicationDto {
 export interface CreatorQueryDto {
   search?: string; // 搜索关键词
   status?: CreatorApplicationStatus; // 申请状态
-  creatorType?: CreatorType; // 创作者类型
+  creatorType?: string; // 创作者类型
   programmingLanguages?: string[]; // 编程语言
   technologies?: string[]; // 技术栈
   page?: number; // 页码
   pageSize?: number; // 每页数量
-  sortBy?: 'createdAt' | 'updatedAt' | 'username'; // 排序字段
+  sortBy?: string; // 排序字段
   sortOrder?: 'asc' | 'desc'; // 排序方向
 }
 
@@ -82,11 +83,8 @@ export interface ReviewCreatorApplicationDto {
 export interface UpdateCreatorProfileDto {
   channelDescription?: string; // 频道描述
   channelBannerUrl?: string; // 频道横幅URL
-  specializations?: string[]; // 专长领域
   programmingLanguages?: string[]; // 编程语言
   technologies?: string[]; // 技术栈
-  portfolioUrl?: string; // 作品集链接
-  socialMediaLinks?: string[]; // 社交媒体链接
 }
 
 /**
@@ -104,47 +102,49 @@ export interface CreatorStatsDto {
 /**
  * 构建创作者申请查询条件
  */
-export function buildCreatorApplicationWhereClause(params: CreatorQueryDto): any {
-  const where: any = {};
+export function buildCreatorApplicationWhereClause(
+  queryParams: CreatorQueryDto
+): Prisma.CreatorApplicationWhereInput {
+  const where: Prisma.CreatorApplicationWhereInput = {};
 
   // 关键词搜索
-  if (params.search) {
+  if (queryParams.search) {
     where.OR = [
       {
         user: {
           OR: [
-            { username: { contains: params.search, mode: 'insensitive' } },
-            { name: { contains: params.search, mode: 'insensitive' } },
-            { email: { contains: params.search, mode: 'insensitive' } },
+            { username: { contains: queryParams.search, mode: 'insensitive' } },
+            { name: { contains: queryParams.search, mode: 'insensitive' } },
+            { email: { contains: queryParams.search, mode: 'insensitive' } },
           ],
         },
       },
-      { motivation: { contains: params.search, mode: 'insensitive' } },
-      { experienceDescription: { contains: params.search, mode: 'insensitive' } },
+      { motivation: { contains: queryParams.search, mode: 'insensitive' } },
+      { experienceDescription: { contains: queryParams.search, mode: 'insensitive' } },
     ];
   }
 
   // 状态筛选
-  if (params.status) {
-    where.status = params.status;
+  if (queryParams.status) {
+    where.status = queryParams.status;
   }
 
   // 创作者类型筛选
-  if (params.creatorType) {
-    where.creatorType = params.creatorType;
+  if (queryParams.creatorType) {
+    where.creatorType = queryParams.creatorType;
   }
 
   // 编程语言筛选
-  if (params.programmingLanguages && params.programmingLanguages.length > 0) {
+  if (queryParams.programmingLanguages && queryParams.programmingLanguages.length > 0) {
     where.programmingLanguages = {
-      hasSome: params.programmingLanguages,
+      hasSome: queryParams.programmingLanguages,
     };
   }
 
   // 技术栈筛选
-  if (params.technologies && params.technologies.length > 0) {
+  if (queryParams.technologies && queryParams.technologies.length > 0) {
     where.technologies = {
-      hasSome: params.technologies,
+      hasSome: queryParams.technologies,
     };
   }
 
