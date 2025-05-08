@@ -9,7 +9,7 @@ import { http } from '@/utils/http';
 
 // API 基础配置
 export const API_CONFIG = {
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

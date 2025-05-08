@@ -83,6 +83,20 @@ const adminRoutes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'content/playlists',
+        name: 'AdminPlaylists',
+        component: () => import('@/pages/admin/content/PlaylistsPage.vue'),
+        meta: {
+          title: '播放列表管理',
+          requiresAuth: true,
+          roles: adminRoles,
+          breadcrumb: [
+            { title: '内容管理', path: '/admin/content' },
+            { title: '播放列表管理', path: '/admin/content/playlists' },
+          ],
+        },
+      },
+      {
         path: 'content/comments',
         name: 'AdminComments',
         component: () => import('@/pages/admin/content/CommentsPage.vue'),

@@ -37,7 +37,7 @@ import { initMockData } from './utils/mockData';
 import { checkNeedsMigration, runMigrations } from './utils/mockDbMigration';
 
 // 检查是否启用了mock模式
-const useMockData = import.meta.env.VITE_USE_MOCK === 'true' || shouldUseMockData();
+const useMockData = import.meta.env.VITE_API_MODE === 'mock' || shouldUseMockData();
 
 // 设置默认的环境变量
 console.log('App running in', process.env.NODE_ENV, 'mode', useMockData ? '(mock mode)' : '');
