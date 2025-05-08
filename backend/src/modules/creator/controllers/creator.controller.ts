@@ -40,15 +40,18 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const applicationData: CreatorApplicationDto = {
-        ...req.body,
-        userId: req.user!.id,
-      };
-
-      const application = await this.creatorService.applyForCreator(applicationData);
-      ApiResponse.created(res, application);
+      const applicationData: CreatorApplicationDto = req.body;
+      const application = await this.creatorService.submitCreatorApplication(
+        req.user!.id,
+        applicationData
+      );
+      ApiResponse.success(res, application, '创作者申请提交成功');
     } catch (error) {
-      next(error);
+      if (error instanceof HttpException) {
+        next(error);
+      } else {
+        next(new HttpException(500, '提交创作者申请失败'));
+      }
     }
   };
 
@@ -64,19 +67,15 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const queryParams: CreatorQueryDto = {
-        status: req.query.status as any,
-        creatorType: req.query.creatorType as string,
-        page: req.query.page ? parseInt(req.query.page as string) : undefined,
-        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined,
-        sortBy: req.query.sortBy as string,
-        sortOrder: req.query.sortOrder as 'asc' | 'desc',
-      };
-
-      const result = await this.creatorService.getCreatorApplications(queryParams);
-      ApiResponse.paginated(res, result.items, result.total, queryParams.page, queryParams.pageSize);
+      const query: CreatorQueryDto = req.query as any;
+      const result = await this.creatorService.getCreatorApplications(query);
+      ApiResponse.success(res, result);
     } catch (error) {
-      next(error);
+      if (error instanceof HttpException) {
+        next(error);
+      } else {
+        next(new HttpException(500, '获取创作者申请列表失败'));
+      }
     }
   };
 
@@ -117,9 +116,13 @@ export class CreatorController {
         reviewData,
         req.user!.id
       );
-      ApiResponse.success(res, application);
+      ApiResponse.success(res, application, '创作者申请审核成功');
     } catch (error) {
-      next(error);
+      if (error instanceof HttpException) {
+        next(error);
+      } else {
+        next(new HttpException(500, '审核创作者申请失败'));
+      }
     }
   };
 
@@ -155,10 +158,17 @@ export class CreatorController {
   ): Promise<void> => {
     try {
       const profileData: UpdateCreatorProfileDto = req.body;
-      const updatedUser = await this.creatorService.updateCreatorProfile(req.user!.id, profileData);
-      ApiResponse.success(res, updatedUser);
+      const updatedUser = await this.creatorService.updateCreatorProfile(
+        req.user!.id,
+        profileData
+      );
+      ApiResponse.success(res, updatedUser, '创作者资料更新成功');
     } catch (error) {
-      next(error);
+      if (error instanceof HttpException) {
+        next(error);
+      } else {
+        next(new HttpException(500, '更新创作者资料失败'));
+      }
     }
   };
 
@@ -177,7 +187,11 @@ export class CreatorController {
       const stats = await this.creatorService.getCreatorStats(req.user!.id);
       ApiResponse.success(res, stats);
     } catch (error) {
-      next(error);
+      if (error instanceof HttpException) {
+        next(error);
+      } else {
+        next(new HttpException(500, '获取创作者统计数据失败'));
+      }
     }
   };
 
