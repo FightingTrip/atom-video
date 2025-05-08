@@ -15,6 +15,7 @@ import {
   ReviewCreatorApplicationDto,
   UpdateCreatorProfileDto,
 } from '../models/creator.model';
+import { HttpException } from '../../../common/exceptions/http.exception';
 
 /**
  * 创作者控制器类
@@ -39,14 +40,13 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = req.user!.id;
       const applicationData: CreatorApplicationDto = {
-        userId,
         ...req.body,
+        userId: req.user!.id,
       };
 
-      const creatorApplication = await this.creatorService.applyForCreator(applicationData);
-      ApiResponse.created(res, creatorApplication);
+      const application = await this.creatorService.applyForCreator(applicationData);
+      ApiResponse.created(res, application);
     } catch (error) {
       next(error);
     }
@@ -65,17 +65,16 @@ export class CreatorController {
   ): Promise<void> => {
     try {
       const queryParams: CreatorQueryDto = {
-        search: req.query.search as string,
         status: req.query.status as any,
-        creatorType: req.query.creatorType as any,
-        page: req.query.page ? parseInt(req.query.page as string) : 1,
-        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
-        sortBy: req.query.sortBy as any,
+        creatorType: req.query.creatorType as string,
+        page: req.query.page ? parseInt(req.query.page as string) : undefined,
+        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined,
+        sortBy: req.query.sortBy as string,
         sortOrder: req.query.sortOrder as 'asc' | 'desc',
       };
 
-      const { items, total } = await this.creatorService.getCreatorApplications(queryParams);
-      ApiResponse.paginated(res, items, total, queryParams.page, queryParams.pageSize);
+      const result = await this.creatorService.getCreatorApplications(queryParams);
+      ApiResponse.paginated(res, result.items, result.total, queryParams.page, queryParams.pageSize);
     } catch (error) {
       next(error);
     }
@@ -93,8 +92,7 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const applicationId = req.params.id;
-      const application = await this.creatorService.getCreatorApplicationById(applicationId);
+      const application = await this.creatorService.getCreatorApplicationById(req.params.id);
       ApiResponse.success(res, application);
     } catch (error) {
       next(error);
@@ -113,16 +111,13 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const applicationId = req.params.id;
-      const reviewerId = req.user!.id;
       const reviewData: ReviewCreatorApplicationDto = req.body;
-
-      const updatedApplication = await this.creatorService.reviewCreatorApplication(
-        applicationId,
+      const application = await this.creatorService.reviewCreatorApplication(
+        req.params.id,
         reviewData,
-        reviewerId
+        req.user!.id
       );
-      ApiResponse.success(res, updatedApplication);
+      ApiResponse.success(res, application);
     } catch (error) {
       next(error);
     }
@@ -140,8 +135,7 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = req.user!.id;
-      const applications = await this.creatorService.getUserApplications(userId);
+      const applications = await this.creatorService.getUserApplications(req.user!.id);
       ApiResponse.success(res, applications);
     } catch (error) {
       next(error);
@@ -160,11 +154,9 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = req.user!.id;
       const profileData: UpdateCreatorProfileDto = req.body;
-
-      const updatedProfile = await this.creatorService.updateCreatorProfile(userId, profileData);
-      ApiResponse.success(res, updatedProfile);
+      const updatedUser = await this.creatorService.updateCreatorProfile(req.user!.id, profileData);
+      ApiResponse.success(res, updatedUser);
     } catch (error) {
       next(error);
     }
@@ -182,8 +174,7 @@ export class CreatorController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = req.params.id || req.user!.id;
-      const stats = await this.creatorService.getCreatorStats(userId);
+      const stats = await this.creatorService.getCreatorStats(req.user!.id);
       ApiResponse.success(res, stats);
     } catch (error) {
       next(error);
