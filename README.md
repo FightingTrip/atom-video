@@ -1,4 +1,4 @@
-# Atom Video
+# Atom Video  [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/FightingTrip/atom-video)
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg)](package.json)
