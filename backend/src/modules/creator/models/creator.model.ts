@@ -101,50 +101,38 @@ export interface CreatorStatsDto {
 
 /**
  * 构建创作者申请查询条件
+ * @param filters 过滤条件
+ * @returns Prisma查询条件
  */
-export function buildCreatorApplicationWhereClause(
-  queryParams: CreatorQueryDto
-): Prisma.CreatorApplicationWhereInput {
+export function buildCreatorApplicationWhereClause(filters: Partial<CreatorQueryDto>): Prisma.CreatorApplicationWhereInput {
   const where: Prisma.CreatorApplicationWhereInput = {};
 
-  // 关键词搜索
-  if (queryParams.search) {
+  if (filters.search) {
     where.OR = [
-      {
-        user: {
-          OR: [
-            { username: { contains: queryParams.search, mode: 'insensitive' } },
-            { name: { contains: queryParams.search, mode: 'insensitive' } },
-            { email: { contains: queryParams.search, mode: 'insensitive' } },
-          ],
-        },
-      },
-      { motivation: { contains: queryParams.search, mode: 'insensitive' } },
-      { experienceDescription: { contains: queryParams.search, mode: 'insensitive' } },
+      { user: { username: { contains: filters.search, mode: 'insensitive' } } },
+      { user: { name: { contains: filters.search, mode: 'insensitive' } } },
+      { motivation: { contains: filters.search, mode: 'insensitive' } },
+      { experienceDescription: { contains: filters.search, mode: 'insensitive' } },
     ];
   }
 
-  // 状态筛选
-  if (queryParams.status) {
-    where.status = queryParams.status;
+  if (filters.status) {
+    where.status = filters.status;
   }
 
-  // 创作者类型筛选
-  if (queryParams.creatorType) {
-    where.creatorType = queryParams.creatorType;
+  if (filters.creatorType) {
+    where.creatorType = filters.creatorType;
   }
 
-  // 编程语言筛选
-  if (queryParams.programmingLanguages && queryParams.programmingLanguages.length > 0) {
+  if (filters.programmingLanguages?.length) {
     where.programmingLanguages = {
-      hasSome: queryParams.programmingLanguages,
+      hasSome: filters.programmingLanguages,
     };
   }
 
-  // 技术栈筛选
-  if (queryParams.technologies && queryParams.technologies.length > 0) {
+  if (filters.technologies?.length) {
     where.technologies = {
-      hasSome: queryParams.technologies,
+      hasSome: filters.technologies,
     };
   }
 

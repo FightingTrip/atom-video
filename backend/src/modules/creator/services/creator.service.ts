@@ -12,8 +12,8 @@ import {
   CreatorQueryDto, 
   ReviewCreatorApplicationDto, 
   UpdateCreatorProfileDto,
-  buildCreatorApplicationWhereClause,
-  CreatorStatsDto
+  CreatorStatsDto,
+  buildCreatorApplicationWhereClause
 } from '../models/creator.model';
 import { UserRole } from '../../common/middleware/auth.middleware';
 import { HttpException } from '../../common/exceptions/http.exception';
@@ -44,29 +44,29 @@ interface CreatorWithCounts {
 export class CreatorService {
   private prisma: PrismaClient;
 
-  /**
-   * 构造函数
-   */
   constructor() {
     this.prisma = new PrismaClient();
   }
 
   /**
    * 提交创作者申请
+   * @param userId 用户ID
    * @param applicationData 申请数据
-   * @returns 创建的申请
+   * @returns 创建的申请记录
    */
-  public async applyForCreator(applicationData: CreatorApplicationDto): Promise<any> {
-    // 检查用户是否存在
+  public async submitCreatorApplication(
+    userId: string,
+    applicationData: CreatorApplicationDto
+  ): Promise<any> {
+    // 检查用户是否已经是创作者
     const user = await this.prisma.user.findUnique({
-      where: { id: applicationData.userId },
+      where: { id: userId },
     });
 
     if (!user) {
       throw new HttpException(404, '用户不存在');
     }
 
-    // 检查用户是否已经是创作者
     if (user.isCreator) {
       throw new HttpException(400, '用户已经是创作者');
     }
@@ -74,111 +74,60 @@ export class CreatorService {
     // 检查是否有待审核的申请
     const pendingApplication = await this.prisma.creatorApplication.findFirst({
       where: {
-        userId: applicationData.userId,
+        userId,
         status: CreatorApplicationStatus.PENDING,
       },
     });
 
     if (pendingApplication) {
-      throw new HttpException(400, '已有待审核的申请');
+      throw new HttpException(400, '已有待审核的创作者申请');
     }
 
-    // 创建申请
-    const creatorApplication = await this.prisma.creatorApplication.create({
+    // 创建申请记录
+    return this.prisma.creatorApplication.create({
       data: {
-        userId: applicationData.userId,
-        motivation: applicationData.motivation,
-        portfolioUrl: applicationData.portfolioUrl,
-        experienceDescription: applicationData.experienceDescription,
-        socialMediaLinks: applicationData.socialMediaLinks,
-        creatorType: applicationData.creatorType,
-        specializations: applicationData.specializations,
-        programmingLanguages: applicationData.programmingLanguages,
-        technologies: applicationData.technologies,
+        userId,
+        ...applicationData,
         status: CreatorApplicationStatus.PENDING,
+        submittedAt: new Date(),
       },
     });
-
-    return creatorApplication;
   }
 
   /**
    * 获取创作者申请列表
-   * @param queryParams 查询参数
-   * @returns 申请列表
+   * @param query 查询参数
+   * @returns 申请列表和总数
    */
-  public async getCreatorApplications(queryParams: CreatorQueryDto): Promise<{ items: any[]; total: number }> {
-    const where = buildCreatorApplicationWhereClause(queryParams);
+  public async getCreatorApplications(query: CreatorQueryDto): Promise<{ data: any[]; total: number }> {
+    const { page = 1, pageSize = 10, ...filters } = query;
+    const skip = (page - 1) * pageSize;
 
-    // 获取总数
-    const total = await this.prisma.creatorApplication.count({ where });
+    const where = buildCreatorApplicationWhereClause(filters);
 
-    // 获取分页数据
-    const items = await this.prisma.creatorApplication.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-            bio: true,
+    const [applications, total] = await Promise.all([
+      this.prisma.creatorApplication.findMany({
+        where,
+        skip,
+        take: pageSize,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              name: true,
+              avatarUrl: true,
+            },
           },
         },
-        reviewer: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-          },
+        orderBy: {
+          submittedAt: 'desc',
         },
-      },
-      orderBy: {
-        [queryParams.sortBy || 'createdAt']: queryParams.sortOrder || 'desc',
-      },
-      skip: queryParams.page && queryParams.pageSize ? (queryParams.page - 1) * queryParams.pageSize : 0,
-      take: queryParams.pageSize || 10,
-    });
+      }),
+      this.prisma.creatorApplication.count({ where }),
+    ]);
 
-    return { items, total };
-  }
-
-  /**
-   * 获取单个创作者申请
-   * @param id 申请ID
-   * @returns 申请详情
-   */
-  public async getCreatorApplicationById(id: string): Promise<any> {
-    const application = await this.prisma.creatorApplication.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-            bio: true,
-          },
-        },
-        reviewer: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    if (!application) {
-      throw new HttpException(404, '申请不存在');
-    }
-
-    return application;
+    return { data: applications, total };
   }
 
   /**
@@ -186,7 +135,7 @@ export class CreatorService {
    * @param id 申请ID
    * @param reviewData 审核数据
    * @param reviewerId 审核人ID
-   * @returns 更新后的申请
+   * @returns 更新后的申请记录
    */
   public async reviewCreatorApplication(
     id: string,
@@ -196,21 +145,17 @@ export class CreatorService {
     // 检查申请是否存在
     const application = await this.prisma.creatorApplication.findUnique({
       where: { id },
-      include: {
-        user: true,
-      },
     });
 
     if (!application) {
-      throw new HttpException(404, '申请不存在');
+      throw new HttpException(404, '创作者申请不存在');
     }
 
-    // 检查申请是否待审核
     if (application.status !== CreatorApplicationStatus.PENDING) {
-      throw new HttpException(400, '该申请已经被审核');
+      throw new HttpException(400, '该申请已被审核');
     }
 
-    // 开启事务
+    // 使用事务确保数据一致性
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 更新申请状态
       const updatedApplication = await tx.creatorApplication.update({
@@ -261,27 +206,16 @@ export class CreatorService {
   }
 
   /**
-   * 获取用户的创作者申请
-   * @param userId 用户ID
-   * @returns 用户的创作者申请
-   */
-  public async getUserApplications(userId: string): Promise<any[]> {
-    const applications = await this.prisma.creatorApplication.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return applications;
-  }
-
-  /**
    * 更新创作者资料
    * @param userId 用户ID
    * @param profileData 资料数据
-   * @returns 更新后的用户
+   * @returns 更新后的用户信息
    */
-  public async updateCreatorProfile(userId: string, profileData: UpdateCreatorProfileDto): Promise<any> {
-    // 检查用户是否存在且是创作者
+  public async updateCreatorProfile(
+    userId: string,
+    profileData: UpdateCreatorProfileDto
+  ): Promise<any> {
+    // 检查用户是否是创作者
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -291,63 +225,28 @@ export class CreatorService {
     }
 
     if (!user.isCreator) {
-      throw new HttpException(400, '用户不是创作者');
+      throw new HttpException(403, '只有创作者才能更新资料');
     }
 
-    // 更新创作者资料
-    const updatedUser = await this.prisma.user.update({
+    // 更新用户资料
+    return this.prisma.user.update({
       where: { id: userId },
       data: {
         channelDescription: profileData.channelDescription,
         channelBannerUrl: profileData.channelBannerUrl,
+        programmingLanguages: profileData.programmingLanguages,
+        technologies: profileData.technologies,
       },
     });
-
-    // 更新用户的专长领域、编程语言和技术栈
-    if (profileData.programmingLanguages && profileData.programmingLanguages.length > 0) {
-      // 先删除现有的关联
-      await this.prisma.userProgrammingLanguage.deleteMany({
-        where: { userId },
-      });
-
-      // 添加新的关联
-      for (const langId of profileData.programmingLanguages) {
-        await this.prisma.userProgrammingLanguage.create({
-          data: {
-            userId,
-            languageId: langId,
-          },
-        });
-      }
-    }
-
-    if (profileData.technologies && profileData.technologies.length > 0) {
-      // 先删除现有的关联
-      await this.prisma.userTechnology.deleteMany({
-        where: { userId },
-      });
-
-      // 添加新的关联
-      for (const techId of profileData.technologies) {
-        await this.prisma.userTechnology.create({
-          data: {
-            userId,
-            technologyId: techId,
-          },
-        });
-      }
-    }
-
-    return updatedUser;
   }
 
   /**
    * 获取创作者统计数据
    * @param userId 用户ID
-   * @returns 创作者统计数据
+   * @returns 统计数据
    */
   public async getCreatorStats(userId: string): Promise<CreatorStatsDto> {
-    // 检查用户是否存在且是创作者
+    // 检查用户是否是创作者
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -357,57 +256,47 @@ export class CreatorService {
     }
 
     if (!user.isCreator) {
-      throw new HttpException(400, '用户不是创作者');
+      throw new HttpException(403, '只有创作者才能查看统计数据');
     }
 
-    // 获取视频总数
-    const totalVideos = await this.prisma.video.count({
-      where: { creatorId: userId },
-    });
-
-    // 获取观看总数
-    const viewsResult = await this.prisma.video.aggregate({
-      where: { creatorId: userId },
-      _sum: { viewCount: true },
-    });
-    const totalViews = viewsResult._sum.viewCount || 0;
-
-    // 获取点赞总数
-    const likesResult = await this.prisma.video.aggregate({
-      where: { creatorId: userId },
-      _sum: { likeCount: true },
-    });
-    const totalLikes = likesResult._sum.likeCount || 0;
-
-    // 获取订阅者总数
-    const totalSubscribers = await this.prisma.subscription.count({
-      where: { creatorId: userId },
-    });
-
-    // 获取评论总数
-    const commentsResult = await this.prisma.video.aggregate({
-      where: { creatorId: userId },
-      _sum: { commentCount: true },
-    });
-    const totalComments = commentsResult._sum.commentCount || 0;
-
-    // 获取平均视频评分
-    const videos = await this.prisma.video.findMany({
-      where: { creatorId: userId },
-      select: {
-        contentAccuracy: {
-          select: {
-            overallRating: true,
+    // 获取视频相关统计
+    const [videos, subscribers] = await Promise.all([
+      this.prisma.video.findMany({
+        where: { creatorId: userId },
+        include: {
+          _count: {
+            select: {
+              views: true,
+              likes: true,
+              comments: true,
+            },
+          },
+          contentAccuracy: {
+            select: {
+              overallRating: true,
+            },
           },
         },
-      },
-    }) as VideoWithContentAccuracy[];
+      }),
+      this.prisma.subscription.count({
+        where: { creatorId: userId },
+      }),
+    ]);
 
+    // 计算统计数据
+    const totalVideos = videos.length;
+    const totalViews = videos.reduce((sum, video) => sum + video._count.views, 0);
+    const totalLikes = videos.reduce((sum, video) => sum + video._count.likes, 0);
+    const totalComments = videos.reduce((sum, video) => sum + video._count.comments, 0);
+    const totalSubscribers = subscribers;
+
+    // 计算平均视频评分
     const ratings = videos
-      .filter((v: VideoWithContentAccuracy) => v.contentAccuracy?.overallRating !== undefined)
-      .map((v: VideoWithContentAccuracy) => v.contentAccuracy!.overallRating);
+      .map((video) => video.contentAccuracy?.overallRating)
+      .filter((rating): rating is number => rating !== null && rating !== undefined);
+
     const averageVideoRating =
-      ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length : 0;
+      ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
 
     return {
       totalVideos,
